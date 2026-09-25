@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Sahagún — Pedidos · Inventario · Vínculos</title>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3.11.0/dist/email.min.js"></script>
 <style>
@@ -172,7 +172,6 @@
 </head>
 <body>
 
-<!-- LOGIN -->
 <div class="login-bg" id="loginBg" style="display:none;">
   <div class="login-card">
     <div class="logo">🎨</div>
@@ -209,7 +208,6 @@
   </div>
 </header>
 
-<!-- PEDIDO -->
 <div id="pestanaPedido">
   <div class="panel">
     <h3>1 · Catálogo (sube el PDF)</h3>
@@ -270,7 +268,6 @@
   </div>
 </div>
 
-<!-- INVENTARIO -->
 <div id="pestanaInventario" style="display:none;">
   <div class="panel">
     <h3>1 · Cargar inventario del sistema</h3>
@@ -314,7 +311,6 @@
   </div>
 </div>
 
-<!-- VINCULAR -->
 <div id="pestanaVincular" style="display:none;">
   <div class="panel">
     <h3>🔗 Vincular código de barras ↔ SKU</h3>
@@ -364,32 +360,24 @@
   </div>
 </div>
 
-<!-- BASE DE DATOS -->
 <div id="pestanaBaseDatos" style="display:none;">
   <div class="panel">
     <h3>📤 Subir archivos</h3>
-    <div class="ayuda">
-      Aquí puedes subir los archivos del sistema sin necesidad de tener acceso a Pedidos o Inventario.
-    </div>
+    <div class="ayuda">Aquí puedes subir los archivos del sistema sin acceso a Pedidos o Inventario.</div>
     <label class="small">📄 PDF de promociones</label>
     <input type="file" id="bdPdfInput" accept="application/pdf" onchange="procesarPDF(event)">
     <div id="bdInfoPdf" class="small" style="margin-top:4px;"></div>
-
     <label class="small" style="display:block; margin-top:12px;">📊 Excel de inventario del sistema</label>
     <input type="file" id="bdInvInput" accept=".xlsx,.xls,.csv" onchange="procesarInventario(event)">
     <div id="bdInfoInv" class="small" style="margin-top:4px;"></div>
   </div>
-
   <div class="panel">
     <h3>📊 Estadísticas</h3>
     <div class="inv-stats" id="bdStats"></div>
   </div>
-
   <div class="panel">
     <h3>✏️ Productos agregados manualmente (<span id="bdContManuales">0</span>)</h3>
-    <div class="ayuda">
-      Estos son productos que se dieron de alta manualmente. Puedes eliminarlos aquí.
-    </div>
+    <div class="ayuda">Productos dados de alta manualmente. Puedes eliminarlos aquí.</div>
     <input type="text" id="bdFiltroManuales" placeholder="Filtrar…" oninput="renderManuales()">
     <div class="tabla-scroll">
       <table id="tablaManuales">
@@ -400,7 +388,6 @@
   </div>
 </div>
 
-<!-- AJUSTES -->
 <div id="pestanaAjustes" style="display:none;">
   <div class="panel">
     <h3>👥 Usuarios</h3>
@@ -436,7 +423,6 @@
   </div>
 </div>
 
-<!-- MODALES -->
 <div class="modal-bg" id="modalCamara">
   <div class="modal"><h3>📷 Escanear</h3><div id="reader"></div>
     <button class="rojo" style="width:100%; margin-top:10px;" onclick="cerrarCamara()">Cancelar</button></div>
@@ -515,6 +501,42 @@
     <input type="text" id="busquedaRapida" placeholder="Busca SKU o descripción…" oninput="buscarVincularRapido()">
     <div id="resultadosRapido" style="max-height:280px; overflow-y:auto; margin-top:8px;"></div>
     <button class="rojo" style="width:100%; margin-top:10px;" onclick="cerrarVincularRapido()">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalImportarVinculos">
+  <div class="modal">
+    <h3>📥 Importar vínculos</h3>
+    <div style="background:#e3f2fd; padding:12px; border-radius:8px; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+        <span>📊 Actuales en este dispositivo:</span><b id="impTotalActual">0</b>
+      </div>
+      <div style="display:flex; justify-content:space-between;">
+        <span>📁 En el archivo:</span><b id="impTotalArchivo">0</b>
+      </div>
+    </div>
+    <p class="small" style="margin-bottom:10px;">¿Cómo quieres importarlos?</p>
+    <button class="verde" style="width:100%; text-align:left; padding:14px; margin-bottom:8px;"
+            onclick="ejecutarImportacion('fusionar')">
+      <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">🔀 FUSIONAR</div>
+      <div style="font-size:12px; font-weight:normal; opacity:.9;">
+        Mantiene los actuales y agrega los nuevos. <b>No duplica.</b><br>
+        Quedarán <b id="impResultFusionar">0</b> vínculos.
+      </div>
+    </button>
+    <button class="amarillo" style="width:100%; text-align:left; padding:14px; margin-bottom:8px;"
+            onclick="ejecutarImportacion('reemplazar')">
+      <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">🔄 REEMPLAZAR</div>
+      <div style="font-size:12px; font-weight:normal; opacity:.9;">
+        <b>Borra TODOS los actuales.</b> Solo quedan los del archivo.<br>
+        Quedarán <b id="impResultReemplazar">0</b> vínculos.
+      </div>
+    </button>
+    <button class="gris" style="width:100%; text-align:left; padding:14px;"
+            onclick="cerrarModalImportar()">
+      <div style="font-size:15px; font-weight:bold;">❌ CANCELAR</div>
+      <div style="font-size:12px; font-weight:normal; opacity:.9;">No hacer nada. Todo queda igual.</div>
+    </button>
   </div>
 </div>
 
@@ -600,7 +622,7 @@
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-const KEY_STATE   = 'sahagun_state_v14';
+const KEY_STATE   = 'sahagun_state_v15';
 const KEY_MAP     = 'sahagun_mappings_v3';
 const KEY_USERS   = 'sahagun_users_v1';
 const KEY_SESSION = 'sahagun_session_v1';
@@ -620,7 +642,7 @@ let productoSeleccionado = null;
 let ultimoProductoAgregado = null;
 let modo = 'pedido';
 let tabActual = 'pedido';
-let vinculos = {};       // { codigo: [ {sku, creadoPor, fecha}, ... ] }
+let vinculos = {};
 let codigoPendiente = null;
 let camaraOrigen = null;
 let html5QrCode = null;
@@ -637,12 +659,14 @@ let invResultados = [];
 let invIndiceSel = -1;
 let invProductoActual = null;
 let invUltimoSku = null;
+let elegirContexto = null;
+let importarVinculosPendiente = null;
 
 document.getElementById('fecha').value = new Date().toLocaleDateString('es-MX');
 
 /* ============ HASH ============ */
 function hashPassword(str) {
-  const sal = 'sahagun_v14_salt';
+  const sal = 'sahagun_v15_salt';
   const s = sal + str + sal;
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
   for (let k = 0; k < 500; k++) {
@@ -707,7 +731,6 @@ async function probarEmailJS() {
 function inicializarUsuarios() {
   const raw = localStorage.getItem(KEY_USERS);
   if (raw) { try { usuarios = JSON.parse(raw); } catch(e) { usuarios = {}; } }
-  // Migrar: agregar permiso baseDatos
   Object.keys(usuarios).forEach(u => {
     if (!usuarios[u].permisos) usuarios[u].permisos = {};
     if (typeof usuarios[u].permisos.baseDatos === 'undefined') {
@@ -1052,7 +1075,7 @@ function cambiarMiPassword() {
 
 /* ============ RESPALDO ============ */
 function exportarRespaldo() {
-  const data = { version: 9, exportado: new Date().toISOString(),
+  const data = { version: 10, exportado: new Date().toISOString(),
     productos, productosManuales, pedido, vinculos, usuarios, configEmailJS,
     inventarioBase, inventarioConteo, tienda: document.getElementById('tienda').value };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1129,18 +1152,25 @@ function toast(msg, tipo) {
   window._toastT = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-/* ============ VÍNCULOS: NUEVA ESTRUCTURA (array) ============ */
-/* vinculos = { codigo: [ {sku, creadoPor, fecha}, ... ] } */
+/* ============ *** FÓRMULA DE DIFERENCIA (NUEVA) *** ============ */
+function calcularDif(system, contado) {
+  // Si el sistema dice negativo (faltan piezas), las que se encuentren se restan a lo que falta
+  // Ej: system=-24, contado=3 → -21 (faltan 21)
+  if (system < 0) return system + contado;
+  // Si es positivo o cero, es la resta normal
+  return contado - system;
+}
+/* *** FIN *** */
+
+/* ============ VÍNCULOS ============ */
 function migrarVinculos() {
   Object.keys(vinculos).forEach(cod => {
     const v = vinculos[cod];
     if (typeof v === 'string') {
       vinculos[cod] = [{ sku: v, creadoPor: '—', fecha: null }];
     } else if (v && typeof v === 'object' && !Array.isArray(v) && v.sku) {
-      // Formato v13: { sku, creadoPor, fecha }
       vinculos[cod] = [{ sku: v.sku, creadoPor: v.creadoPor || '—', fecha: v.fecha || null }];
     } else if (Array.isArray(v)) {
-      // Ya es array, normalizar cada elemento
       vinculos[cod] = v.map(item => {
         if (typeof item === 'string') return { sku: item, creadoPor: '—', fecha: null };
         return { sku: item.sku, creadoPor: item.creadoPor || '—', fecha: item.fecha || null };
@@ -1175,7 +1205,6 @@ function fmtFecha(iso) {
   } catch(e) { return '—'; }
 }
 
-/* ============ BUSCAR PRODUCTO POR SKU ============ */
 function buscarProductoPorSku(sku) {
   if (!sku) return null;
   const s = sku.toUpperCase();
@@ -1260,8 +1289,10 @@ async function procesarPDF(event) {
   const loader = document.getElementById('loader');
   const info = document.getElementById('infoCat');
   const diag = document.getElementById('diag');
+  const bdInfoPdf = document.getElementById('bdInfoPdf');
   loader.style.display = 'block';
   info.textContent = ''; diag.textContent = '';
+  if (bdInfoPdf) bdInfoPdf.textContent = '';
   document.getElementById('avisoGuardado').style.display = 'none';
   document.getElementById('btnOlvidarWrap').style.display = 'none';
   productos = [];
@@ -1298,6 +1329,7 @@ async function procesarPDF(event) {
     loader.style.display = 'none';
     info.innerHTML = `✔ <b>${productos.length}</b> productos · ${totalPag} páginas`;
     diag.textContent = `${linTot} líneas · ${linSinSKU} sin SKU · ${linSinPrecio} sin precio · ${pagErr} errores`;
+    if (bdInfoPdf) bdInfoPdf.innerHTML = `✔ <b>${productos.length}</b> productos cargados`;
     if (!productos.length) alert('No se detectaron productos.');
     else {
       guardarEstado();
@@ -1472,7 +1504,7 @@ function renderBaseDatosStats() {
   const totalPDF = productos.length;
   const totalInv = inventarioBase.length;
   const totalManual = productosManuales.length;
-  const totalVinc = Object.keys(vinculos).length;
+  const totalVinc = contarVinculos();
   const totalContados = Object.keys(inventarioConteo).length;
   el.innerHTML = `
     <div class="inv-stat ${totalPDF ? 'ok' : ''}"><div class="num">${totalPDF}</div><div class="lbl">PDF promo</div></div>
@@ -1500,7 +1532,7 @@ function renderManuales() {
       <td class="small">${p.descripcion || ''}</td>
       <td class="small">@${p.creadoPor || '—'}</td>
       <td class="small">${fmtFecha(p.fecha)}</td>
-      <td><button class="rojo" style="padding:6px 10px; font-size:12px;" onclick="eliminarManual('${p.sku}')">🗑</button></td>
+      <td><button class="rojo" style="padding:6px 10px; font-size:12px;" onclick="eliminarManual('${p.sku.replace(/'/g, "\\'")}')">🗑</button></td>
     </tr>`).join('');
 }
 function eliminarManual(sku) {
@@ -1558,13 +1590,11 @@ function invTeclaBusqueda(e) {
       return;
     }
     const c = q.toUpperCase();
-    // ¿Es un código vinculado?
     const items = skusDeCodigo(c);
     if (items.length === 1) {
       const p = inventarioBase.find(x => x.sku.toUpperCase() === items[0].sku.toUpperCase());
       if (p) { inp.value = ''; abrirModalConteo(p); return; }
     } else if (items.length > 1) {
-      // Filtrar los que existen en inventario
       const candidatos = [];
       items.forEach(it => {
         const p = inventarioBase.find(x => x.sku.toUpperCase() === it.sku.toUpperCase());
@@ -1573,7 +1603,6 @@ function invTeclaBusqueda(e) {
       if (candidatos.length === 1) { inp.value = ''; abrirModalConteo(candidatos[0]); return; }
       if (candidatos.length > 1) { inp.value = ''; mostrarElegirProducto(c, candidatos, 'inventario'); return; }
     }
-    // SKU directo
     let p = inventarioBase.find(x => x.sku.toUpperCase() === c);
     if (p) { inp.value = ''; abrirModalConteo(p); return; }
     if (invResultados.length && invIndiceSel >= 0) { invSeleccionar(invIndiceSel); return; }
@@ -1647,7 +1676,7 @@ function renderInventario() {
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   rows.forEach(p => {
     const c = inventarioConteo[p.sku];
-    const d = c - p.exis;
+    const d = calcularDif(p.exis, c);  // ← NUEVA FÓRMULA
     if (d > 0) sobrantes++; else if (d < 0) faltantes++; else cuadran++;
     if (p.exis < 0) negEnSistema++;
     totalDifMxn += d * (p.precio || 0);
@@ -1673,7 +1702,7 @@ function renderInventario() {
   }
   tb.innerHTML = visibles.map(p => {
     const c = inventarioConteo[p.sku];
-    const d = c - p.exis;
+    const d = calcularDif(p.exis, c);  // ← NUEVA FÓRMULA
     const difMxn = d * (p.precio || 0);
     let claseRow = d > 0 ? 'sobrante' : (d < 0 ? 'faltante' : 'ok-row');
     if (p.exis < 0) claseRow = 'negativo';
@@ -1700,6 +1729,8 @@ function limpiarConteo() {
   renderBaseDatosStats();
   toast('🗑');
 }
+
+/* *** EXPORTAR INVENTARIO CON COLORES *** */
 function exportarInventario() {
   if (!Object.keys(inventarioConteo).length) { alert('No has contado nada.'); return; }
   const aoa = [];
@@ -1712,15 +1743,15 @@ function exportarInventario() {
   let totalDifMxn = 0, totalDifPz = 0;
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   rows.sort((a, b) => {
-    const da = inventarioConteo[a.sku] - a.exis;
-    const db = inventarioConteo[b.sku] - b.exis;
+    const da = calcularDif(a.exis, inventarioConteo[a.sku]);
+    const db = calcularDif(b.exis, inventarioConteo[b.sku]);
     if (a.exis < 0 && b.exis >= 0) return -1;
     if (b.exis < 0 && a.exis >= 0) return 1;
     return da - db;
   });
   rows.forEach(p => {
     const c = inventarioConteo[p.sku];
-    const d = c - p.exis;
+    const d = calcularDif(p.exis, c);  // ← NUEVA FÓRMULA
     const difMxn = d * (p.precio || 0);
     totalDifMxn += difMxn;
     totalDifPz += d;
@@ -1728,8 +1759,37 @@ function exportarInventario() {
   });
   aoa.push([]);
   aoa.push(['', '', '', 'TOTALES', totalDifPz, '', totalDifMxn]);
+
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = [{ wch: 18 }, { wch: 45 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
+
+  // *** APLICAR COLORES a las columnas "Diferencia" (E) y "Dif $" (G) ***
+  // Encabezados en fila 6 (índice 5 en 0-based, en Excel es fila 6)
+  // Datos empiezan en fila 7 (índice 6 en 0-based)
+  const inicioDatos = 7; // fila Excel 1-based
+  for (let i = 0; i < rows.length; i++) {
+    const filaExcel = inicioDatos + i;
+    const p = rows[i];
+    const c = inventarioConteo[p.sku];
+    const d = calcularDif(p.exis, c);
+    const celdaE = 'E' + filaExcel;
+    const celdaG = 'G' + filaExcel;
+    if (d > 0) {
+      // Positivo → verde
+      ws[celdaE] = ws[celdaE] || {};
+      ws[celdaG] = ws[celdaG] || {};
+      ws[celdaE].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
+      ws[celdaG].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
+    } else if (d < 0) {
+      // Negativo → rojo
+      ws[celdaE] = ws[celdaE] || {};
+      ws[celdaG] = ws[celdaG] || {};
+      ws[celdaE].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
+      ws[celdaG].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
+    }
+    // Si d === 0, no aplicar color
+  }
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
   const tienda = document.getElementById('tienda').value || 'SAHAGUN';
@@ -1737,6 +1797,7 @@ function exportarInventario() {
   XLSX.writeFile(wb, `inventario_${tienda}_${fecha}.xlsx`);
   toast('📥 Descargado');
 }
+/* *** FIN *** */
 
 /* ============ CÁMARA ============ */
 function abrirCamara(origen) {
@@ -1783,9 +1844,8 @@ function procesarCodigoInv(codigo) {
     });
     if (candidatos.length === 1) { abrirModalConteo(candidatos[0]); return; }
     if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, 'inventario'); return; }
-    toast('⚠️ Ninguno de los SKUs vinculados está en el inventario', 'error'); return;
+    toast('⚠️ Ninguno de los SKUs vinculados está en inventario', 'error'); return;
   }
-  // SKU directo
   const p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
   if (p) { abrirModalConteo(p); return; }
   toast('❌ No está en inventario: ' + codigo, 'error');
@@ -1795,49 +1855,26 @@ function procesarCodigoInv(codigo) {
 function procesarCodigoEnPedido(codigo) {
   const c = String(codigo).toUpperCase().trim();
   if (!c) return;
-
-  // 1) ¿Está vinculado a 1 o varios?
   const items = skusDeCodigo(c);
   if (items.length === 1) {
     const p = buscarProductoPorSku(items[0].sku);
-    if (p) {
-      document.getElementById('busqueda').value = '';
-      abrirModalCantidad(p);
-      return;
-    }
+    if (p) { document.getElementById('busqueda').value = ''; abrirModalCantidad(p); return; }
     toast('⚠️ El SKU vinculado no existe: ' + items[0].sku, 'error');
     return;
   }
   if (items.length > 1) {
-    // Filtrar solo los que existen
     const candidatos = [];
     items.forEach(it => {
       const p = buscarProductoPorSku(it.sku);
       if (p) candidatos.push(p);
     });
-    if (candidatos.length === 1) {
-      document.getElementById('busqueda').value = '';
-      abrirModalCantidad(candidatos[0]);
-      return;
-    }
-    if (candidatos.length > 1) {
-      document.getElementById('busqueda').value = '';
-      mostrarElegirProducto(c, candidatos, 'pedido');
-      return;
-    }
-    toast('⚠️ Ninguno de los SKUs vinculados existe en el catálogo', 'error');
+    if (candidatos.length === 1) { document.getElementById('busqueda').value = ''; abrirModalCantidad(candidatos[0]); return; }
+    if (candidatos.length > 1) { document.getElementById('busqueda').value = ''; mostrarElegirProducto(c, candidatos, 'pedido'); return; }
+    toast('⚠️ Ninguno de los SKUs vinculados existe', 'error');
     return;
   }
-
-  // 2) ¿Es un SKU directo?
   const p = buscarProductoPorSku(c);
-  if (p) {
-    document.getElementById('busqueda').value = '';
-    abrirModalCantidad(p);
-    return;
-  }
-
-  // 3) No encontrado
+  if (p) { document.getElementById('busqueda').value = ''; abrirModalCantidad(p); return; }
   document.getElementById('busqueda').value = '';
   document.getElementById('resultados').innerHTML = '';
   resultadosActuales = []; indiceSel = -1;
@@ -1846,9 +1883,6 @@ function procesarCodigoEnPedido(codigo) {
   toast('❌ No encontrado: ' + c, 'error');
 }
 
-/* ============ MODAL ELEGIR PRODUCTO (código con varios SKUs) ============ */
-let elegirContexto = null; // 'pedido' | 'inventario'
-
 function mostrarElegirProducto(codigo, productosArr, contexto) {
   elegirContexto = contexto;
   document.getElementById('elegirCodigo').textContent = codigo;
@@ -1856,7 +1890,7 @@ function mostrarElegirProducto(codigo, productosArr, contexto) {
   const cont = document.getElementById('elegirOpciones');
   cont.innerHTML = productosArr.map(p => {
     const exist = getExistencias(p.sku);
-    const existTxt = (exist !== null) ? `Exist: ${exist}` : 'Sin datos de existencia';
+    const existTxt = (exist !== null) ? `Exist: ${exist}` : 'Sin datos';
     return `<div class="opcion-producto" onclick="elegirProductoDeLista('${p.sku.replace(/'/g, "\\'")}')">
       <div class="sku">📦 ${p.sku}</div>
       <div class="desc">${p.descripcion || ''}</div>
@@ -1945,9 +1979,7 @@ function teclaBusqueda(e) {
     e.preventDefault();
     const q = document.getElementById('busqueda').value.trim();
     if (!q) {
-      if (ultimoProductoAgregado) {
-        abrirModalCantidad(ultimoProductoAgregado);
-      }
+      if (ultimoProductoAgregado) { abrirModalCantidad(ultimoProductoAgregado); }
       return;
     }
     procesarCodigoEnPedido(q);
@@ -2152,7 +2184,6 @@ function capturarCodigo() {
   document.getElementById('bannerCodigoNuevo').classList.remove('show');
   const items = skusDeCodigo(codigo);
   if (items.length > 0) {
-    // Mostrar los existentes y permitir AGREGAR más
     const listaHTML = items.map(it => {
       const prod = buscarProductoPorSku(it.sku);
       return `<div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:8px; border-radius:6px; margin-top:4px;">
@@ -2179,7 +2210,6 @@ function capturarCodigo() {
     codigoPendiente = null;
     return;
   }
-  // Código nuevo: pedir SKU
   document.getElementById('bannerCodigoNuevo').classList.add('show');
   codigoPendiente = codigo;
   document.getElementById('codigoCapturado').textContent = codigo;
@@ -2207,7 +2237,6 @@ function quitarSkuDeCodigo(codigo, sku) {
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   guardarEstado();
   renderVinculos();
-  // Recargar el banner
   document.getElementById('inputCodigo').value = codigo;
   capturarCodigo();
   toast('🗑 Quitado');
@@ -2273,12 +2302,10 @@ function guardarVinculo(sku) {
      <div style="font-size:18px; margin:8px 0;">${codigo}</div>
      <div style="opacity:.8; font-size:13px;">AGREGADO A</div>
      <div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>
-     ${prod ? '<div style="font-size:12px; opacity:.9;">' + prod.descripcion + '</div>' : ''}
-     <div style="font-size:12px; opacity:.9; margin-top:8px;">Por: ${usuarioLogueado}</div>`;
+     ${prod ? '<div style="font-size:12px; opacity:.9;">' + prod.descripcion + '</div>' : ''}`;
   document.getElementById('exitoFullscreen').classList.add('show');
   setTimeout(() => {
     document.getElementById('exitoFullscreen').classList.remove('show');
-    // Dejar el CÓDIGO en el input seleccionado, listo para escanear el siguiente
     const inp = document.getElementById('inputCodigo');
     inp.value = codigo;
     document.getElementById('bannerCodigoNuevo').classList.remove('show');
@@ -2292,7 +2319,6 @@ function guardarVinculo(sku) {
 function renderVinculos() {
   const tb = document.querySelector('#tablaVinculos tbody');
   const filtro = (document.getElementById('filtroVinculos').value || '').toLowerCase().trim();
-  // Aplanar: una fila por cada relación codigo-sku
   const filas = [];
   Object.entries(vinculos).forEach(([cod, arr]) => {
     const lista = Array.isArray(arr) ? arr : (typeof arr === 'string' ? [{ sku: arr }] : [arr]);
@@ -2343,6 +2369,33 @@ function borrarVinculo(codigo, sku) {
   renderVinculos();
   toast('🗑');
 }
+function contarVinculos(obj) {
+  const fuente = obj || vinculos;
+  let n = 0;
+  Object.values(fuente).forEach(arr => {
+    const lista = Array.isArray(arr) ? arr : (typeof arr === 'string' ? [arr] : [arr]);
+    n += lista.length;
+  });
+  return n;
+}
+function fusionarVinculos(actual, nuevos) {
+  const out = {};
+  Object.entries(actual).forEach(([cod, arr]) => {
+    const lista = Array.isArray(arr) ? arr : (typeof arr === 'string' ? [{ sku: arr }] : [arr]);
+    out[cod] = lista.map(item => {
+      if (typeof item === 'string') return { sku: item, creadoPor: '—', fecha: null };
+      return { sku: item.sku, creadoPor: item.creadoPor || '—', fecha: item.fecha || null };
+    });
+  });
+  Object.entries(nuevos).forEach(([cod, arr]) => {
+    if (!out[cod]) out[cod] = [];
+    arr.forEach(item => {
+      const yaExiste = out[cod].some(x => (x.sku || x).toUpperCase() === item.sku.toUpperCase());
+      if (!yaExiste) out[cod].push(item);
+    });
+  });
+  return out;
+}
 function exportarVinculos() {
   if (!Object.keys(vinculos).length) { alert('Sin vínculos.'); return; }
   const data = { version: 3, exportado: new Date().toISOString(), vinculos };
@@ -2384,17 +2437,51 @@ function importarVinculos(event) {
     try {
       const data = JSON.parse(e.target.result);
       const nuevos = data.vinculos || data;
-      const total = Object.keys(nuevos).length;
-      const fusionar = confirm(`${total} vínculos.\n\n• Aceptar = FUSIONAR\n• Cancelar = REEMPLAZAR`);
-      vinculos = fusionar ? { ...vinculos, ...nuevos } : { ...nuevos };
-      migrarVinculos();
-      localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
-      guardarEstado();
-      renderVinculos();
-      toast(`✔ ${total}`);
+      if (!nuevos || typeof nuevos !== 'object') throw new Error('Formato inválido');
+      const nuevosNorm = {};
+      Object.entries(nuevos).forEach(([cod, val]) => {
+        const lista = Array.isArray(val) ? val : (typeof val === 'string' ? [{ sku: val }] : [val]);
+        nuevosNorm[cod] = lista.map(item => {
+          if (typeof item === 'string') return { sku: item, creadoPor: '—', fecha: null };
+          return { sku: item.sku, creadoPor: item.creadoPor || '—', fecha: item.fecha || null };
+        });
+      });
+      importarVinculosPendiente = nuevosNorm;
+      const totalActual = contarVinculos();
+      const totalArchivo = contarVinculos(nuevosNorm);
+      const fusionado = fusionarVinculos(vinculos, nuevosNorm);
+      const totalFusionado = contarVinculos(fusionado);
+      document.getElementById('impTotalActual').textContent = totalActual;
+      document.getElementById('impTotalArchivo').textContent = totalArchivo;
+      document.getElementById('impResultFusionar').textContent = totalFusionado;
+      document.getElementById('impResultReemplazar').textContent = totalArchivo;
+      document.getElementById('modalImportarVinculos').classList.add('activo');
     } catch (err) { alert('Error: ' + err.message); }
   };
   reader.readAsText(file);
+}
+function ejecutarImportacion(modo) {
+  if (!importarVinculosPendiente) return;
+  const nuevos = importarVinculosPendiente;
+  if (modo === 'fusionar') {
+    vinculos = fusionarVinculos(vinculos, nuevos);
+    toast('✔ Vínculos fusionados');
+  } else if (modo === 'reemplazar') {
+    vinculos = {};
+    Object.entries(nuevos).forEach(([cod, arr]) => {
+      vinculos[cod] = arr.map(item => ({ ...item }));
+    });
+    toast('✔ Vínculos reemplazados');
+  }
+  importarVinculosPendiente = null;
+  cerrarModalImportar();
+  localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
+  guardarEstado();
+  renderVinculos();
+}
+function cerrarModalImportar() {
+  document.getElementById('modalImportarVinculos').classList.remove('activo');
+  importarVinculosPendiente = null;
 }
 
 /* ============ PEDIDO RENDER ============ */
@@ -2488,7 +2575,6 @@ function arrancar() {
 }
 arrancar();
 
-/* ============ AUTO-AVANCE OTP ============ */
 document.addEventListener('DOMContentLoaded', () => {
   const inputs = document.querySelectorAll('#otpInputs input');
   inputs.forEach((inp, idx) => {
