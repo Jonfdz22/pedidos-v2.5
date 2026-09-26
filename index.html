@@ -3,17 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Sahagún — Pedidos · Inventario · Vínculos</title>
+<title>FC-Relma — Pedidos · Inventario · Vínculos</title>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3.11.0/dist/email.min.js"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent;}
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
          margin: 0; background:#eef2f7; color:#222; padding-bottom:80px;}
   
-  /* ============ HEADER NUEVO ============ */
   header { background:#1a3a6b; color:white; position:sticky; top:0; z-index:50;
            box-shadow:0 2px 6px rgba(0,0,0,.15);}
   .header-top { display:flex; justify-content:space-between; align-items:center; padding:10px 14px;}
@@ -21,19 +20,20 @@
                 display:flex; flex-direction:column; align-items:flex-start; padding:4px 8px;
                 border-radius:6px; transition:background .15s;}
   .header-btn:active { background:rgba(255,255,255,.15);}
-  .header-btn .linea1 { font-size:15px; font-weight:bold; display:flex; align-items:center; gap:6px;}
-  .header-btn .linea2 { font-size:11px; opacity:.8; margin-top:2px; padding-left:2px;}
+  .header-btn .linea1 { font-size:14px; font-weight:bold; display:flex; align-items:center; gap:6px;}
+  .header-btn .linea2 { font-size:15px; font-weight:bold; margin-top:3px; padding-left:2px;
+                        color:#ffe082; letter-spacing:.5px;}
   .header-right { align-items:flex-end; }
+  .header-right .linea1 { font-size:14px; }
   .header-right .linea2 { padding-right:2px; }
   .tabs-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; background:rgba(0,0,0,.15);}
   .tabs-scroll::-webkit-scrollbar { display:none;}
-  .tabs { display:flex; gap:2px; padding:0 10px 0 10px; min-width:max-content;}
+  .tabs { display:flex; gap:2px; padding:0 10px; min-width:max-content;}
   .tab { background:transparent; color:white; border:none; padding:10px 14px; border-radius:0;
          font-size:13px; font-weight:bold; cursor:pointer; white-space:nowrap;
          border-bottom:3px solid transparent;}
   .tab.activo { border-bottom-color:white; background:rgba(255,255,255,.1);}
   
-  /* ============ MENÚS DESPLEGABLES ============ */
   .dropdown-menu { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5);
                    z-index:200; display:none; align-items:flex-start; justify-content:center;}
   .dropdown-menu.activo { display:flex;}
@@ -58,6 +58,9 @@
   .dropdown-user-header .nombre { font-weight:bold; color:#1a3a6b; font-size:16px;}
   .dropdown-user-header .usuario { font-family:monospace; color:#666; font-size:12px; margin-top:2px;}
   .dropdown-user-header .correo { font-size:12px; color:#666; margin-top:4px;}
+  
+  .modal-pass-input { width:100%; font-size:18px; padding:14px; text-align:center;
+                      border:2px solid #1a5fbf; border-radius:8px; margin-top:10px; font-weight:bold;}
   
   .panel { background:white; margin:10px; padding:14px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,.08);}
   h3 { margin:0 0 10px 0; color:#1a3a6b; font-size:15px;}
@@ -101,8 +104,8 @@
   .modal-bg.activo { display:flex;}
   .modal { background:white; border-radius:12px; padding:20px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; position:relative;}
   .cant-grande { font-size:28px; text-align:center; font-weight:bold; padding:12px; width:100%; }
-  #reader { width:100%; border-radius:10px; overflow:hidden; background:#000; min-height:220px;}
-  #reader video { width:100% !important; height:auto !important; }
+  #reader { width:100%; border-radius:10px; overflow:hidden; background:#000; min-height:220px; position:relative;}
+  #reader video { width:100% !important; height:auto !important; max-height:70vh; object-fit:cover; background:#000; display:block;}
   .progreso { font-size:12px; color:#1a5fbf; font-weight:bold; margin-top:6px;}
   .diag { font-size:11px; color:#888; margin-top:4px;}
   .aviso-guardado { background:#fff8e1; color:#7a5a00; padding:6px 10px; border-radius:6px;
@@ -163,6 +166,9 @@
   .permiso-check { display:flex; align-items:center; gap:8px; padding:8px;
                    background:#f5f5f5; border-radius:6px; margin:4px 0; cursor:pointer;}
   .permiso-check input { width:auto; transform:scale(1.3); }
+  .sucursal-check { display:flex; align-items:center; gap:8px; padding:8px;
+                    background:#f5f5f5; border-radius:6px; margin:4px 0; cursor:pointer;}
+  .sucursal-check input { width:auto; transform:scale(1.3); }
   .otp-input { display:flex; gap:8px; justify-content:center; margin:16px 0; }
   .otp-input input { width:48px; height:56px; text-align:center; font-size:24px; font-weight:bold;
                      border:2px solid #ccc; border-radius:8px; padding:0; }
@@ -181,6 +187,8 @@
                   border-radius:10px; font-size:10px; font-weight:bold; margin-left:4px;}
   .chip-pending { display:inline-block; background:#e67e22; color:white; padding:2px 8px;
                   border-radius:10px; font-size:10px; font-weight:bold; margin-left:4px;}
+  .chip-time { display:inline-block; background:#e3f2fd; color:#1a3a6b; padding:2px 6px;
+               border-radius:10px; font-size:10px; margin-left:4px; font-family:monospace;}
   .modal-cant-header { background:#f0f7ff; padding:12px; border-radius:8px; margin-bottom:12px;
                        border-left:4px solid #1a5fbf; }
   .modal-cant-sku { font-weight:bold; font-size:15px; color:#1a3a6b; }
@@ -192,6 +200,7 @@
   .pill-manual { background:#f0f0f0; color:#555; border:1px solid #999;}
   .pill-existencias { background:#e8f5e9; color:#0d4d26; border:1px solid #1e8449;}
   .pill-sin-datos { background:#fff3e0; color:#7a3d00; border:1px solid #e67e22;}
+  .pill-snapshot { background:#f3e5f5; color:#4a148c; border:1px solid #8e24aa;}
   .hint-scan { background:#fff3e0; padding:8px 10px; border-radius:6px; font-size:12px; color:#7a3d00;
                margin-top:8px; border-left:3px solid #e67e22;}
   .opcion-producto { background:#f0f7ff; padding:12px; border-radius:8px; margin:8px 0;
@@ -207,9 +216,6 @@
   .sucursal-row .nombre { font-weight:bold; color:#1a3a6b; }
   .sucursal-row .abrev { font-size:11px; color:#888; font-family:monospace; }
   .sucursal-row .acciones { display:flex; gap:6px;}
-  .sucursal-check { display:flex; align-items:center; gap:8px; padding:8px;
-                    background:#f5f5f5; border-radius:6px; margin:4px 0; cursor:pointer;}
-  .sucursal-check input { width:auto; transform:scale(1.3); }
   @media(min-width:700px){
     body { max-width:900px; margin:0 auto; padding-bottom:20px;}
     .acciones-fijas { position:static; margin:10px; box-shadow:0 2px 6px rgba(0,0,0,.08); border-radius:10px;}
@@ -219,11 +225,10 @@
 </head>
 <body>
 
-<!-- ============ LOGIN ============ -->
 <div class="login-bg" id="loginBg" style="display:none;">
   <div class="login-card">
     <div class="logo">🎨</div>
-    <h1 id="loginTituloEmpresa">Sahagún</h1>
+    <h1 id="loginTituloEmpresa">FC-Relma</h1>
     <div class="sub">Pedidos · Inventario · Vínculos</div>
     <label>Usuario</label>
     <input type="text" id="loginUsuario" placeholder="tu usuario">
@@ -240,18 +245,17 @@
   </div>
 </div>
 
-<!-- ============ APP ============ -->
 <div id="app" style="display:none;">
 
 <header>
   <div class="header-top">
     <button class="header-btn" onclick="abrirMenuSucursal()">
-      <div class="linea1">📋 <span id="headerEmpresa">Sahagún</span> ▼</div>
+      <div class="linea1">📋 <span id="headerEmpresa">FC-Relma</span> ▼</div>
       <div class="linea2" id="headerSucursal">SAHAGUN</div>
     </button>
     <button class="header-btn header-right" onclick="abrirMenuUsuario()">
       <div class="linea1">👤 <span id="usuarioActualHeader">—</span> ▼</div>
-      <div class="linea2" id="headerSucursalUsuario">—</div>
+      <div class="linea2" id="headerSucursalUsuario">SAHAGUN</div>
     </button>
   </div>
   <div class="tabs-scroll">
@@ -265,7 +269,6 @@
   </div>
 </header>
 
-<!-- ============ MENÚ SUCURSAL ============ -->
 <div class="dropdown-menu" id="menuSucursal" onclick="if(event.target===this)cerrarMenuSucursal()">
   <div class="dropdown-content">
     <div class="dropdown-header">
@@ -276,7 +279,6 @@
   </div>
 </div>
 
-<!-- ============ MENÚ USUARIO ============ -->
 <div class="dropdown-menu" id="menuUsuario" onclick="if(event.target===this)cerrarMenuUsuario()">
   <div class="dropdown-content">
     <div class="dropdown-header">
@@ -299,7 +301,6 @@
   </div>
 </div>
 
-<!-- ============ PESTAÑA PEDIDO ============ -->
 <div id="pestanaPedido">
   <div class="panel">
     <h3>1 · Catálogo (sube el PDF)</h3>
@@ -360,7 +361,6 @@
   </div>
 </div>
 
-<!-- ============ PESTAÑA INVENTARIO ============ -->
 <div id="pestanaInventario" style="display:none;">
   <div class="panel">
     <h3>1 · Cargar inventario del sistema (<span id="invSucursalNombre"></span>)</h3>
@@ -370,6 +370,7 @@
     </div>
     <input type="file" id="invFileInput" accept=".xlsx,.xls,.csv" onchange="procesarInventario(event)">
     <div id="invInfo" class="small" style="margin-top:8px;"></div>
+    <div id="invSnapshotInfo" class="small" style="margin-top:4px;"></div>
     <div id="invBtnOlvidarWrap" style="margin-top:8px; display:none;">
       <button class="gris" style="font-size:12px; padding:6px 10px;" onclick="olvidarInventario()">🗑 Olvidar inventario de esta sucursal</button>
     </div>
@@ -405,13 +406,10 @@
   </div>
 </div>
 
-<!-- ============ PESTAÑA VINCULAR ============ -->
 <div id="pestanaVincular" style="display:none;">
   <div class="panel">
     <h3>🔗 Vincular código de barras ↔ SKU</h3>
-    <div class="ayuda">
-      Los vínculos son <b>globales</b> — compartidos entre todas las sucursales.
-    </div>
+    <div class="ayuda">Los vínculos son <b>globales</b> — compartidos entre todas las sucursales.</div>
     <div class="paso">
       <div style="margin-bottom:8px;">
         <span class="paso-num">1</span><b>Escanea o escribe el código</b>
@@ -455,7 +453,6 @@
   </div>
 </div>
 
-<!-- ============ PESTAÑA BASE DE DATOS ============ -->
 <div id="pestanaBaseDatos" style="display:none;">
   <div class="panel">
     <h3>📤 Subir archivos</h3>
@@ -484,7 +481,6 @@
   </div>
 </div>
 
-<!-- ============ PESTAÑA AJUSTES ============ -->
 <div id="pestanaAjustes" style="display:none;">
   <div class="panel">
     <h3>👥 Usuarios</h3>
@@ -500,7 +496,7 @@
     <h3>🏬 Nombre de la empresa</h3>
     <p class="small">Este nombre aparece en el login y en el header.</p>
     <div class="fila">
-      <input type="text" id="cfgEmpresaNombre" placeholder="Sahagún">
+      <input type="text" id="cfgEmpresaNombre" placeholder="FC-Relma">
       <button class="verde" onclick="guardarNombreEmpresa()">💾</button>
     </div>
   </div>
@@ -533,7 +529,6 @@
   </div>
 </div>
 
-<!-- ============ MODALES ============ -->
 <div class="modal-bg" id="modalCamara">
   <div class="modal"><h3>📷 Escanear</h3><div id="reader"></div>
     <button class="rojo" style="width:100%; margin-top:10px;" onclick="cerrarCamara()">Cancelar</button></div>
@@ -623,19 +618,61 @@
       </div>
     </div>
     <button class="verde" style="width:100%; text-align:left; padding:14px; margin-bottom:8px;"
-            onclick="ejecutarImportacion('fusionar')">
+            onclick="solicitarImportacion('fusionar')">
       <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">🔀 FUSIONAR</div>
       <div style="font-size:12px; opacity:.9;">No duplica. Quedarán <b id="impResultFusionar">0</b> vínculos.</div>
     </button>
     <button class="amarillo" style="width:100%; text-align:left; padding:14px; margin-bottom:8px;"
-            onclick="ejecutarImportacion('reemplazar')">
+            onclick="solicitarImportacion('reemplazar')">
       <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">🔄 REEMPLAZAR</div>
-      <div style="font-size:12px; opacity:.9;">Borra todos. Quedarán <b id="impResultReemplazar">0</b>.</div>
+      <div style="font-size:12px; opacity:.9;">Borra todos. Pide contraseña.</div>
     </button>
     <button class="gris" style="width:100%; text-align:left; padding:14px;"
             onclick="cerrarModalImportar()">
       <div style="font-size:15px; font-weight:bold;">❌ CANCELAR</div>
     </button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalConfirmarPass">
+  <div class="modal">
+    <h3 id="confirmarPassTitulo">🔐 Confirmar</h3>
+    <div id="confirmarPassMensaje" class="ayuda"></div>
+    <label class="small">Contraseña del administrador:</label>
+    <input type="password" id="confirmarPassInput" class="modal-pass-input"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarPassEjecutar();}">
+    <div id="confirmarPassError" class="login-error" style="text-align:center;"></div>
+    <div class="fila" style="margin-top:14px;">
+      <button class="verde" style="flex:1;" onclick="confirmarPassEjecutar()">✔ Confirmar</button>
+      <button class="gris" onclick="cerrarModalConfirmarPass()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalMiCuenta">
+  <div class="modal">
+    <h3>⚙️ Mi cuenta</h3>
+    <div id="miCuentaInfo"></div>
+
+    <hr style="border:none; border-top:1px solid #eee; margin:18px 0;">
+    <h4 style="margin:0 0 10px 0; color:#1a3a6b; font-size:14px;">🔑 Cambiar contraseña</h4>
+    <label class="small">Contraseña actual</label>
+    <input type="password" id="mcPassActual" autocomplete="current-password">
+    <label class="small" style="display:block; margin-top:10px;">Nueva contraseña</label>
+    <input type="password" id="mcPassNueva" autocomplete="new-password">
+    <label class="small" style="display:block; margin-top:10px;">Confirmar nueva</label>
+    <input type="password" id="mcPassConfirmar" autocomplete="new-password">
+    <button class="verde" style="width:100%; margin-top:10px;" onclick="cambiarMiContraseña()">💾 Cambiar contraseña</button>
+
+    <hr style="border:none; border-top:1px solid #eee; margin:18px 0;">
+    <h4 style="margin:0 0 10px 0; color:#1a3a6b; font-size:14px;">📧 Cambiar correo</h4>
+    <label class="small">Contraseña actual</label>
+    <input type="password" id="mcCorreoPass" autocomplete="current-password">
+    <label class="small" style="display:block; margin-top:10px;">Nuevo correo</label>
+    <input type="email" id="mcCorreoNuevo" autocomplete="email">
+    <button class="verde" style="width:100%; margin-top:10px;" onclick="cambiarMiCorreo()">💾 Cambiar correo</button>
+
+    <button class="gris" style="width:100%; margin-top:20px;" onclick="document.getElementById('modalMiCuenta').classList.remove('activo')">Cerrar</button>
   </div>
 </div>
 
@@ -674,31 +711,6 @@
       <button class="verde" style="flex:1;" onclick="guardarSucursal()">💾 Guardar</button>
       <button class="gris" onclick="cerrarModalSucursal()">Cancelar</button>
     </div>
-  </div>
-</div>
-
-<div class="modal-bg" id="modalMiPassword">
-  <div class="modal">
-    <h3>🔑 Cambiar mi contraseña</h3>
-    <label class="small">Actual</label><input type="password" id="mpActual">
-    <label class="small" style="display:block; margin-top:10px;">Nueva</label><input type="password" id="mpNueva">
-    <label class="small" style="display:block; margin-top:10px;">Confirmar</label><input type="password" id="mpConfirmar">
-    <div class="fila" style="margin-top:16px;">
-      <button class="verde" style="flex:1;" onclick="cambiarMiPassword()">💾 Guardar</button>
-      <button class="gris" onclick="document.getElementById('modalMiPassword').classList.remove('activo')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-bg" id="modalMiCuenta">
-  <div class="modal">
-    <h3>⚙️ Mi cuenta</h3>
-    <div id="miCuentaInfo"></div>
-    <div class="ayuda" style="margin-top:14px;">
-      🔜 <b>Próximamente:</b> cambiar contraseña y correo desde aquí (en la v16.2).
-    </div>
-    <button class="gris" style="width:100%; margin-top:14px;"
-            onclick="document.getElementById('modalMiCuenta').classList.remove('activo')">Cerrar</button>
   </div>
 </div>
 
@@ -750,20 +762,21 @@
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-const KEY_STATE   = 'sahagun_state_v16';
+const KEY_STATE   = 'sahagun_state_v16_3';
 const KEY_MAP     = 'sahagun_mappings_v3';
 const KEY_USERS   = 'sahagun_users_v2';
-const KEY_SESSION = 'sahagun_session_v1';
+const KEY_SESSION = 'sahagun_session_v2';
 const KEY_CFG     = 'sahagun_config_v2';
 const KEY_OTP     = 'sahagun_otp_v1';
-const KEY_INV     = 'sahagun_inventario_v16';
+const KEY_INV     = 'sahagun_inventario_v16_2';
 const KEY_MANUAL  = 'sahagun_manuales_v1';
 const KEY_SUCURSALES = 'sahagun_sucursales_v1';
-const KEY_EMPRESA = 'sahagun_empresa_v1';
+const KEY_EMPRESA = 'sahagun_empresa_v2';
 const SESION_DIAS = 7;
 const OTP_MINUTOS = 10;
 
-// Sucursales por defecto
+const EMPRESA_DEFAULT = 'FC-Relma';
+
 const SUCURSALES_DEFAULT = [
   { id: 'calpulalpan', nombre: 'CALPULALPAN', abrev: 'CALPULALPAN' },
   { id: 'sahagun',     nombre: 'SAHAGUN',     abrev: 'SAHAGUN' },
@@ -787,7 +800,6 @@ let tabActual = 'pedido';
 let vinculos = {};
 let codigoPendiente = null;
 let camaraOrigen = null;
-let html5QrCode = null;
 let codigoRapidoPendiente = null;
 let usuarios = {};
 let usuarioLogueado = null;
@@ -803,19 +815,26 @@ let invProductoActual = null;
 let invUltimoSku = null;
 let elegirContexto = null;
 let importarVinculosPendiente = null;
+let modoImportarPendiente = null;
 
-// NUEVO: Sucursales
 let sucursales = [];
-let sucursalActual = null;      // id de la sucursal activa
-let inventariosPorSucursal = {}; // { "sahagun": {base:[], conteo:{}}, ... }
-let nombreEmpresa = 'Sahagún';
+let sucursalActual = null;
+let inventariosPorSucursal = {};
+let nombreEmpresa = EMPRESA_DEFAULT;
 let modoEdicionSucursal = null;
+
+let _callbackConfirmPass = null;
+
+// Cámara
+let zxingReader = null;
+let camaraStream = null;
+let camaraLoop = null;
 
 document.getElementById('fecha').value = new Date().toLocaleDateString('es-MX');
 
 /* ============ HASH ============ */
 function hashPassword(str) {
-  const sal = 'sahagun_v16_salt';
+  const sal = 'sahagun_v16_3_salt';
   const s = sal + str + sal;
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
   for (let k = 0; k < 500; k++) {
@@ -830,6 +849,34 @@ function hashPassword(str) {
   const a = (h1 >>> 0).toString(16).padStart(8, '0');
   const b = (h2 >>> 0).toString(16).padStart(8, '0');
   return a + b + a + b;
+}
+
+/* ============ MODAL CONFIRMAR PASS ============ */
+function pedirConfirmacionPass(titulo, mensaje, callback) {
+  _callbackConfirmPass = callback;
+  document.getElementById('confirmarPassTitulo').textContent = titulo || '🔐 Confirmar acción';
+  document.getElementById('confirmarPassMensaje').innerHTML = mensaje || 'Se requiere contraseña para continuar.';
+  document.getElementById('confirmarPassInput').value = '';
+  document.getElementById('confirmarPassError').classList.remove('show');
+  document.getElementById('modalConfirmarPass').classList.add('activo');
+  setTimeout(() => document.getElementById('confirmarPassInput').focus(), 100);
+}
+function cerrarModalConfirmarPass() {
+  document.getElementById('modalConfirmarPass').classList.remove('activo');
+  _callbackConfirmPass = null;
+}
+function confirmarPassEjecutar() {
+  const pass = document.getElementById('confirmarPassInput').value;
+  if (!pass) { document.getElementById('confirmarPassError').textContent = 'Escribe la contraseña.'; document.getElementById('confirmarPassError').classList.add('show'); return; }
+  const u = usuarios[usuarioLogueado];
+  if (!u || hashPassword(pass) !== u.hash) {
+    document.getElementById('confirmarPassError').textContent = 'Contraseña incorrecta.';
+    document.getElementById('confirmarPassError').classList.add('show');
+    return;
+  }
+  const cb = _callbackConfirmPass;
+  cerrarModalConfirmarPass();
+  if (cb) setTimeout(cb, 100);
 }
 
 /* ============ SUCURSALES ============ */
@@ -849,12 +896,8 @@ function cargarSucursales() {
 function guardarSucursales() {
   try { localStorage.setItem(KEY_SUCURSALES, JSON.stringify(sucursales)); } catch(e) {}
 }
-function getSucursal(id) {
-  return sucursales.find(s => s.id === id) || null;
-}
-function getSucursalActual() {
-  return getSucursal(sucursalActual) || sucursales[0];
-}
+function getSucursal(id) { return sucursales.find(s => s.id === id) || null; }
+function getSucursalActual() { return getSucursal(sucursalActual) || sucursales[0]; }
 function cargarNombreEmpresa() {
   try {
     const n = localStorage.getItem(KEY_EMPRESA);
@@ -862,6 +905,7 @@ function cargarNombreEmpresa() {
   } catch(e) {}
   document.getElementById('headerEmpresa').textContent = nombreEmpresa;
   document.getElementById('loginTituloEmpresa').textContent = nombreEmpresa;
+  document.title = nombreEmpresa + ' — Pedidos · Inventario · Vínculos';
 }
 function guardarNombreEmpresa() {
   const n = document.getElementById('cfgEmpresaNombre').value.trim();
@@ -870,6 +914,7 @@ function guardarNombreEmpresa() {
   try { localStorage.setItem(KEY_EMPRESA, n); } catch(e) {}
   document.getElementById('headerEmpresa').textContent = n;
   document.getElementById('loginTituloEmpresa').textContent = n;
+  document.title = n + ' — Pedidos · Inventario · Vínculos';
   toast('✔ Nombre actualizado');
 }
 
@@ -885,15 +930,16 @@ function cargarInventarios() {
       if (data && typeof data === 'object' && !Array.isArray(data)) {
         inventariosPorSucursal = data;
       } else if (Array.isArray(data)) {
-        // Migración de v15: los datos viejos van a sahagun
         inventariosPorSucursal = { 'sahagun': { base: data, conteo: {} } };
       }
     }
   } catch(e) {}
-  // Asegurar que toda sucursal tenga su slot
   sucursales.forEach(s => {
     if (!inventariosPorSucursal[s.id]) {
-      inventariosPorSucursal[s.id] = { base: [], conteo: {} };
+      inventariosPorSucursal[s.id] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
+    } else {
+      if (typeof inventariosPorSucursal[s.id].fechaCargaBase === 'undefined') inventariosPorSucursal[s.id].fechaCargaBase = null;
+      if (typeof inventariosPorSucursal[s.id].horaConteoPorSku === 'undefined') inventariosPorSucursal[s.id].horaConteoPorSku = {};
     }
   });
   actualizarInventarioActual();
@@ -910,10 +956,35 @@ function actualizarInventarioActual() {
 }
 function persistirInventarioActual() {
   if (!inventariosPorSucursal[sucursalActual]) {
-    inventariosPorSucursal[sucursalActual] = { base: [], conteo: {} };
+    inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
   }
   inventariosPorSucursal[sucursalActual].base = inventarioBase;
   inventariosPorSucursal[sucursalActual].conteo = inventarioConteo;
+  guardarInventarios();
+}
+function getFechaCargaBase() {
+  const slot = inventariosPorSucursal[sucursalActual];
+  return slot ? slot.fechaCargaBase : null;
+}
+function setFechaCargaBase(iso) {
+  if (!inventariosPorSucursal[sucursalActual]) {
+    inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
+  }
+  inventariosPorSucursal[sucursalActual].fechaCargaBase = iso;
+  guardarInventarios();
+}
+function getHoraConteoPorSku() {
+  const slot = inventariosPorSucursal[sucursalActual];
+  return (slot && slot.horaConteoPorSku) || {};
+}
+function setHoraConteoPorSku(sku, iso) {
+  if (!inventariosPorSucursal[sucursalActual]) {
+    inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
+  }
+  if (!inventariosPorSucursal[sucursalActual].horaConteoPorSku) {
+    inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
+  }
+  inventariosPorSucursal[sucursalActual].horaConteoPorSku[sku] = iso;
   guardarInventarios();
 }
 
@@ -965,14 +1036,12 @@ async function probarEmailJS() {
 function inicializarUsuarios() {
   const raw = localStorage.getItem(KEY_USERS);
   if (raw) { try { usuarios = JSON.parse(raw); } catch(e) { usuarios = {}; } }
-  // Migrar permisos y sucursales
   Object.keys(usuarios).forEach(u => {
     if (!usuarios[u].permisos) usuarios[u].permisos = {};
     if (typeof usuarios[u].permisos.baseDatos === 'undefined') {
       usuarios[u].permisos.baseDatos = usuarios[u].permisos.ajustes === true;
     }
     if (!Array.isArray(usuarios[u].sucursalesPermitidas)) {
-      // Por defecto: todas las sucursales
       usuarios[u].sucursalesPermitidas = sucursales.map(s => s.id);
     }
   });
@@ -1010,8 +1079,7 @@ function guardarSesion(u) {
   const expira = Date.now() + SESION_DIAS * 24 * 60 * 60 * 1000;
   try {
     localStorage.setItem(KEY_SESSION, JSON.stringify({
-      usuario: u, expira,
-      sucursalActual: sucursalActual
+      usuario: u, expira, sucursalActual: sucursalActual
     }));
   } catch(e) {}
 }
@@ -1040,7 +1108,6 @@ function intentarLogin() {
     err.textContent = 'Usuario o contraseña incorrectos'; err.classList.add('show'); return;
   }
   usuarioLogueado = u;
-  // Asignar sucursal por defecto (la primera permitida)
   const permitidas = usuario.sucursalesPermitidas || [];
   if (!permitidas.length) {
     err.textContent = 'Este usuario no tiene sucursales asignadas. Pide al admin.';
@@ -1048,7 +1115,11 @@ function intentarLogin() {
     usuarioLogueado = null;
     return;
   }
-  sucursalActual = permitidas[0];
+  if (permitidas.includes('sahagun')) {
+    sucursalActual = 'sahagun';
+  } else {
+    sucursalActual = permitidas[0];
+  }
   actualizarInventarioActual();
   guardarSesion(u);
   entrarApp();
@@ -1112,11 +1183,13 @@ function cambiarSucursal(id) {
   actualizarInventarioActual();
   guardarSesion(usuarioLogueado);
   actualizarHeaderSucursal();
-  // Refrescar todo lo que depende de la sucursal
   renderPedido();
   renderInvTopStats();
   renderInventario();
+  renderManuales();
+  renderBaseDatosStats();
   actualizarSucursalNombreEnVistas();
+  actualizarInfoSnapshot();
   toast(`🏢 Cambiado a: ${getSucursalActual().nombre}`);
 }
 
@@ -1146,7 +1219,40 @@ function abrirMiCuenta() {
       <b>Sucursal actual:</b> ${s ? s.nombre : '—'}<br>
       <b>Sucursales permitidas:</b> ${(u.sucursalesPermitidas || []).map(id => getSucursal(id)?.abrev || id).join(', ')}
     </div>`;
+  document.getElementById('mcPassActual').value = '';
+  document.getElementById('mcPassNueva').value = '';
+  document.getElementById('mcPassConfirmar').value = '';
+  document.getElementById('mcCorreoPass').value = '';
+  document.getElementById('mcCorreoNuevo').value = '';
   document.getElementById('modalMiCuenta').classList.add('activo');
+}
+function cambiarMiContraseña() {
+  const actual = document.getElementById('mcPassActual').value;
+  const nueva = document.getElementById('mcPassNueva').value;
+  const confirmar = document.getElementById('mcPassConfirmar').value;
+  const u = usuarios[usuarioLogueado];
+  if (hashPassword(actual) !== u.hash) { alert('Contraseña actual incorrecta.'); return; }
+  if (nueva.length < 4) { alert('La nueva contraseña debe tener al menos 4 caracteres.'); return; }
+  if (nueva !== confirmar) { alert('Las contraseñas nuevas no coinciden.'); return; }
+  u.hash = hashPassword(nueva);
+  u.primerLogin = false;
+  guardarUsuarios();
+  document.getElementById('mcPassActual').value = '';
+  document.getElementById('mcPassNueva').value = '';
+  document.getElementById('mcPassConfirmar').value = '';
+  toast('✔ Contraseña cambiada');
+}
+function cambiarMiCorreo() {
+  const pass = document.getElementById('mcCorreoPass').value;
+  const nuevo = document.getElementById('mcCorreoNuevo').value.trim().toLowerCase();
+  const u = usuarios[usuarioLogueado];
+  if (hashPassword(pass) !== u.hash) { alert('Contraseña incorrecta.'); return; }
+  if (nuevo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevo)) { alert('Correo inválido.'); return; }
+  u.email = nuevo;
+  guardarUsuarios();
+  document.getElementById('mcCorreoPass').value = '';
+  document.getElementById('mcCorreoNuevo').value = '';
+  toast('✔ Correo actualizado');
 }
 
 function actualizarHeaderSucursal() {
@@ -1162,6 +1268,15 @@ function actualizarSucursalNombreEnVistas() {
   if (el && s) el.textContent = s.nombre;
   const t = document.getElementById('tienda');
   if (t) t.value = s.nombre;
+  actualizarInfoSnapshot();
+}
+function actualizarInfoSnapshot() {
+  const el = document.getElementById('invSnapshotInfo');
+  if (!el) return;
+  const fecha = getFechaCargaBase();
+  if (!fecha) { el.innerHTML = ''; return; }
+  const contados = Object.keys(inventarioConteo).length;
+  el.innerHTML = `<span class="chip-time">📸 Referencia: ${fmtFecha(fecha)}</span> <span class="chip-time">Contados: ${contados}</span>`;
 }
 
 /* ============ OTP ============ */
@@ -1434,11 +1549,14 @@ function guardarUsuario() {
 }
 function eliminarUsuario(username) {
   if (username === usuarioLogueado) { alert('No puedes eliminarte.'); return; }
-  if (!confirm(`¿Eliminar a "${usuarios[username].nombre || username}"?`)) return;
-  delete usuarios[username];
-  guardarUsuarios();
-  renderUsuarios();
-  toast('🗑');
+  pedirConfirmacionPass('🗑 Eliminar usuario',
+    `¿Eliminar a <b>${usuarios[username].nombre || username}</b>?<br><br>Esta acción no se puede deshacer.`,
+    () => {
+      delete usuarios[username];
+      guardarUsuarios();
+      renderUsuarios();
+      toast('🗑 Usuario eliminado');
+    });
 }
 function abrirModalCambiarMiPassword() {
   document.getElementById('mpActual').value = '';
@@ -1510,7 +1628,7 @@ function guardarSucursal() {
   } else {
     const id = nombre.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) + '_' + Date.now().toString().slice(-4);
     sucursales.push({ id, nombre, abrev });
-    inventariosPorSucursal[id] = { base: [], conteo: {} };
+    inventariosPorSucursal[id] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
     toast('✔ Sucursal agregada');
   }
   guardarSucursales();
@@ -1523,31 +1641,31 @@ function guardarSucursal() {
 function eliminarSucursal(id) {
   if (sucursales.length <= 1) { alert('Debe haber al menos 1 sucursal.'); return; }
   const s = getSucursal(id);
-  if (!confirm(`¿Eliminar la sucursal "${s.nombre}"?\n\nSe eliminará también su inventario cargado.`)) return;
-  if (prompt(`Escribe ELIMINAR para confirmar:`) !== 'ELIMINAR') { alert('Cancelado.'); return; }
-  sucursales = sucursales.filter(x => x.id !== id);
-  delete inventariosPorSucursal[id];
-  // Quitar de usuarios
-  Object.keys(usuarios).forEach(u => {
-    usuarios[u].sucursalesPermitidas = (usuarios[u].sucursalesPermitidas || []).filter(x => x !== id);
-  });
-  // Si la sucursal actual era esa, cambiar
-  if (sucursalActual === id && sucursales.length) {
-    sucursalActual = sucursales[0].id;
-    actualizarInventarioActual();
-    actualizarHeaderSucursal();
-  }
-  guardarSucursales();
-  guardarInventarios();
-  guardarUsuarios();
-  renderSucursales();
-  renderUsuarios();
-  toast('🗑 Sucursal eliminada');
+  pedirConfirmacionPass('🗑 Eliminar sucursal',
+    `¿Eliminar la sucursal <b>${s.nombre}</b>?<br><br>Se eliminará también su inventario cargado.<br>Esta acción no se puede deshacer.`,
+    () => {
+      sucursales = sucursales.filter(x => x.id !== id);
+      delete inventariosPorSucursal[id];
+      Object.keys(usuarios).forEach(u => {
+        usuarios[u].sucursalesPermitidas = (usuarios[u].sucursalesPermitidas || []).filter(x => x !== id);
+      });
+      if (sucursalActual === id && sucursales.length) {
+        sucursalActual = sucursales[0].id;
+        actualizarInventarioActual();
+        actualizarHeaderSucursal();
+      }
+      guardarSucursales();
+      guardarInventarios();
+      guardarUsuarios();
+      renderSucursales();
+      renderUsuarios();
+      toast('🗑 Sucursal eliminada');
+    });
 }
 
 /* ============ RESPALDO ============ */
 function exportarRespaldo() {
-  const data = { version: 11, exportado: new Date().toISOString(),
+  const data = { version: 13, exportado: new Date().toISOString(),
     productos, productosManuales, pedido, vinculos, usuarios, configEmailJS,
     inventariosPorSucursal, sucursales, nombreEmpresa, sucursalActual };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1579,10 +1697,6 @@ function importarRespaldo(event) {
       }
       if (data.inventariosPorSucursal) {
         inventariosPorSucursal = data.inventariosPorSucursal; guardarInventarios();
-      } else if (data.inventarioBase) {
-        // Migración de v15
-        inventariosPorSucursal = { 'sahagun': { base: data.inventarioBase, conteo: data.inventarioConteo || {} } };
-        guardarInventarios();
       }
       if (data.nombreEmpresa) { nombreEmpresa = data.nombreEmpresa; localStorage.setItem(KEY_EMPRESA, nombreEmpresa); cargarNombreEmpresa(); }
       if (data.sucursalActual) sucursalActual = data.sucursalActual;
@@ -1834,23 +1948,97 @@ function parsearLinea(texto) {
 /* ============ INVENTARIO ============ */
 function olvidarInventario() {
   const s = getSucursalActual();
-  if (!confirm(`¿Olvidar inventario y conteo de "${s.nombre}"?`)) return;
-  inventarioBase = [];
-  inventarioConteo = {};
-  persistirInventarioActual();
-  document.getElementById('invInfo').textContent = '';
-  document.getElementById('invBtnOlvidarWrap').style.display = 'none';
-  document.getElementById('invPanelContar').style.display = 'none';
-  document.getElementById('invPanelResumen').style.display = 'none';
-  document.getElementById('invAcciones').style.display = 'none';
-  document.getElementById('invResultados').innerHTML = '';
-  document.getElementById('invBusqueda').value = '';
-  renderBaseDatosStats();
-  toast('🗑');
+  const tieneBase = inventarioBase.length > 0;
+  const tieneConteo = Object.keys(inventarioConteo).length > 0;
+  if (!tieneBase && !tieneConteo) { toast('No hay nada que borrar'); return; }
+
+  let mensaje = `Vas a borrar de <b>${s.nombre}</b>:<br><br>`;
+  if (tieneBase) mensaje += `• El Excel del sistema (${inventarioBase.length} productos)<br>`;
+  if (tieneConteo) mensaje += `• El conteo capturado (${Object.keys(inventarioConteo).length} productos)<br>`;
+  mensaje += `<br>Se requiere contraseña para confirmar.`;
+
+  pedirConfirmacionPass('🗑 Borrar inventario', mensaje, () => {
+    inventarioBase = [];
+    inventarioConteo = {};
+    if (inventariosPorSucursal[sucursalActual]) {
+      inventariosPorSucursal[sucursalActual].base = [];
+      inventariosPorSucursal[sucursalActual].conteo = {};
+      inventariosPorSucursal[sucursalActual].fechaCargaBase = null;
+      inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
+    }
+    guardarInventarios();
+    document.getElementById('invInfo').textContent = '';
+    document.getElementById('invBtnOlvidarWrap').style.display = 'none';
+    document.getElementById('invPanelContar').style.display = 'none';
+    document.getElementById('invPanelResumen').style.display = 'none';
+    document.getElementById('invAcciones').style.display = 'none';
+    document.getElementById('invResultados').innerHTML = '';
+    document.getElementById('invBusqueda').value = '';
+    actualizarInfoSnapshot();
+    renderBaseDatosStats();
+    toast('🗑 Inventario borrado');
+  });
 }
 async function procesarInventario(event) {
   const file = event.target.files[0];
   if (!file) return;
+  const fechaAnterior = getFechaCargaBase();
+  const yaHayBase = inventarioBase.length > 0;
+  const contadosCount = Object.keys(inventarioConteo).length;
+
+  if (yaHayBase && contadosCount > 0) {
+    const opcion = await preguntarReemplazoExcel(contadosCount, fechaAnterior);
+    if (opcion === 'cancelar') return;
+    await cargarExcelInventario(file, opcion);
+    return;
+  }
+  if (yaHayBase && contadosCount === 0) {
+    if (!confirm('Ya hay un Excel cargado. ¿Reemplazarlo con el nuevo?')) return;
+    await cargarExcelInventario(file, 'todo');
+    return;
+  }
+  await cargarExcelInventario(file, 'todo');
+}
+
+function preguntarReemplazoExcel(contadosCount, fechaAnterior) {
+  return new Promise(resolve => {
+    const msg = `
+      <b>Ya tienes un inventario en proceso.</b><br><br>
+      📸 Referencia actual: <b>${fmtFecha(fechaAnterior)}</b><br>
+      ✅ Productos contados: <b>${contadosCount}</b><br><br>
+      ¿Qué quieres hacer con el nuevo Excel?<br><br>
+      <b>🔄 Solo actualizar los NO contados:</b><br>
+      Los ${contadosCount} ya contados se quedan con su referencia original. Solo se actualizan los pendientes.<br><br>
+      <b>📸 Reemplazar TODO:</b><br>
+      Se actualiza toda la referencia. Los conteos ya hechos se conservan pero se recalcularán con los nuevos valores del sistema.
+    `;
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;padding:15px;';
+    modal.innerHTML = `
+      <div style="background:white;border-radius:12px;padding:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;">
+        <h3 style="margin-top:0;color:#1a3a6b;">📊 Nuevo Excel detectado</h3>
+        <div style="background:#e3f2fd;padding:12px;border-radius:8px;font-size:13px;line-height:1.6;border-left:4px solid #1a5fbf;">${msg}</div>
+        <button class="verde" style="width:100%;text-align:left;padding:14px;margin-top:14px;margin-bottom:8px;" id="btnSoloNoContados">
+          <div style="font-size:15px;font-weight:bold;margin-bottom:4px;">🔄 Solo actualizar los NO contados</div>
+          <div style="font-size:12px;opacity:.9;">Mantiene los ya contados con su referencia original</div>
+        </button>
+        <button class="amarillo" style="width:100%;text-align:left;padding:14px;margin-bottom:8px;" id="btnTodo">
+          <div style="font-size:15px;font-weight:bold;margin-bottom:4px;">📸 Reemplazar TODA la referencia</div>
+          <div style="font-size:12px;opacity:.9;">Usa el nuevo Excel como referencia general</div>
+        </button>
+        <button class="gris" style="width:100%;text-align:left;padding:14px;" id="btnCancelar">
+          <div style="font-size:15px;font-weight:bold;">❌ Cancelar</div>
+          <div style="font-size:12px;opacity:.9;">No hacer nada, mantener todo como está</div>
+        </button>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#btnSoloNoContados').onclick = () => { modal.remove(); resolve('noContados'); };
+    modal.querySelector('#btnTodo').onclick = () => { modal.remove(); resolve('todo'); };
+    modal.querySelector('#btnCancelar').onclick = () => { modal.remove(); resolve('cancelar'); };
+  });
+}
+
+async function cargarExcelInventario(file, modoCarga) {
   const s = getSucursalActual();
   const info = document.getElementById('invInfo');
   const infoBD = document.getElementById('bdInfoInv');
@@ -1882,7 +2070,8 @@ async function procesarInventario(event) {
     const idxPrecio = findCol('PRECIO');
     const idxExis = findCol('EXIS', 'EXIST', 'CANTIDAD', 'INV ACTUAL');
     if (idxSku < 0 || idxExis < 0) { alert('Falta Clave o Exis.'); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; return; }
-    inventarioBase = [];
+
+    const nuevos = [];
     const skusVistos = new Set();
     for (let i = headerIdx + 1; i < rows.length; i++) {
       const r = rows[i] || [];
@@ -1898,26 +2087,47 @@ async function procesarInventario(event) {
       const exisRaw = r[idxExis];
       const exis = parseFloat(String(exisRaw).replace(/[^0-9.\-]/g, '')) || 0;
       if (skusVistos.has(sku)) {
-        const prev = inventarioBase.find(p => p.sku === sku);
+        const prev = nuevos.find(p => p.sku === sku);
         if (prev) prev.exis += exis;
         continue;
       }
       skusVistos.add(sku);
-      inventarioBase.push({ sku, descripcion, precio, exis });
+      nuevos.push({ sku, descripcion, precio, exis });
     }
-    inventarioConteo = {};
+
+    if (modoCarga === 'noContados') {
+      const nuevosMap = new Map();
+      nuevos.forEach(p => nuevosMap.set(p.sku, p));
+      inventarioBase = inventarioBase.map(p => {
+        if (inventarioConteo[p.sku] !== undefined) return p;
+        return nuevosMap.get(p.sku) || p;
+      });
+      nuevos.forEach(p => {
+        if (!inventarioBase.some(x => x.sku === p.sku)) {
+          inventarioBase.push(p);
+        }
+      });
+    } else {
+      inventarioBase = nuevos;
+    }
+
+    setFechaCargaBase(new Date().toISOString());
     persistirInventarioActual();
-    const msg = `✔ <b>${inventarioBase.length}</b> productos cargados (${s.nombre})`;
-    if (info) info.innerHTML = msg;
+
+    const msg = `✔ <b>${inventarioBase.length}</b> productos (${s.nombre})`;
+    const modoMsg = modoCarga === 'noContados' ? ' · Modo: solo actualizados los no contados' : ' · Referencia completa actualizada';
+    if (info) info.innerHTML = msg + modoMsg;
     if (infoBD) infoBD.innerHTML = msg;
     document.getElementById('invBtnOlvidarWrap').style.display = 'block';
     document.getElementById('invPanelContar').style.display = 'block';
     renderInvTopStats();
     renderInventario();
     renderBaseDatosStats();
-    toast(`✔ ${inventarioBase.length} productos en ${s.abrev}`);
+    actualizarInfoSnapshot();
+    toast(`✔ ${inventarioBase.length} productos · ${s.abrev}`);
   } catch (err) { console.error(err); alert('Error al leer: ' + err.message); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; }
 }
+
 function renderInvTopStats() {
   const el = document.getElementById('invStatsTop');
   if (!el) return;
@@ -1931,6 +2141,7 @@ function renderInvTopStats() {
     <div class="inv-stat ok"><div class="num">${contados}</div><div class="lbl">Contados</div></div>
     <div class="inv-stat warn"><div class="num">${pendientes}</div><div class="lbl">Pendientes</div></div>
     <div class="inv-stat ${negativos ? 'err' : ''}"><div class="num">${negativos}</div><div class="lbl">Negativos</div></div>`;
+  actualizarInfoSnapshot();
 }
 function renderBaseDatosStats() {
   const el = document.getElementById('bdStats');
@@ -1967,7 +2178,7 @@ function renderManuales() {
       <td style="font-family:monospace;">${p.sku}</td>
       <td class="small">${p.descripcion || ''}</td>
       <td class="small">@${p.creadoPor || '—'}</td>
-      <td class="small">${p.sucursal || '—'}</td>
+      <td class="small">${p.sucursal ? (getSucursal(p.sucursal)?.abrev || p.sucursal) : '—'}</td>
       <td class="small">${fmtFecha(p.fecha)}</td>
       <td><button class="rojo" style="padding:6px 10px; font-size:12px;" onclick="eliminarManual('${p.sku.replace(/'/g, "\\'")}')">🗑</button></td>
     </tr>`).join('');
@@ -1992,13 +2203,16 @@ function invBuscar() {
     p.sku.toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q)
   ).slice(0, 30);
   if (!invResultados.length) { cont.innerHTML = '<p class="small">Sin resultados.</p>'; return; }
+  const horas = getHoraConteoPorSku();
   cont.innerHTML = '<table><thead><tr><th>SKU</th><th>Descripción</th><th>Exis</th><th></th></tr></thead><tbody>' +
     invResultados.map((p, i) => {
       const contado = inventarioConteo[p.sku];
+      const hora = horas[p.sku];
       const chip = (contado !== undefined) ? `<span class="chip-counted">✔ ${contado}</span>` : `<span class="chip-pending">pendiente</span>`;
+      const chipHora = hora ? `<span class="chip-time">${new Date(hora).toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'})}</span>` : '';
       const claseExis = p.exis < 0 ? 'neg-num' : '';
       return `<tr class="resultado" data-idx="${i}" onclick="invSeleccionar(${i})">
-        <td>${p.sku}${chip}</td>
+        <td>${p.sku}${chip}${chipHora}</td>
         <td>${p.descripcion || ''}</td>
         <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}</td>
         <td style="text-align:center;">→</td>
@@ -2058,9 +2272,11 @@ function invSeleccionar(i) {
 function abrirModalConteo(p) {
   invProductoActual = p;
   const contado = inventarioConteo[p.sku];
+  const fechaBase = getFechaCargaBase();
   document.getElementById('conteoInfoProducto').innerHTML = `
     <div style="font-weight:bold; font-size:15px; color:#1a3a6b;">${p.sku}</div>
-    <div class="small" style="margin-top:4px;">${p.descripcion || ''}</div>`;
+    <div class="small" style="margin-top:4px;">${p.descripcion || ''}</div>
+    ${fechaBase ? '<div class="small" style="margin-top:4px; color:#8e24aa;">📸 Referencia: ' + fmtFecha(fechaBase) + '</div>' : ''}`;
   const claseExis = p.exis < 0 ? 'color:#c0392b;' : 'color:#1a3a6b;';
   document.getElementById('conteoSistema').innerHTML = `
     <div class="small" style="color:#666;">SISTEMA DICE QUE HAY</div>
@@ -2083,6 +2299,7 @@ function confirmarConteo() {
   if (!invProductoActual) return;
   const cant = Math.max(0, parseInt(document.getElementById('inputConteo').value) || 0);
   inventarioConteo[invProductoActual.sku] = cant;
+  setHoraConteoPorSku(invProductoActual.sku, new Date().toISOString());
   invUltimoSku = invProductoActual.sku;
   persistirInventarioActual();
   renderInvTopStats();
@@ -2159,25 +2376,35 @@ function renderInventario() {
 function limpiarConteo() {
   if (!Object.keys(inventarioConteo).length) { alert('No hay conteo.'); return; }
   const s = getSucursalActual();
-  if (!confirm(`¿Borrar TODO el conteo de "${s.nombre}"?`)) return;
-  inventarioConteo = {};
-  persistirInventarioActual();
-  renderInvTopStats();
-  renderInventario();
-  renderBaseDatosStats();
-  toast('🗑');
+  pedirConfirmacionPass('🗑 Borrar conteo',
+    `¿Borrar TODO el conteo de <b>${s.nombre}</b>?<br><br>El Excel cargado se mantiene.<br>Se requiere contraseña para confirmar.`,
+    () => {
+      inventarioConteo = {};
+      if (inventariosPorSucursal[sucursalActual]) {
+        inventariosPorSucursal[sucursalActual].conteo = {};
+        inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
+      }
+      guardarInventarios();
+      renderInvTopStats();
+      renderInventario();
+      renderBaseDatosStats();
+      toast('🗑 Conteo borrado');
+    });
 }
 function exportarInventario() {
   if (!Object.keys(inventarioConteo).length) { alert('No has contado nada.'); return; }
   const s = getSucursalActual();
+  const fechaBase = getFechaCargaBase();
+  const horas = getHoraConteoPorSku();
   const aoa = [];
   aoa.push(['Reporte de Inventario Físico']);
   aoa.push(['Empresa', nombreEmpresa]);
   aoa.push(['Sucursal', s.nombre]);
   aoa.push(['Fecha', new Date().toLocaleString('es-MX')]);
   aoa.push(['Usuario', usuarioLogueado || '']);
+  if (fechaBase) aoa.push(['Referencia del sistema', fmtFecha(fechaBase)]);
   aoa.push([]);
-  aoa.push(['Clave', 'Descripción', 'Debe haber', 'Contado', 'Diferencia', 'Precio U.', 'Dif $']);
+  aoa.push(['Clave', 'Descripción', 'Debe haber', 'Contado', 'Hora conteo', 'Diferencia', 'Precio U.', 'Dif $']);
   let totalDifMxn = 0, totalDifPz = 0;
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   rows.sort((a, b) => {
@@ -2191,34 +2418,35 @@ function exportarInventario() {
     const c = inventarioConteo[p.sku];
     const d = calcularDif(p.exis, c);
     const difMxn = d * (p.precio || 0);
+    const hora = horas[p.sku] ? new Date(horas[p.sku]).toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'}) : '—';
     totalDifMxn += difMxn;
     totalDifPz += d;
-    aoa.push([p.sku, p.descripcion || '', p.exis, c, d, p.precio || 0, difMxn]);
+    aoa.push([p.sku, p.descripcion || '', p.exis, c, hora, d, p.precio || 0, difMxn]);
   });
   aoa.push([]);
-  aoa.push(['', '', '', 'TOTALES', totalDifPz, '', totalDifMxn]);
+  aoa.push(['', '', '', 'TOTALES', '', totalDifPz, '', totalDifMxn]);
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = [{ wch: 18 }, { wch: 45 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
+  ws['!cols'] = [{ wch: 18 }, { wch: 45 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
 
-  const inicioDatos = 8;
+  const inicioDatos = fechaBase ? 9 : 8;
   for (let i = 0; i < rows.length; i++) {
     const filaExcel = inicioDatos + i;
     const p = rows[i];
     const c = inventarioConteo[p.sku];
     const d = calcularDif(p.exis, c);
-    const celdaE = 'E' + filaExcel;
-    const celdaG = 'G' + filaExcel;
+    const celdaF = 'F' + filaExcel;
+    const celdaH = 'H' + filaExcel;
     if (d > 0) {
-      ws[celdaE] = ws[celdaE] || {};
-      ws[celdaG] = ws[celdaG] || {};
-      ws[celdaE].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
-      ws[celdaG].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
+      ws[celdaF] = ws[celdaF] || {};
+      ws[celdaH] = ws[celdaH] || {};
+      ws[celdaF].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
+      ws[celdaH].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
     } else if (d < 0) {
-      ws[celdaE] = ws[celdaE] || {};
-      ws[celdaG] = ws[celdaG] || {};
-      ws[celdaE].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
-      ws[celdaG].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
+      ws[celdaF] = ws[celdaF] || {};
+      ws[celdaH] = ws[celdaH] || {};
+      ws[celdaF].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
+      ws[celdaH].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
     }
   }
 
@@ -2230,23 +2458,131 @@ function exportarInventario() {
   toast('📥 Descargado');
 }
 
-/* ============ CÁMARA ============ */
-function abrirCamara(origen) {
+/* ============ CÁMARA (multi-librería, optimizado para iOS) ============ */
+const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const tieneBarcodeDetector = 'BarcodeDetector' in window;
+
+async function abrirCamara(origen) {
   camaraOrigen = origen;
   document.getElementById('modalCamara').classList.add('activo');
-  html5QrCode = new Html5Qrcode("reader");
-  html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 280, height: 180 } },
-    (d) => { onCamaraDetecta(d); }, () => {}
-  ).catch(err => { alert('Cámara: ' + err); cerrarCamara(); });
+
+  const cont = document.getElementById('reader');
+  cont.innerHTML = '';
+  const video = document.createElement('video');
+  video.setAttribute('playsinline', 'true');
+  video.setAttribute('autoplay', 'true');
+  video.setAttribute('muted', 'true');
+  video.style.cssText = 'width:100%; border-radius:10px; background:#000; display:block;';
+  cont.appendChild(video);
+
+  const status = document.createElement('div');
+  status.id = 'scanStatus';
+  status.style.cssText = 'margin-top:8px; font-size:12px; color:#1a5fbf; font-weight:bold; text-align:center;';
+  status.textContent = '⏳ Iniciando cámara…';
+  cont.appendChild(status);
+
+  try {
+    camaraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+    video.srcObject = camaraStream;
+    await video.play();
+    status.textContent = '🔍 Apunta al código…';
+
+    if (tieneBarcodeDetector && !esIOS) {
+      iniciarBarcodeDetector(video, status);
+    } else if (typeof ZXing !== 'undefined') {
+      iniciarZXing(video, status);
+    } else {
+      status.textContent = '⚠️ Este navegador no soporta lectura de códigos';
+    }
+  } catch (err) {
+    console.error(err);
+    alert('No se pudo abrir la cámara:\n' + (err.message || err) + '\n\nRecuerda que la cámara requiere HTTPS.');
+    cerrarCamara();
+  }
 }
+
+function iniciarBarcodeDetector(video, status) {
+  try {
+    const detector = new BarcodeDetector({
+      formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'codabar', 'itf', 'qr_code']
+    });
+    let detectando = false;
+    camaraLoop = setInterval(async () => {
+      if (detectando || !video.videoWidth) return;
+      detectando = true;
+      try {
+        const codigos = await detector.detect(video);
+        if (codigos && codigos.length > 0) {
+          onCamaraDetecta(codigos[0].rawValue);
+        }
+      } catch (e) {}
+      detectando = false;
+    }, 150);
+  } catch (e) {
+    console.error('BarcodeDetector error:', e);
+    if (typeof ZXing !== 'undefined') iniciarZXing(video, status);
+  }
+}
+
+function iniciarZXing(video, status) {
+  try {
+    const hints = new Map();
+    const formats = [
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A,
+      ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.CODABAR,
+      ZXing.BarcodeFormat.ITF,
+      ZXing.BarcodeFormat.QR_CODE
+    ];
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+    const reader = new ZXing.BrowserMultiFormatReader(hints);
+    zxingReader = reader;
+
+    reader.decodeFromVideoElement(video, (result, err) => {
+      if (result) {
+        onCamaraDetecta(result.getText());
+      }
+    });
+  } catch (e) {
+    console.error('ZXing error:', e);
+    status.textContent = '⚠️ Error al iniciar el lector';
+  }
+}
+
 function cerrarCamara() {
-  if (html5QrCode) {
-    html5QrCode.stop().then(() => { html5QrCode.clear(); html5QrCode = null; }).catch(() => { html5QrCode = null; });
+  if (camaraLoop) {
+    clearInterval(camaraLoop);
+    camaraLoop = null;
+  }
+  if (zxingReader) {
+    try { zxingReader.reset(); } catch(e) {}
+    zxingReader = null;
+  }
+  if (camaraStream) {
+    camaraStream.getTracks().forEach(t => t.stop());
+    camaraStream = null;
   }
   document.getElementById('modalCamara').classList.remove('activo');
+  const cont = document.getElementById('reader');
+  if (cont) cont.innerHTML = '';
 }
+
 function onCamaraDetecta(codigo) {
   const c = String(codigo).toUpperCase().trim();
+  if (!c) return;
   if (navigator.vibrate) { try { navigator.vibrate(80); } catch(e) {} }
   cerrarCamara();
   setTimeout(() => {
@@ -2260,6 +2596,7 @@ function onCamaraDetecta(codigo) {
     }
   }, 200);
 }
+
 function procesarCodigoInv(codigo) {
   const items = skusDeCodigo(codigo);
   if (items.length === 1) {
@@ -2480,7 +2817,7 @@ function confirmarCantidad() {
   buscar();
 }
 function agregarAlPedido(p, cant) {
-  const ex = pedido.find(x => x.sku === p.sku);
+  const ex = pedido.find(x => x.sku === p.sku && x.sucursal === sucursalActual);
   if (ex) ex.cantidad += cant;
   else pedido.push({
     sku: p.sku, descripcion: p.descripcion, precio: p.precio || 0,
@@ -2833,7 +3170,7 @@ function fusionarVinculos(actual, nuevos) {
 }
 function exportarVinculos() {
   if (!Object.keys(vinculos).length) { alert('Sin vínculos.'); return; }
-  const data = { version: 4, exportado: new Date().toISOString(), vinculos };
+  const data = { version: 5, exportado: new Date().toISOString(), vinculos };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -2896,6 +3233,30 @@ function importarVinculos(event) {
   };
   reader.readAsText(file);
 }
+function solicitarImportacion(modo) {
+  if (modo === 'fusionar') {
+    ejecutarImportacion('fusionar');
+    return;
+  }
+  const backup = JSON.stringify(vinculos);
+  document.getElementById('modalImportarVinculos').classList.remove('activo');
+  pedirConfirmacionPass('🔄 Reemplazar vínculos',
+    `⚠️ Vas a <b>borrar TODOS los vínculos actuales</b> y reemplazarlos con los del archivo.<br><br>
+    • Actuales: <b>${contarVinculos()}</b><br>
+    • Del archivo: <b>${contarVinculos(importarVinculosPendiente)}</b><br><br>
+    Se guardará un respaldo automático por si necesitas recuperar.<br><br>
+    <b>Escribe la contraseña para confirmar:</b>`,
+    () => {
+      try {
+        localStorage.setItem('sahagun_vinculos_backup_' + Date.now(), backup);
+        const keys = Object.keys(localStorage).filter(k => k.startsWith('sahagun_vinculos_backup_'));
+        if (keys.length > 5) {
+          keys.sort().slice(0, keys.length - 5).forEach(k => localStorage.removeItem(k));
+        }
+      } catch(e) {}
+      ejecutarImportacion('reemplazar');
+    });
+}
 function ejecutarImportacion(modo) {
   if (!importarVinculosPendiente) return;
   const nuevos = importarVinculosPendiente;
@@ -2907,7 +3268,7 @@ function ejecutarImportacion(modo) {
     Object.entries(nuevos).forEach(([cod, arr]) => {
       vinculos[cod] = arr.map(item => ({ ...item }));
     });
-    toast('✔ Vínculos reemplazados');
+    toast('✔ Vínculos reemplazados (respaldo guardado)');
   }
   importarVinculosPendiente = null;
   cerrarModalImportar();
@@ -2923,9 +3284,8 @@ function cerrarModalImportar() {
 /* ============ PEDIDO RENDER ============ */
 function renderPedido() {
   const tb = document.querySelector('#tablaPedido tbody');
-  // Filtrar por sucursal actual
   const pedidoFiltrado = pedido.filter(p => p.sucursal === sucursalActual || !p.sucursal);
-  tb.innerHTML = pedidoFiltrado.map((p, i) => {
+  tb.innerHTML = pedidoFiltrado.map((p) => {
     const idxOriginal = pedido.indexOf(p);
     let origenBadge = '';
     if (p.fuente === 'PDF') origenBadge = '<span class="badge badge-promo">🏷️</span>';
