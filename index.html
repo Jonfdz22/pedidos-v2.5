@@ -12,17 +12,53 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent;}
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
          margin: 0; background:#eef2f7; color:#222; padding-bottom:80px;}
-  header { background:#1a3a6b; color:white; padding:10px 14px; position:sticky; top:0; z-index:50;
-           display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;}
-  header h1 { font-size:16px; margin:0; }
-  .tabs { display:flex; gap:4px; flex-wrap:wrap; }
-  .tab { background:rgba(255,255,255,.15); color:white; border:none; padding:8px 12px; border-radius:6px;
-         font-size:13px; font-weight:bold; cursor:pointer; }
-  .tab.activo { background:white; color:#1a3a6b; }
-  .usuario-info { display:flex; align-items:center; gap:8px; font-size:12px; }
-  .usuario-nombre { background:rgba(255,255,255,.15); padding:6px 10px; border-radius:6px; font-weight:bold; }
-  .btn-salir { background:rgba(255,255,255,.15); color:white; border:none; padding:6px 10px;
-               border-radius:6px; cursor:pointer; font-size:12px; font-weight:bold; }
+  
+  /* ============ HEADER NUEVO ============ */
+  header { background:#1a3a6b; color:white; position:sticky; top:0; z-index:50;
+           box-shadow:0 2px 6px rgba(0,0,0,.15);}
+  .header-top { display:flex; justify-content:space-between; align-items:center; padding:10px 14px;}
+  .header-btn { background:transparent; border:none; color:white; cursor:pointer;
+                display:flex; flex-direction:column; align-items:flex-start; padding:4px 8px;
+                border-radius:6px; transition:background .15s;}
+  .header-btn:active { background:rgba(255,255,255,.15);}
+  .header-btn .linea1 { font-size:15px; font-weight:bold; display:flex; align-items:center; gap:6px;}
+  .header-btn .linea2 { font-size:11px; opacity:.8; margin-top:2px; padding-left:2px;}
+  .header-right { align-items:flex-end; }
+  .header-right .linea2 { padding-right:2px; }
+  .tabs-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; background:rgba(0,0,0,.15);}
+  .tabs-scroll::-webkit-scrollbar { display:none;}
+  .tabs { display:flex; gap:2px; padding:0 10px 0 10px; min-width:max-content;}
+  .tab { background:transparent; color:white; border:none; padding:10px 14px; border-radius:0;
+         font-size:13px; font-weight:bold; cursor:pointer; white-space:nowrap;
+         border-bottom:3px solid transparent;}
+  .tab.activo { border-bottom-color:white; background:rgba(255,255,255,.1);}
+  
+  /* ============ MENÚS DESPLEGABLES ============ */
+  .dropdown-menu { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5);
+                   z-index:200; display:none; align-items:flex-start; justify-content:center;}
+  .dropdown-menu.activo { display:flex;}
+  .dropdown-content { background:white; border-radius:0 0 16px 16px; width:100%; max-width:420px;
+                      padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.3); max-height:80vh; overflow-y:auto;}
+  .dropdown-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+  .dropdown-header h3 { margin:0; color:#1a3a6b; font-size:16px;}
+  .dropdown-close { background:#f0f0f0; border:none; border-radius:50%; width:32px; height:32px;
+                    cursor:pointer; font-size:16px; font-weight:bold; color:#555;}
+  .dropdown-item { display:flex; align-items:center; justify-content:space-between; gap:10px;
+                   padding:12px; border-radius:8px; cursor:pointer; border:1px solid #eee;
+                   margin-bottom:6px; background:#fafafa; transition:background .15s;}
+  .dropdown-item:active { background:#e3f2fd;}
+  .dropdown-item.activo { background:#e8f5e9; border-color:#1e8449;}
+  .dropdown-item .info { display:flex; align-items:center; gap:10px; flex:1;}
+  .dropdown-item .icono { font-size:20px;}
+  .dropdown-item .texto { font-size:14px; color:#222; font-weight:bold;}
+  .dropdown-item .subtexto { font-size:11px; color:#888; margin-top:2px;}
+  .dropdown-item .check { color:#1e8449; font-size:18px; font-weight:bold;}
+  .dropdown-user-header { background:#f0f7ff; padding:14px; border-radius:10px; margin-bottom:14px;
+                          border-left:4px solid #1a5fbf;}
+  .dropdown-user-header .nombre { font-weight:bold; color:#1a3a6b; font-size:16px;}
+  .dropdown-user-header .usuario { font-family:monospace; color:#666; font-size:12px; margin-top:2px;}
+  .dropdown-user-header .correo { font-size:12px; color:#666; margin-top:4px;}
+  
   .panel { background:white; margin:10px; padding:14px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,.08);}
   h3 { margin:0 0 10px 0; color:#1a3a6b; font-size:15px;}
   input, textarea, button, select { font-size:16px; padding:10px; box-sizing:border-box; font-family:inherit;}
@@ -164,18 +200,30 @@
   .opcion-producto .sku { font-weight:bold; color:#1a3a6b; font-size:15px;}
   .opcion-producto .desc { font-size:13px; color:#444; margin-top:2px;}
   .opcion-producto .meta { font-size:12px; color:#666; margin-top:4px;}
+  .sucursal-row { display:flex; align-items:center; justify-content:space-between; gap:8px;
+                  padding:10px; border:1px solid #ddd; border-radius:8px; margin-bottom:8px;
+                  background:#fafafa; flex-wrap:wrap;}
+  .sucursal-row .info { flex:1;}
+  .sucursal-row .nombre { font-weight:bold; color:#1a3a6b; }
+  .sucursal-row .abrev { font-size:11px; color:#888; font-family:monospace; }
+  .sucursal-row .acciones { display:flex; gap:6px;}
+  .sucursal-check { display:flex; align-items:center; gap:8px; padding:8px;
+                    background:#f5f5f5; border-radius:6px; margin:4px 0; cursor:pointer;}
+  .sucursal-check input { width:auto; transform:scale(1.3); }
   @media(min-width:700px){
     body { max-width:900px; margin:0 auto; padding-bottom:20px;}
     .acciones-fijas { position:static; margin:10px; box-shadow:0 2px 6px rgba(0,0,0,.08); border-radius:10px;}
+    .dropdown-content { max-width:520px; }
   }
 </style>
 </head>
 <body>
 
+<!-- ============ LOGIN ============ -->
 <div class="login-bg" id="loginBg" style="display:none;">
   <div class="login-card">
     <div class="logo">🎨</div>
-    <h1>Sahagún</h1>
+    <h1 id="loginTituloEmpresa">Sahagún</h1>
     <div class="sub">Pedidos · Inventario · Vínculos</div>
     <label>Usuario</label>
     <input type="text" id="loginUsuario" placeholder="tu usuario">
@@ -192,22 +240,66 @@
   </div>
 </div>
 
+<!-- ============ APP ============ -->
 <div id="app" style="display:none;">
+
 <header>
-  <h1>📋 Sahagún</h1>
-  <div class="tabs">
-    <button class="tab" id="tabPedido" onclick="cambiarPestana('pedido')">🛒 Pedido</button>
-    <button class="tab" id="tabInventario" onclick="cambiarPestana('inventario')">📦 Inventario</button>
-    <button class="tab" id="tabVincular" onclick="cambiarPestana('vincular')">🔗 Vincular</button>
-    <button class="tab" id="tabBaseDatos" onclick="cambiarPestana('baseDatos')">🗄️ Base de datos</button>
-    <button class="tab" id="tabAjustes" onclick="cambiarPestana('ajustes')">⚙️ Ajustes</button>
+  <div class="header-top">
+    <button class="header-btn" onclick="abrirMenuSucursal()">
+      <div class="linea1">📋 <span id="headerEmpresa">Sahagún</span> ▼</div>
+      <div class="linea2" id="headerSucursal">SAHAGUN</div>
+    </button>
+    <button class="header-btn header-right" onclick="abrirMenuUsuario()">
+      <div class="linea1">👤 <span id="usuarioActualHeader">—</span> ▼</div>
+      <div class="linea2" id="headerSucursalUsuario">—</div>
+    </button>
   </div>
-  <div class="usuario-info">
-    <span class="usuario-nombre" id="usuarioActualHeader">👤 —</span>
-    <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
+  <div class="tabs-scroll">
+    <div class="tabs">
+      <button class="tab" id="tabPedido" onclick="cambiarPestana('pedido')">🛒 Pedido</button>
+      <button class="tab" id="tabInventario" onclick="cambiarPestana('inventario')">📦 Inventario</button>
+      <button class="tab" id="tabVincular" onclick="cambiarPestana('vincular')">🔗 Vincular</button>
+      <button class="tab" id="tabBaseDatos" onclick="cambiarPestana('baseDatos')">🗄️ Base de datos</button>
+      <button class="tab" id="tabAjustes" onclick="cambiarPestana('ajustes')">⚙️ Ajustes</button>
+    </div>
   </div>
 </header>
 
+<!-- ============ MENÚ SUCURSAL ============ -->
+<div class="dropdown-menu" id="menuSucursal" onclick="if(event.target===this)cerrarMenuSucursal()">
+  <div class="dropdown-content">
+    <div class="dropdown-header">
+      <h3>📍 Cambiar sucursal</h3>
+      <button class="dropdown-close" onclick="cerrarMenuSucursal()">✕</button>
+    </div>
+    <div id="listaMenuSucursales"></div>
+  </div>
+</div>
+
+<!-- ============ MENÚ USUARIO ============ -->
+<div class="dropdown-menu" id="menuUsuario" onclick="if(event.target===this)cerrarMenuUsuario()">
+  <div class="dropdown-content">
+    <div class="dropdown-header">
+      <h3>👤 Usuario</h3>
+      <button class="dropdown-close" onclick="cerrarMenuUsuario()">✕</button>
+    </div>
+    <div class="dropdown-user-header" id="dropdownUserHeader"></div>
+    <div class="dropdown-item" onclick="abrirMiCuenta()">
+      <div class="info"><span class="icono">⚙️</span><div><div class="texto">Mi cuenta</div>
+        <div class="subtexto">Cambiar contraseña o correo</div></div></div>
+    </div>
+    <div class="dropdown-item" onclick="cambiarDeCuenta()">
+      <div class="info"><span class="icono">🔄</span><div><div class="texto">Cambiar de cuenta</div>
+        <div class="subtexto">Cerrar sesión e iniciar con otro usuario</div></div></div>
+    </div>
+    <div class="dropdown-item" onclick="cerrarSesion()">
+      <div class="info"><span class="icono">🚪</span><div><div class="texto">Salir</div>
+        <div class="subtexto">Cerrar la sesión actual</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PESTAÑA PEDIDO ============ -->
 <div id="pestanaPedido">
   <div class="panel">
     <h3>1 · Catálogo (sube el PDF)</h3>
@@ -244,8 +336,8 @@
   <div class="panel">
     <h3>3 · Pedido (<span id="contador">0</span>)</h3>
     <div class="fila" style="margin-bottom:8px;">
-      <div style="flex:1;"><label class="small">Tienda:</label>
-        <input type="text" id="tienda" value="SAHAGUN" oninput="guardarEstado()"></div>
+      <div style="flex:1;"><label class="small">Sucursal:</label>
+        <input type="text" id="tienda" readonly></div>
       <div style="flex:1;"><label class="small">Fecha:</label>
         <input type="text" id="fecha" readonly></div>
     </div>
@@ -268,16 +360,18 @@
   </div>
 </div>
 
+<!-- ============ PESTAÑA INVENTARIO ============ -->
 <div id="pestanaInventario" style="display:none;">
   <div class="panel">
-    <h3>1 · Cargar inventario del sistema</h3>
+    <h3>1 · Cargar inventario del sistema (<span id="invSucursalNombre"></span>)</h3>
     <div class="ayuda">
-      Sube el <b>Reporte de Inventario</b> (Excel). Sus existencias se usarán en Pedido y aquí. Las existencias negativas se conservan.
+      Cada sucursal tiene <b>su propio inventario</b>. Sube el <b>Reporte de Inventario</b> (Excel) de esta sucursal.
+      Las existencias negativas se conservan.
     </div>
     <input type="file" id="invFileInput" accept=".xlsx,.xls,.csv" onchange="procesarInventario(event)">
     <div id="invInfo" class="small" style="margin-top:8px;"></div>
     <div id="invBtnOlvidarWrap" style="margin-top:8px; display:none;">
-      <button class="gris" style="font-size:12px; padding:6px 10px;" onclick="olvidarInventario()">🗑 Olvidar inventario</button>
+      <button class="gris" style="font-size:12px; padding:6px 10px;" onclick="olvidarInventario()">🗑 Olvidar inventario de esta sucursal</button>
     </div>
   </div>
 
@@ -311,9 +405,13 @@
   </div>
 </div>
 
+<!-- ============ PESTAÑA VINCULAR ============ -->
 <div id="pestanaVincular" style="display:none;">
   <div class="panel">
     <h3>🔗 Vincular código de barras ↔ SKU</h3>
+    <div class="ayuda">
+      Los vínculos son <b>globales</b> — compartidos entre todas las sucursales.
+    </div>
     <div class="paso">
       <div style="margin-bottom:8px;">
         <span class="paso-num">1</span><b>Escanea o escribe el código</b>
@@ -347,27 +445,25 @@
       <button style="flex:1; font-size:12px;" onclick="document.getElementById('inputImportar').click()">📥 Importar</button>
       <input type="file" id="inputImportar" accept=".json" style="display:none" onchange="importarVinculos(event)">
     </div>
-    <p class="small" style="margin:0 0 8px 0;">
-      <b>JSON</b>: para pasar vínculos a otro dispositivo · <b>Excel</b>: para revisar quién creó qué.
-    </p>
     <input type="text" id="filtroVinculos" placeholder="Filtrar…" oninput="renderVinculos()">
     <div class="tabla-scroll">
       <table id="tablaVinculos">
-        <thead><tr><th>Código</th><th>SKU</th><th>Descripción</th><th>Creado por</th><th></th></tr></thead>
+        <thead><tr><th>Código</th><th>SKU</th><th>Descripción</th><th>Creado por</th><th>Sucursal</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
   </div>
 </div>
 
+<!-- ============ PESTAÑA BASE DE DATOS ============ -->
 <div id="pestanaBaseDatos" style="display:none;">
   <div class="panel">
     <h3>📤 Subir archivos</h3>
-    <div class="ayuda">Aquí puedes subir los archivos del sistema sin acceso a Pedidos o Inventario.</div>
+    <div class="ayuda">Aquí puedes subir los archivos sin necesidad de acceder a Pedidos o Inventario.</div>
     <label class="small">📄 PDF de promociones</label>
     <input type="file" id="bdPdfInput" accept="application/pdf" onchange="procesarPDF(event)">
     <div id="bdInfoPdf" class="small" style="margin-top:4px;"></div>
-    <label class="small" style="display:block; margin-top:12px;">📊 Excel de inventario del sistema</label>
+    <label class="small" style="display:block; margin-top:12px;">📊 Excel de inventario de esta sucursal</label>
     <input type="file" id="bdInvInput" accept=".xlsx,.xls,.csv" onchange="procesarInventario(event)">
     <div id="bdInfoInv" class="small" style="margin-top:4px;"></div>
   </div>
@@ -377,22 +473,36 @@
   </div>
   <div class="panel">
     <h3>✏️ Productos agregados manualmente (<span id="bdContManuales">0</span>)</h3>
-    <div class="ayuda">Productos dados de alta manualmente. Puedes eliminarlos aquí.</div>
+    <div class="ayuda">Los productos manuales son <b>globales</b> (los ven todas las sucursales).</div>
     <input type="text" id="bdFiltroManuales" placeholder="Filtrar…" oninput="renderManuales()">
     <div class="tabla-scroll">
       <table id="tablaManuales">
-        <thead><tr><th>SKU</th><th>Descripción</th><th>Creado por</th><th>Fecha</th><th></th></tr></thead>
+        <thead><tr><th>SKU</th><th>Descripción</th><th>Creado por</th><th>Sucursal</th><th>Fecha</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
   </div>
 </div>
 
+<!-- ============ PESTAÑA AJUSTES ============ -->
 <div id="pestanaAjustes" style="display:none;">
   <div class="panel">
     <h3>👥 Usuarios</h3>
     <button class="verde" style="width:100%; margin-bottom:10px;" onclick="abrirModalUsuario()">➕ Agregar usuario</button>
     <div id="listaUsuarios"></div>
+  </div>
+  <div class="panel">
+    <h3>🏢 Sucursales</h3>
+    <button class="verde" style="width:100%; margin-bottom:10px;" onclick="abrirModalSucursal()">➕ Agregar sucursal</button>
+    <div id="listaSucursales"></div>
+  </div>
+  <div class="panel">
+    <h3>🏬 Nombre de la empresa</h3>
+    <p class="small">Este nombre aparece en el login y en el header.</p>
+    <div class="fila">
+      <input type="text" id="cfgEmpresaNombre" placeholder="Sahagún">
+      <button class="verde" onclick="guardarNombreEmpresa()">💾</button>
+    </div>
   </div>
   <div class="panel">
     <h3>🔑 Mi contraseña</h3>
@@ -423,6 +533,7 @@
   </div>
 </div>
 
+<!-- ============ MODALES ============ -->
 <div class="modal-bg" id="modalCamara">
   <div class="modal"><h3>📷 Escanear</h3><div id="reader"></div>
     <button class="rojo" style="width:100%; margin-top:10px;" onclick="cerrarCamara()">Cancelar</button></div>
@@ -444,10 +555,7 @@
 <div class="modal-bg" id="modalElegirProducto">
   <div class="modal">
     <h3>⚠️ Varios productos con este código</h3>
-    <div class="ayuda">
-      El código <b id="elegirCodigo"></b> está asignado a <b id="elegirCount"></b> productos.
-      Elige cuál quieres usar:
-    </div>
+    <div class="ayuda">El código <b id="elegirCodigo"></b> está asignado a <b id="elegirCount"></b> productos.</div>
     <div id="elegirOpciones"></div>
     <button class="gris" style="width:100%; margin-top:10px;" onclick="cerrarModalElegir()">Cancelar</button>
   </div>
@@ -456,11 +564,11 @@
 <div class="modal-bg" id="modalNuevoProducto">
   <div class="modal">
     <h3>✏️ Nuevo producto</h3>
-    <div class="ayuda">Este producto se guardará en este dispositivo y quedará registrado quién lo agregó.</div>
+    <div class="ayuda">Se guardará como producto <b>global</b> y quedará registrado quién lo agregó.</div>
     <label class="small">SKU / Clave *</label>
     <input type="text" id="npSku" placeholder="Ej. 99765600/REP" style="text-transform:uppercase;">
     <label class="small" style="display:block; margin-top:10px;">Descripción *</label>
-    <input type="text" id="npDesc" placeholder="Ej. REJILLA ESCURRIDORA">
+    <input type="text" id="npDesc">
     <label class="small" style="display:block; margin-top:10px;">Unidad de medida</label>
     <select id="npUm">
       <option value="PIEZA">PIEZA</option>
@@ -469,7 +577,7 @@
       <option value="CUBETA">CUBETA</option>
     </select>
     <label class="small" style="display:block; margin-top:10px;">Precio *</label>
-    <input type="number" id="npPrecio" step="0.01" min="0" placeholder="0.00">
+    <input type="number" id="npPrecio" step="0.01" min="0">
     <div class="fila" style="margin-top:16px;">
       <button class="verde" style="flex:1;" onclick="guardarNuevoProducto()">💾 Guardar</button>
       <button class="gris" onclick="document.getElementById('modalNuevoProducto').classList.remove('activo')">Cancelar</button>
@@ -497,7 +605,6 @@
     <div class="info-vinculo" style="background:#fff3e0; border-left-color:#e67e22;">
       Código: <b id="codigoRapido"></b>
     </div>
-    <p class="small">Busca el producto al que pertenece este código.</p>
     <input type="text" id="busquedaRapida" placeholder="Busca SKU o descripción…" oninput="buscarVincularRapido()">
     <div id="resultadosRapido" style="max-height:280px; overflow-y:auto; margin-top:8px;"></div>
     <button class="rojo" style="width:100%; margin-top:10px;" onclick="cerrarVincularRapido()">Cancelar</button>
@@ -509,33 +616,25 @@
     <h3>📥 Importar vínculos</h3>
     <div style="background:#e3f2fd; padding:12px; border-radius:8px; margin-bottom:14px;">
       <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-        <span>📊 Actuales en este dispositivo:</span><b id="impTotalActual">0</b>
+        <span>📊 Actuales:</span><b id="impTotalActual">0</b>
       </div>
       <div style="display:flex; justify-content:space-between;">
         <span>📁 En el archivo:</span><b id="impTotalArchivo">0</b>
       </div>
     </div>
-    <p class="small" style="margin-bottom:10px;">¿Cómo quieres importarlos?</p>
     <button class="verde" style="width:100%; text-align:left; padding:14px; margin-bottom:8px;"
             onclick="ejecutarImportacion('fusionar')">
       <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">🔀 FUSIONAR</div>
-      <div style="font-size:12px; font-weight:normal; opacity:.9;">
-        Mantiene los actuales y agrega los nuevos. <b>No duplica.</b><br>
-        Quedarán <b id="impResultFusionar">0</b> vínculos.
-      </div>
+      <div style="font-size:12px; opacity:.9;">No duplica. Quedarán <b id="impResultFusionar">0</b> vínculos.</div>
     </button>
     <button class="amarillo" style="width:100%; text-align:left; padding:14px; margin-bottom:8px;"
             onclick="ejecutarImportacion('reemplazar')">
       <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">🔄 REEMPLAZAR</div>
-      <div style="font-size:12px; font-weight:normal; opacity:.9;">
-        <b>Borra TODOS los actuales.</b> Solo quedan los del archivo.<br>
-        Quedarán <b id="impResultReemplazar">0</b> vínculos.
-      </div>
+      <div style="font-size:12px; opacity:.9;">Borra todos. Quedarán <b id="impResultReemplazar">0</b>.</div>
     </button>
     <button class="gris" style="width:100%; text-align:left; padding:14px;"
             onclick="cerrarModalImportar()">
       <div style="font-size:15px; font-weight:bold;">❌ CANCELAR</div>
-      <div style="font-size:12px; font-weight:normal; opacity:.9;">No hacer nada. Todo queda igual.</div>
     </button>
   </div>
 </div>
@@ -548,15 +647,32 @@
     <label class="small" style="display:block; margin-top:10px;">Correo</label><input type="email" id="userEmail">
     <label class="small" style="display:block; margin-top:10px;" id="labelUserPassword">Contraseña</label>
     <input type="password" id="userPassword">
-    <label class="small" style="display:block; margin-top:14px;">Pestañas</label>
+    <label class="small" style="display:block; margin-top:14px;">Pestañas permitidas</label>
     <div class="permiso-check"><input type="checkbox" id="permPedido" checked><label for="permPedido">🛒 Pedido</label></div>
     <div class="permiso-check"><input type="checkbox" id="permInventario"><label for="permInventario">📦 Inventario</label></div>
     <div class="permiso-check"><input type="checkbox" id="permVincular"><label for="permVincular">🔗 Vincular</label></div>
     <div class="permiso-check"><input type="checkbox" id="permBaseDatos"><label for="permBaseDatos">🗄️ Base de datos</label></div>
     <div class="permiso-check"><input type="checkbox" id="permAjustes"><label for="permAjustes">⚙️ Ajustes</label></div>
+    <label class="small" style="display:block; margin-top:14px;">Sucursales permitidas</label>
+    <div id="listaSucursalesUsuario"></div>
     <div class="fila" style="margin-top:16px;">
       <button class="verde" style="flex:1;" onclick="guardarUsuario()">💾 Guardar</button>
       <button class="gris" onclick="cerrarModalUsuario()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalSucursal">
+  <div class="modal">
+    <h3 id="modalSucursalTitulo">➕ Agregar sucursal</h3>
+    <label class="small">Nombre completo *</label>
+    <input type="text" id="sucNombre" placeholder="Ej. GUADALAJARA CENTRO" style="text-transform:uppercase;">
+    <label class="small" style="display:block; margin-top:10px;">Abreviatura (para el header)</label>
+    <input type="text" id="sucAbrev" placeholder="Ej. GDL C." style="text-transform:uppercase;">
+    <p class="small" style="margin-top:6px;">Si lo dejas vacío, se usará el nombre completo.</p>
+    <div class="fila" style="margin-top:16px;">
+      <button class="verde" style="flex:1;" onclick="guardarSucursal()">💾 Guardar</button>
+      <button class="gris" onclick="cerrarModalSucursal()">Cancelar</button>
     </div>
   </div>
 </div>
@@ -571,6 +687,18 @@
       <button class="verde" style="flex:1;" onclick="cambiarMiPassword()">💾 Guardar</button>
       <button class="gris" onclick="document.getElementById('modalMiPassword').classList.remove('activo')">Cancelar</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalMiCuenta">
+  <div class="modal">
+    <h3>⚙️ Mi cuenta</h3>
+    <div id="miCuentaInfo"></div>
+    <div class="ayuda" style="margin-top:14px;">
+      🔜 <b>Próximamente:</b> cambiar contraseña y correo desde aquí (en la v16.2).
+    </div>
+    <button class="gris" style="width:100%; margin-top:14px;"
+            onclick="document.getElementById('modalMiCuenta').classList.remove('activo')">Cerrar</button>
   </div>
 </div>
 
@@ -622,16 +750,30 @@
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-const KEY_STATE   = 'sahagun_state_v15';
+const KEY_STATE   = 'sahagun_state_v16';
 const KEY_MAP     = 'sahagun_mappings_v3';
-const KEY_USERS   = 'sahagun_users_v1';
+const KEY_USERS   = 'sahagun_users_v2';
 const KEY_SESSION = 'sahagun_session_v1';
-const KEY_CFG     = 'sahagun_config_v1';
+const KEY_CFG     = 'sahagun_config_v2';
 const KEY_OTP     = 'sahagun_otp_v1';
-const KEY_INV     = 'sahagun_inventario_v12';
+const KEY_INV     = 'sahagun_inventario_v16';
 const KEY_MANUAL  = 'sahagun_manuales_v1';
+const KEY_SUCURSALES = 'sahagun_sucursales_v1';
+const KEY_EMPRESA = 'sahagun_empresa_v1';
 const SESION_DIAS = 7;
 const OTP_MINUTOS = 10;
+
+// Sucursales por defecto
+const SUCURSALES_DEFAULT = [
+  { id: 'calpulalpan', nombre: 'CALPULALPAN', abrev: 'CALPULALPAN' },
+  { id: 'sahagun',     nombre: 'SAHAGUN',     abrev: 'SAHAGUN' },
+  { id: 'sanmiguel1',  nombre: 'SAN MIGUEL 1', abrev: 'S.M. 1' },
+  { id: 'sanmiguel2',  nombre: 'SAN MIGUEL 2', abrev: 'S.M. 2' },
+  { id: 'chapala',     nombre: 'CHAPALA',     abrev: 'CHAPALA' },
+  { id: 'ajiji',       nombre: 'AJIJI',       abrev: 'AJIJI' },
+  { id: 'sanjuan',     nombre: 'SAN JUAN',    abrev: 'S. JUAN' },
+  { id: 'arandas',     nombre: 'ARANDAS',     abrev: 'ARANDAS' }
+];
 
 let productos = [];
 let productosManuales = [];
@@ -662,11 +804,18 @@ let invUltimoSku = null;
 let elegirContexto = null;
 let importarVinculosPendiente = null;
 
+// NUEVO: Sucursales
+let sucursales = [];
+let sucursalActual = null;      // id de la sucursal activa
+let inventariosPorSucursal = {}; // { "sahagun": {base:[], conteo:{}}, ... }
+let nombreEmpresa = 'Sahagún';
+let modoEdicionSucursal = null;
+
 document.getElementById('fecha').value = new Date().toLocaleDateString('es-MX');
 
 /* ============ HASH ============ */
 function hashPassword(str) {
-  const sal = 'sahagun_v15_salt';
+  const sal = 'sahagun_v16_salt';
   const s = sal + str + sal;
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
   for (let k = 0; k < 500; k++) {
@@ -681,6 +830,91 @@ function hashPassword(str) {
   const a = (h1 >>> 0).toString(16).padStart(8, '0');
   const b = (h2 >>> 0).toString(16).padStart(8, '0');
   return a + b + a + b;
+}
+
+/* ============ SUCURSALES ============ */
+function cargarSucursales() {
+  try {
+    const raw = localStorage.getItem(KEY_SUCURSALES);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (Array.isArray(data) && data.length) sucursales = data;
+    }
+  } catch(e) {}
+  if (!sucursales.length) {
+    sucursales = SUCURSALES_DEFAULT.map(s => ({...s}));
+    guardarSucursales();
+  }
+}
+function guardarSucursales() {
+  try { localStorage.setItem(KEY_SUCURSALES, JSON.stringify(sucursales)); } catch(e) {}
+}
+function getSucursal(id) {
+  return sucursales.find(s => s.id === id) || null;
+}
+function getSucursalActual() {
+  return getSucursal(sucursalActual) || sucursales[0];
+}
+function cargarNombreEmpresa() {
+  try {
+    const n = localStorage.getItem(KEY_EMPRESA);
+    if (n) nombreEmpresa = n;
+  } catch(e) {}
+  document.getElementById('headerEmpresa').textContent = nombreEmpresa;
+  document.getElementById('loginTituloEmpresa').textContent = nombreEmpresa;
+}
+function guardarNombreEmpresa() {
+  const n = document.getElementById('cfgEmpresaNombre').value.trim();
+  if (!n) { alert('Pon un nombre.'); return; }
+  nombreEmpresa = n;
+  try { localStorage.setItem(KEY_EMPRESA, n); } catch(e) {}
+  document.getElementById('headerEmpresa').textContent = n;
+  document.getElementById('loginTituloEmpresa').textContent = n;
+  toast('✔ Nombre actualizado');
+}
+
+/* ============ INVENTARIOS POR SUCURSAL ============ */
+function guardarInventarios() {
+  try { localStorage.setItem(KEY_INV, JSON.stringify(inventariosPorSucursal)); } catch(e) {}
+}
+function cargarInventarios() {
+  try {
+    const raw = localStorage.getItem(KEY_INV);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        inventariosPorSucursal = data;
+      } else if (Array.isArray(data)) {
+        // Migración de v15: los datos viejos van a sahagun
+        inventariosPorSucursal = { 'sahagun': { base: data, conteo: {} } };
+      }
+    }
+  } catch(e) {}
+  // Asegurar que toda sucursal tenga su slot
+  sucursales.forEach(s => {
+    if (!inventariosPorSucursal[s.id]) {
+      inventariosPorSucursal[s.id] = { base: [], conteo: {} };
+    }
+  });
+  actualizarInventarioActual();
+}
+function actualizarInventarioActual() {
+  const slot = inventariosPorSucursal[sucursalActual];
+  if (slot) {
+    inventarioBase = slot.base || [];
+    inventarioConteo = slot.conteo || {};
+  } else {
+    inventarioBase = [];
+    inventarioConteo = {};
+  }
+}
+function persistirInventarioActual() {
+  if (!inventariosPorSucursal[sucursalActual]) {
+    inventariosPorSucursal[sucursalActual] = { base: [], conteo: {} };
+  }
+  inventariosPorSucursal[sucursalActual].base = inventarioBase;
+  inventariosPorSucursal[sucursalActual].conteo = inventarioConteo;
+  guardarInventarios();
 }
 
 /* ============ CONFIG EMAILJS ============ */
@@ -721,7 +955,7 @@ async function probarEmailJS() {
   try {
     await emailjs.send(configEmailJS.serviceId, configEmailJS.templateId, {
       to_email: correo, to_name: 'Prueba', user_name: 'prueba',
-      otp_code: '123456', minutes: 10, app_name: 'Sahagún Pedidos'
+      otp_code: '123456', minutes: 10, app_name: nombreEmpresa
     });
     alert('✅ Enviado.');
   } catch (err) { alert('❌ ' + (err?.text || err?.message || JSON.stringify(err))); }
@@ -731,10 +965,15 @@ async function probarEmailJS() {
 function inicializarUsuarios() {
   const raw = localStorage.getItem(KEY_USERS);
   if (raw) { try { usuarios = JSON.parse(raw); } catch(e) { usuarios = {}; } }
+  // Migrar permisos y sucursales
   Object.keys(usuarios).forEach(u => {
     if (!usuarios[u].permisos) usuarios[u].permisos = {};
     if (typeof usuarios[u].permisos.baseDatos === 'undefined') {
       usuarios[u].permisos.baseDatos = usuarios[u].permisos.ajustes === true;
+    }
+    if (!Array.isArray(usuarios[u].sucursalesPermitidas)) {
+      // Por defecto: todas las sucursales
+      usuarios[u].sucursalesPermitidas = sucursales.map(s => s.id);
     }
   });
   if (!usuarios || Object.keys(usuarios).length === 0) {
@@ -743,6 +982,7 @@ function inicializarUsuarios() {
       nombre: 'Administrador', email: '',
       hash: hashPassword('admin123'),
       permisos: { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true },
+      sucursalesPermitidas: sucursales.map(s => s.id),
       creado: new Date().toISOString(), primerLogin: true
     };
     guardarUsuarios();
@@ -757,6 +997,7 @@ function reiniciarUsuarios() {
   usuarios['admin'] = {
     nombre: 'Administrador', email: '', hash: hashPassword('admin123'),
     permisos: { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true },
+    sucursalesPermitidas: sucursales.map(s => s.id),
     creado: new Date().toISOString(), primerLogin: true
   };
   guardarUsuarios();
@@ -767,19 +1008,27 @@ function reiniciarUsuarios() {
 /* ============ SESIÓN ============ */
 function guardarSesion(u) {
   const expira = Date.now() + SESION_DIAS * 24 * 60 * 60 * 1000;
-  try { localStorage.setItem(KEY_SESSION, JSON.stringify({ usuario: u, expira })); } catch(e) {}
+  try {
+    localStorage.setItem(KEY_SESSION, JSON.stringify({
+      usuario: u, expira,
+      sucursalActual: sucursalActual
+    }));
+  } catch(e) {}
 }
 function cargarSesion() {
   try {
     const raw = localStorage.getItem(KEY_SESSION);
     if (!raw) return null;
     const obj = JSON.parse(raw);
-    if (obj.expira && obj.expira > Date.now() && usuarios[obj.usuario]) return obj.usuario;
+    if (obj.expira && obj.expira > Date.now() && usuarios[obj.usuario]) {
+      return { usuario: obj.usuario, sucursalActual: obj.sucursalActual };
+    }
     localStorage.removeItem(KEY_SESSION);
     return null;
   } catch(e) { return null; }
 }
 function borrarSesion() { try { localStorage.removeItem(KEY_SESSION); } catch(e) {} }
+
 function intentarLogin() {
   const u = document.getElementById('loginUsuario').value.trim().toLowerCase();
   const p = document.getElementById('loginPassword').value;
@@ -791,6 +1040,16 @@ function intentarLogin() {
     err.textContent = 'Usuario o contraseña incorrectos'; err.classList.add('show'); return;
   }
   usuarioLogueado = u;
+  // Asignar sucursal por defecto (la primera permitida)
+  const permitidas = usuario.sucursalesPermitidas || [];
+  if (!permitidas.length) {
+    err.textContent = 'Este usuario no tiene sucursales asignadas. Pide al admin.';
+    err.classList.add('show');
+    usuarioLogueado = null;
+    return;
+  }
+  sucursalActual = permitidas[0];
+  actualizarInventarioActual();
   guardarSesion(u);
   entrarApp();
   if (usuario.primerLogin) {
@@ -802,10 +1061,107 @@ function cerrarSesion() {
   borrarSesion();
   usuarioLogueado = null;
   document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
+  document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('activo'));
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginBg').style.display = 'flex';
   document.getElementById('loginUsuario').value = '';
   document.getElementById('loginPassword').value = '';
+}
+function cambiarDeCuenta() {
+  cerrarMenuUsuario();
+  if (!confirm('¿Cambiar de cuenta? Se cerrará la sesión actual.')) return;
+  borrarSesion();
+  usuarioLogueado = null;
+  document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginBg').style.display = 'flex';
+  document.getElementById('loginUsuario').value = '';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginUsuario').focus();
+  toast('👋 Ingresa con tu cuenta');
+}
+
+/* ============ HEADER: MENÚS ============ */
+function abrirMenuSucursal() {
+  const u = usuarios[usuarioLogueado];
+  if (!u) return;
+  const permitidas = u.sucursalesPermitidas || [];
+  const cont = document.getElementById('listaMenuSucursales');
+  cont.innerHTML = permitidas.map(id => {
+    const s = getSucursal(id);
+    if (!s) return '';
+    const activa = id === sucursalActual;
+    return `<div class="dropdown-item ${activa ? 'activo' : ''}" onclick="cambiarSucursal('${id}')">
+      <div class="info">
+        <span class="icono">🏢</span>
+        <div>
+          <div class="texto">${s.nombre}</div>
+          ${s.abrev !== s.nombre ? '<div class="subtexto">' + s.abrev + '</div>' : ''}
+        </div>
+      </div>
+      ${activa ? '<span class="check">✓</span>' : ''}
+    </div>`;
+  }).join('');
+  document.getElementById('menuSucursal').classList.add('activo');
+}
+function cerrarMenuSucursal() { document.getElementById('menuSucursal').classList.remove('activo'); }
+function cambiarSucursal(id) {
+  cerrarMenuSucursal();
+  if (id === sucursalActual) return;
+  sucursalActual = id;
+  actualizarInventarioActual();
+  guardarSesion(usuarioLogueado);
+  actualizarHeaderSucursal();
+  // Refrescar todo lo que depende de la sucursal
+  renderPedido();
+  renderInvTopStats();
+  renderInventario();
+  actualizarSucursalNombreEnVistas();
+  toast(`🏢 Cambiado a: ${getSucursalActual().nombre}`);
+}
+
+function abrirMenuUsuario() {
+  const u = usuarios[usuarioLogueado];
+  if (!u) return;
+  const s = getSucursalActual();
+  document.getElementById('dropdownUserHeader').innerHTML = `
+    <div class="nombre">${u.nombre || usuarioLogueado}</div>
+    <div class="usuario">@${usuarioLogueado}</div>
+    ${u.email ? '<div class="correo">📧 ' + u.email + '</div>' : ''}
+    <div class="correo" style="margin-top:4px;">🏢 ${s ? s.nombre : '—'}</div>
+  `;
+  document.getElementById('menuUsuario').classList.add('activo');
+}
+function cerrarMenuUsuario() { document.getElementById('menuUsuario').classList.remove('activo'); }
+
+function abrirMiCuenta() {
+  cerrarMenuUsuario();
+  const u = usuarios[usuarioLogueado];
+  const s = getSucursalActual();
+  document.getElementById('miCuentaInfo').innerHTML = `
+    <div class="ayuda">
+      <b>Nombre:</b> ${u.nombre || usuarioLogueado}<br>
+      <b>Usuario:</b> @${usuarioLogueado}<br>
+      <b>Correo:</b> ${u.email || '(sin correo)'}<br>
+      <b>Sucursal actual:</b> ${s ? s.nombre : '—'}<br>
+      <b>Sucursales permitidas:</b> ${(u.sucursalesPermitidas || []).map(id => getSucursal(id)?.abrev || id).join(', ')}
+    </div>`;
+  document.getElementById('modalMiCuenta').classList.add('activo');
+}
+
+function actualizarHeaderSucursal() {
+  const s = getSucursalActual();
+  if (!s) return;
+  document.getElementById('headerSucursal').textContent = s.abrev || s.nombre;
+  document.getElementById('headerSucursalUsuario').textContent = s.abrev || s.nombre;
+  document.getElementById('tienda').value = s.nombre;
+}
+function actualizarSucursalNombreEnVistas() {
+  const s = getSucursalActual();
+  const el = document.getElementById('invSucursalNombre');
+  if (el && s) el.textContent = s.nombre;
+  const t = document.getElementById('tienda');
+  if (t) t.value = s.nombre;
 }
 
 /* ============ OTP ============ */
@@ -854,7 +1210,7 @@ function enviarCodigoOTP() {
   aplicarEmailJSInit();
   emailjs.send(configEmailJS.serviceId, configEmailJS.templateId, {
     to_email: email, to_name: userData.nombre || username, user_name: username,
-    otp_code: codigo, minutes: OTP_MINUTOS, app_name: 'Sahagún Pedidos'
+    otp_code: codigo, minutes: OTP_MINUTOS, app_name: nombreEmpresa
   }).then(() => toast('📧 Enviado'))
     .catch(err => alert('❌ ' + (err?.text || err?.message || JSON.stringify(err))));
 }
@@ -898,20 +1254,27 @@ function verificarOTP() {
 /* ============ ENTRAR ============ */
 function entrarApp() {
   document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
+  document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('activo'));
   document.getElementById('loginBg').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   const u = usuarios[usuarioLogueado];
-  document.getElementById('usuarioActualHeader').textContent = '👤 ' + (u.nombre || usuarioLogueado);
+  document.getElementById('usuarioActualHeader').textContent = u.nombre || usuarioLogueado;
   document.getElementById('cfgPublicKey').value = configEmailJS.publicKey || '';
   document.getElementById('cfgServiceId').value = configEmailJS.serviceId || '';
   document.getElementById('cfgTemplateId').value = configEmailJS.templateId || '';
+  document.getElementById('cfgEmpresaNombre').value = nombreEmpresa;
   actualizarEstadoEmailJS();
+  actualizarHeaderSucursal();
+  actualizarSucursalNombreEnVistas();
   aplicarPermisos();
   if (productos.length === 0 && productosManuales.length === 0) cargarEstado();
   else { renderPedido(); renderVinculos(); }
-  cargarInventarioGuardado();
+  renderInvTopStats();
+  renderInventario();
   renderManuales();
   renderBaseDatosStats();
+  renderSucursales();
+  renderUsuarios();
   const disp = ['pedido','inventario','vincular','baseDatos','ajustes'].filter(t => u.permisos[t]);
   cambiarPestana(disp[0] || 'pedido');
 }
@@ -940,8 +1303,8 @@ function cambiarPestana(t) {
     if (p) p.style.display = (x === t) ? 'block' : 'none';
   });
   if (t === 'vincular') setTimeout(() => document.getElementById('inputCodigo').focus(), 100);
-  if (t === 'ajustes') { renderUsuarios(); actualizarEstadoEmailJS(); }
-  if (t === 'inventario') { renderInvTopStats(); renderInventario(); }
+  if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); }
+  if (t === 'inventario') { renderInvTopStats(); renderInventario(); actualizarSucursalNombreEnVistas(); }
   if (t === 'baseDatos') { renderManuales(); renderBaseDatosStats(); }
   guardarEstado();
 }
@@ -957,17 +1320,29 @@ function renderUsuarios() {
     const soyYo = user === usuarioLogueado;
     const admins = lista.filter(([k,v]) => v.permisos.ajustes);
     const ultAdm = u.permisos.ajustes && admins.length === 1;
+    const sucs = (u.sucursalesPermitidas || []).map(id => getSucursal(id)?.abrev || id).join(', ');
     return `<div class="usuario-row">
       <div class="info">
         <div class="nombre">${u.nombre || user} ${soyYo ? '(tú)' : ''}</div>
         <div class="small" style="font-family:monospace;">@${user}</div>
         ${u.email ? '<div class="small">📧 ' + u.email + '</div>' : ''}
-        <div class="small">${chips || '—'}</div>
+        <div class="small">Pestañas: ${chips || '—'}</div>
+        <div class="small">🏢 ${sucs || '—'}</div>
       </div>
       <div class="acciones">
         <button onclick="abrirModalUsuario('${user}')">✏️</button>
         ${!soyYo ? `<button class="rojo" onclick="eliminarUsuario('${user}')" ${ultAdm ? 'disabled' : ''}>🗑</button>` : ''}
       </div>
+    </div>`;
+  }).join('');
+}
+function renderSucursalesUsuario(seleccionadas) {
+  const cont = document.getElementById('listaSucursalesUsuario');
+  cont.innerHTML = sucursales.map(s => {
+    const checked = seleccionadas.includes(s.id) ? 'checked' : '';
+    return `<div class="sucursal-check">
+      <input type="checkbox" id="suc_${s.id}" value="${s.id}" ${checked}>
+      <label for="suc_${s.id}">${s.nombre} <span class="small">(${s.abrev})</span></label>
     </div>`;
   }).join('');
 }
@@ -996,6 +1371,7 @@ function abrirModalUsuario(username) {
     perm.vincular.checked = !!u.permisos.vincular;
     perm.baseDatos.checked = !!u.permisos.baseDatos;
     perm.ajustes.checked = !!u.permisos.ajustes;
+    renderSucursalesUsuario(u.sucursalesPermitidas || []);
   } else {
     document.getElementById('modalUsuarioTitulo').textContent = '➕ Agregar';
     inpU.value = ''; inpU.disabled = false;
@@ -1006,6 +1382,7 @@ function abrirModalUsuario(username) {
     perm.vincular.checked = false;
     perm.baseDatos.checked = false;
     perm.ajustes.checked = false;
+    renderSucursalesUsuario([]);
   }
   document.getElementById('modalUsuario').classList.add('activo');
 }
@@ -1025,18 +1402,28 @@ function guardarUsuario() {
     baseDatos: document.getElementById('permBaseDatos').checked,
     ajustes: document.getElementById('permAjustes').checked
   };
+  const sucursalesPermitidas = sucursales.filter(s => {
+    const cb = document.getElementById('suc_' + s.id);
+    return cb && cb.checked;
+  }).map(s => s.id);
+
   if (!nombre) { alert('Pon nombre.'); return; }
   if (!username || !/^[a-z0-9._-]{3,20}$/.test(username)) { alert('Usuario inválido.'); return; }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Correo inválido.'); return; }
-  if (!Object.values(permisos).some(v => v)) { alert('Marca al menos 1.'); return; }
+  if (!Object.values(permisos).some(v => v)) { alert('Marca al menos 1 pestaña.'); return; }
+  if (!sucursalesPermitidas.length) { alert('Marca al menos 1 sucursal.'); return; }
+
   const esEd = !!modoEdicionUsuario;
   if (!esEd) {
     if (usuarios[username]) { alert('Ya existe.'); return; }
     if (password.length < 4) { alert('Mínimo 4.'); return; }
-    usuarios[username] = { nombre, email, hash: hashPassword(password), permisos, creado: new Date().toISOString(), primerLogin: false };
+    usuarios[username] = {
+      nombre, email, hash: hashPassword(password), permisos, sucursalesPermitidas,
+      creado: new Date().toISOString(), primerLogin: false
+    };
   } else {
     const u = usuarios[modoEdicionUsuario];
-    u.nombre = nombre; u.email = email; u.permisos = permisos;
+    u.nombre = nombre; u.email = email; u.permisos = permisos; u.sucursalesPermitidas = sucursalesPermitidas;
     if (password) { if (password.length < 4) { alert('Mínimo 4.'); return; } u.hash = hashPassword(password); }
     if (modoEdicionUsuario === usuarioLogueado) aplicarPermisos();
   }
@@ -1073,16 +1460,101 @@ function cambiarMiPassword() {
   toast('✔');
 }
 
+/* ============ SUCURSALES UI ============ */
+function renderSucursales() {
+  const cont = document.getElementById('listaSucursales');
+  const u = usuarios[usuarioLogueado];
+  if (!u || !u.permisos.ajustes) {
+    cont.innerHTML = '<p class="small">Solo el administrador puede ver esta sección.</p>';
+    return;
+  }
+  cont.innerHTML = sucursales.map(s => `
+    <div class="sucursal-row">
+      <div class="info">
+        <div class="nombre">${s.nombre}</div>
+        <div class="abrev">Abrev: ${s.abrev}</div>
+      </div>
+      <div class="acciones">
+        <button onclick="abrirModalSucursal('${s.id}')">✏️</button>
+        <button class="rojo" onclick="eliminarSucursal('${s.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+function abrirModalSucursal(id) {
+  modoEdicionSucursal = id || null;
+  if (id) {
+    const s = getSucursal(id);
+    document.getElementById('modalSucursalTitulo').textContent = '✏️ Editar sucursal';
+    document.getElementById('sucNombre').value = s.nombre;
+    document.getElementById('sucAbrev').value = s.abrev;
+  } else {
+    document.getElementById('modalSucursalTitulo').textContent = '➕ Agregar sucursal';
+    document.getElementById('sucNombre').value = '';
+    document.getElementById('sucAbrev').value = '';
+  }
+  document.getElementById('modalSucursal').classList.add('activo');
+}
+function cerrarModalSucursal() {
+  document.getElementById('modalSucursal').classList.remove('activo');
+  modoEdicionSucursal = null;
+}
+function guardarSucursal() {
+  const nombre = document.getElementById('sucNombre').value.trim().toUpperCase();
+  const abrev = (document.getElementById('sucAbrev').value.trim().toUpperCase() || nombre);
+  if (!nombre) { alert('Pon el nombre.'); return; }
+  if (modoEdicionSucursal) {
+    const s = getSucursal(modoEdicionSucursal);
+    s.nombre = nombre;
+    s.abrev = abrev;
+    toast('✔ Sucursal actualizada');
+  } else {
+    const id = nombre.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) + '_' + Date.now().toString().slice(-4);
+    sucursales.push({ id, nombre, abrev });
+    inventariosPorSucursal[id] = { base: [], conteo: {} };
+    toast('✔ Sucursal agregada');
+  }
+  guardarSucursales();
+  guardarInventarios();
+  cerrarModalSucursal();
+  renderSucursales();
+  renderUsuarios();
+  actualizarHeaderSucursal();
+}
+function eliminarSucursal(id) {
+  if (sucursales.length <= 1) { alert('Debe haber al menos 1 sucursal.'); return; }
+  const s = getSucursal(id);
+  if (!confirm(`¿Eliminar la sucursal "${s.nombre}"?\n\nSe eliminará también su inventario cargado.`)) return;
+  if (prompt(`Escribe ELIMINAR para confirmar:`) !== 'ELIMINAR') { alert('Cancelado.'); return; }
+  sucursales = sucursales.filter(x => x.id !== id);
+  delete inventariosPorSucursal[id];
+  // Quitar de usuarios
+  Object.keys(usuarios).forEach(u => {
+    usuarios[u].sucursalesPermitidas = (usuarios[u].sucursalesPermitidas || []).filter(x => x !== id);
+  });
+  // Si la sucursal actual era esa, cambiar
+  if (sucursalActual === id && sucursales.length) {
+    sucursalActual = sucursales[0].id;
+    actualizarInventarioActual();
+    actualizarHeaderSucursal();
+  }
+  guardarSucursales();
+  guardarInventarios();
+  guardarUsuarios();
+  renderSucursales();
+  renderUsuarios();
+  toast('🗑 Sucursal eliminada');
+}
+
 /* ============ RESPALDO ============ */
 function exportarRespaldo() {
-  const data = { version: 10, exportado: new Date().toISOString(),
+  const data = { version: 11, exportado: new Date().toISOString(),
     productos, productosManuales, pedido, vinculos, usuarios, configEmailJS,
-    inventarioBase, inventarioConteo, tienda: document.getElementById('tienda').value };
+    inventariosPorSucursal, sucursales, nombreEmpresa, sucursalActual };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `respaldo_sahagun_${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `respaldo_${nombreEmpresa.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
   toast('📤');
@@ -1102,12 +1574,23 @@ function importarRespaldo(event) {
       if (data.vinculos) { vinculos = data.vinculos; migrarVinculos(); }
       if (data.usuarios) { usuarios = data.usuarios; guardarUsuarios(); }
       if (data.configEmailJS) { configEmailJS = data.configEmailJS; localStorage.setItem(KEY_CFG, JSON.stringify(configEmailJS)); }
-      if (data.inventarioBase) inventarioBase = data.inventarioBase;
-      if (data.inventarioConteo) inventarioConteo = data.inventarioConteo;
-      if (data.tienda) document.getElementById('tienda').value = data.tienda;
-      guardarEstado(); guardarInvBase();
-      renderPedido(); renderVinculos(); renderUsuarios(); renderInvTopStats(); renderInventario();
-      renderManuales(); renderBaseDatosStats();
+      if (Array.isArray(data.sucursales) && data.sucursales.length) {
+        sucursales = data.sucursales; guardarSucursales();
+      }
+      if (data.inventariosPorSucursal) {
+        inventariosPorSucursal = data.inventariosPorSucursal; guardarInventarios();
+      } else if (data.inventarioBase) {
+        // Migración de v15
+        inventariosPorSucursal = { 'sahagun': { base: data.inventarioBase, conteo: data.inventarioConteo || {} } };
+        guardarInventarios();
+      }
+      if (data.nombreEmpresa) { nombreEmpresa = data.nombreEmpresa; localStorage.setItem(KEY_EMPRESA, nombreEmpresa); cargarNombreEmpresa(); }
+      if (data.sucursalActual) sucursalActual = data.sucursalActual;
+      guardarEstado();
+      actualizarInventarioActual();
+      renderPedido(); renderVinculos(); renderUsuarios(); renderSucursales();
+      renderInvTopStats(); renderInventario(); renderManuales(); renderBaseDatosStats();
+      actualizarHeaderSucursal(); actualizarSucursalNombreEnVistas();
       actualizarEstadoEmailJS();
       toast('✔');
     } catch (err) { alert('Error: ' + err.message); }
@@ -1151,29 +1634,21 @@ function toast(msg, tipo) {
   clearTimeout(window._toastT);
   window._toastT = setTimeout(() => t.classList.remove('show'), 2500);
 }
-
-/* ============ *** FÓRMULA DE DIFERENCIA (NUEVA) *** ============ */
 function calcularDif(system, contado) {
-  // Si el sistema dice negativo (faltan piezas), las que se encuentren se restan a lo que falta
-  // Ej: system=-24, contado=3 → -21 (faltan 21)
   if (system < 0) return system + contado;
-  // Si es positivo o cero, es la resta normal
   return contado - system;
 }
-/* *** FIN *** */
-
-/* ============ VÍNCULOS ============ */
 function migrarVinculos() {
   Object.keys(vinculos).forEach(cod => {
     const v = vinculos[cod];
     if (typeof v === 'string') {
-      vinculos[cod] = [{ sku: v, creadoPor: '—', fecha: null }];
+      vinculos[cod] = [{ sku: v, creadoPor: '—', fecha: null, sucursal: '—' }];
     } else if (v && typeof v === 'object' && !Array.isArray(v) && v.sku) {
-      vinculos[cod] = [{ sku: v.sku, creadoPor: v.creadoPor || '—', fecha: v.fecha || null }];
+      vinculos[cod] = [{ sku: v.sku, creadoPor: v.creadoPor || '—', fecha: v.fecha || null, sucursal: v.sucursal || '—' }];
     } else if (Array.isArray(v)) {
       vinculos[cod] = v.map(item => {
-        if (typeof item === 'string') return { sku: item, creadoPor: '—', fecha: null };
-        return { sku: item.sku, creadoPor: item.creadoPor || '—', fecha: item.fecha || null };
+        if (typeof item === 'string') return { sku: item, creadoPor: '—', fecha: null, sucursal: '—' };
+        return { sku: item.sku, creadoPor: item.creadoPor || '—', fecha: item.fecha || null, sucursal: item.sucursal || '—' };
       });
     }
   });
@@ -1182,20 +1657,8 @@ function skusDeCodigo(codigo) {
   const v = vinculos[codigo];
   if (!v) return [];
   if (Array.isArray(v)) return v;
-  if (typeof v === 'string') return [{ sku: v, creadoPor: '—', fecha: null }];
+  if (typeof v === 'string') return [{ sku: v, creadoPor: '—', fecha: null, sucursal: '—' }];
   return [v];
-}
-function codigosDeSku(sku) {
-  const s = sku.toUpperCase();
-  const out = [];
-  Object.entries(vinculos).forEach(([cod, arr]) => {
-    const lista = Array.isArray(arr) ? arr : (typeof arr === 'string' ? [{ sku: arr }] : [arr]);
-    lista.forEach(item => {
-      const itemSku = typeof item === 'string' ? item : item.sku;
-      if (itemSku && itemSku.toUpperCase() === s) out.push(cod);
-    });
-  });
-  return out;
 }
 function fmtFecha(iso) {
   if (!iso) return '—';
@@ -1204,7 +1667,6 @@ function fmtFecha(iso) {
     return d.toLocaleDateString('es-MX') + ' ' + d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
   } catch(e) { return '—'; }
 }
-
 function buscarProductoPorSku(sku) {
   if (!sku) return null;
   const s = sku.toUpperCase();
@@ -1231,7 +1693,6 @@ function guardarEstado() {
   try {
     localStorage.setItem(KEY_STATE, JSON.stringify({
       productos, productosManuales, pedido, vinculos,
-      tienda: document.getElementById('tienda').value,
       fecha: new Date().toISOString()
     }));
     localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
@@ -1255,7 +1716,6 @@ function cargarEstado() {
       if (Array.isArray(obj.productosManuales)) productosManuales = obj.productosManuales;
       if (Array.isArray(obj.pedido)) pedido = obj.pedido;
       if (obj.vinculos) { vinculos = obj.vinculos; migrarVinculos(); }
-      if (typeof obj.tienda === 'string') document.getElementById('tienda').value = obj.tienda;
     } else {
       const mapRaw = localStorage.getItem(KEY_MAP);
       if (mapRaw) { try { vinculos = JSON.parse(mapRaw); migrarVinculos(); } catch(e) {} }
@@ -1265,10 +1725,6 @@ function cargarEstado() {
   } catch(e) { console.error('cargarEstado:', e); }
   renderPedido();
   renderVinculos();
-  renderInvTopStats();
-  renderInventario();
-  renderManuales();
-  renderBaseDatosStats();
 }
 function olvidarCatalogo() {
   if (!confirm('¿Olvidar catálogo?')) return;
@@ -1376,35 +1832,12 @@ function parsearLinea(texto) {
 }
 
 /* ============ INVENTARIO ============ */
-function guardarInvBase() {
-  try {
-    localStorage.setItem(KEY_INV, JSON.stringify({
-      base: inventarioBase, conteo: inventarioConteo, fecha: new Date().toISOString()
-    }));
-  } catch(e) {}
-}
-function cargarInventarioGuardado() {
-  try {
-    const raw = localStorage.getItem(KEY_INV);
-    if (!raw) return;
-    const obj = JSON.parse(raw);
-    if (Array.isArray(obj.base)) inventarioBase = obj.base;
-    if (obj.conteo) inventarioConteo = obj.conteo;
-    if (inventarioBase.length) {
-      const f = obj.fecha ? new Date(obj.fecha).toLocaleString('es-MX') : '';
-      document.getElementById('invInfo').innerHTML = `✔ <b>${inventarioBase.length}</b> productos · <b>${Object.keys(inventarioConteo).length}</b> contados <span class="small">(${f})</span>`;
-      document.getElementById('invBtnOlvidarWrap').style.display = 'block';
-      document.getElementById('invPanelContar').style.display = 'block';
-    }
-    renderInvTopStats();
-    renderInventario();
-  } catch(e) {}
-}
 function olvidarInventario() {
-  if (!confirm('¿Olvidar inventario cargado y conteo?')) return;
+  const s = getSucursalActual();
+  if (!confirm(`¿Olvidar inventario y conteo de "${s.nombre}"?`)) return;
   inventarioBase = [];
   inventarioConteo = {};
-  try { localStorage.removeItem(KEY_INV); } catch(e) {}
+  persistirInventarioActual();
   document.getElementById('invInfo').textContent = '';
   document.getElementById('invBtnOlvidarWrap').style.display = 'none';
   document.getElementById('invPanelContar').style.display = 'none';
@@ -1418,6 +1851,7 @@ function olvidarInventario() {
 async function procesarInventario(event) {
   const file = event.target.files[0];
   if (!file) return;
+  const s = getSucursalActual();
   const info = document.getElementById('invInfo');
   const infoBD = document.getElementById('bdInfoInv');
   if (info) info.innerHTML = '⏳ Leyendo…';
@@ -1472,16 +1906,16 @@ async function procesarInventario(event) {
       inventarioBase.push({ sku, descripcion, precio, exis });
     }
     inventarioConteo = {};
-    guardarInvBase();
-    const msg = `✔ <b>${inventarioBase.length}</b> productos cargados`;
-    if (info) info.innerHTML = msg + ` · Cols: SKU[${idxSku}] Desc[${idxDesc}] Precio[${idxPrecio}] Exis[${idxExis}]`;
+    persistirInventarioActual();
+    const msg = `✔ <b>${inventarioBase.length}</b> productos cargados (${s.nombre})`;
+    if (info) info.innerHTML = msg;
     if (infoBD) infoBD.innerHTML = msg;
     document.getElementById('invBtnOlvidarWrap').style.display = 'block';
     document.getElementById('invPanelContar').style.display = 'block';
     renderInvTopStats();
     renderInventario();
     renderBaseDatosStats();
-    toast(`✔ ${inventarioBase.length} productos`);
+    toast(`✔ ${inventarioBase.length} productos en ${s.abrev}`);
   } catch (err) { console.error(err); alert('Error al leer: ' + err.message); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; }
 }
 function renderInvTopStats() {
@@ -1502,13 +1936,15 @@ function renderBaseDatosStats() {
   const el = document.getElementById('bdStats');
   if (!el) return;
   const totalPDF = productos.length;
-  const totalInv = inventarioBase.length;
+  let totalInv = 0;
+  Object.values(inventariosPorSucursal).forEach(slot => { totalInv += (slot.base || []).length; });
   const totalManual = productosManuales.length;
   const totalVinc = contarVinculos();
-  const totalContados = Object.keys(inventarioConteo).length;
+  let totalContados = 0;
+  Object.values(inventariosPorSucursal).forEach(slot => { totalContados += Object.keys(slot.conteo || {}).length; });
   el.innerHTML = `
     <div class="inv-stat ${totalPDF ? 'ok' : ''}"><div class="num">${totalPDF}</div><div class="lbl">PDF promo</div></div>
-    <div class="inv-stat ${totalInv ? 'ok' : ''}"><div class="num">${totalInv}</div><div class="lbl">Excel sistema</div></div>
+    <div class="inv-stat ${totalInv ? 'ok' : ''}"><div class="num">${totalInv}</div><div class="lbl">Tot. invent.</div></div>
     <div class="inv-stat ${totalManual ? 'ok' : ''}"><div class="num">${totalManual}</div><div class="lbl">Manuales</div></div>
     <div class="inv-stat ${totalVinc ? 'ok' : ''}"><div class="num">${totalVinc}</div><div class="lbl">Vínculos</div></div>
     <div class="inv-stat ${totalContados ? 'ok' : ''}"><div class="num">${totalContados}</div><div class="lbl">Contados</div></div>`;
@@ -1523,7 +1959,7 @@ function renderManuales() {
     !filtro || p.sku.toLowerCase().includes(filtro) || (p.descripcion || '').toLowerCase().includes(filtro)
   );
   if (!lista.length) {
-    tb.innerHTML = '<tr><td colspan="5" class="small" style="text-align:center; padding:20px;">Sin productos manuales</td></tr>';
+    tb.innerHTML = '<tr><td colspan="6" class="small" style="text-align:center; padding:20px;">Sin productos manuales</td></tr>';
     return;
   }
   tb.innerHTML = lista.map(p => `
@@ -1531,6 +1967,7 @@ function renderManuales() {
       <td style="font-family:monospace;">${p.sku}</td>
       <td class="small">${p.descripcion || ''}</td>
       <td class="small">@${p.creadoPor || '—'}</td>
+      <td class="small">${p.sucursal || '—'}</td>
       <td class="small">${fmtFecha(p.fecha)}</td>
       <td><button class="rojo" style="padding:6px 10px; font-size:12px;" onclick="eliminarManual('${p.sku.replace(/'/g, "\\'")}')">🗑</button></td>
     </tr>`).join('');
@@ -1550,7 +1987,7 @@ function invBuscar() {
   const cont = document.getElementById('invResultados');
   invIndiceSel = -1;
   if (!q) { cont.innerHTML = ''; invResultados = []; return; }
-  if (!inventarioBase.length) { cont.innerHTML = '<p class="small">Primero sube el Reporte de Inventario.</p>'; return; }
+  if (!inventarioBase.length) { cont.innerHTML = '<p class="small">Primero sube el Reporte de Inventario de esta sucursal.</p>'; return; }
   invResultados = inventarioBase.filter(p =>
     p.sku.toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q)
   ).slice(0, 30);
@@ -1647,7 +2084,7 @@ function confirmarConteo() {
   const cant = Math.max(0, parseInt(document.getElementById('inputConteo').value) || 0);
   inventarioConteo[invProductoActual.sku] = cant;
   invUltimoSku = invProductoActual.sku;
-  guardarInvBase();
+  persistirInventarioActual();
   renderInvTopStats();
   renderInventario();
   toast(`✔ ${invProductoActual.sku} = ${cant}`);
@@ -1676,7 +2113,7 @@ function renderInventario() {
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   rows.forEach(p => {
     const c = inventarioConteo[p.sku];
-    const d = calcularDif(p.exis, c);  // ← NUEVA FÓRMULA
+    const d = calcularDif(p.exis, c);
     if (d > 0) sobrantes++; else if (d < 0) faltantes++; else cuadran++;
     if (p.exis < 0) negEnSistema++;
     totalDifMxn += d * (p.precio || 0);
@@ -1702,7 +2139,7 @@ function renderInventario() {
   }
   tb.innerHTML = visibles.map(p => {
     const c = inventarioConteo[p.sku];
-    const d = calcularDif(p.exis, c);  // ← NUEVA FÓRMULA
+    const d = calcularDif(p.exis, c);
     const difMxn = d * (p.precio || 0);
     let claseRow = d > 0 ? 'sobrante' : (d < 0 ? 'faltante' : 'ok-row');
     if (p.exis < 0) claseRow = 'negativo';
@@ -1721,21 +2158,22 @@ function renderInventario() {
 }
 function limpiarConteo() {
   if (!Object.keys(inventarioConteo).length) { alert('No hay conteo.'); return; }
-  if (!confirm('¿Borrar TODO el conteo?')) return;
+  const s = getSucursalActual();
+  if (!confirm(`¿Borrar TODO el conteo de "${s.nombre}"?`)) return;
   inventarioConteo = {};
-  guardarInvBase();
+  persistirInventarioActual();
   renderInvTopStats();
   renderInventario();
   renderBaseDatosStats();
   toast('🗑');
 }
-
-/* *** EXPORTAR INVENTARIO CON COLORES *** */
 function exportarInventario() {
   if (!Object.keys(inventarioConteo).length) { alert('No has contado nada.'); return; }
+  const s = getSucursalActual();
   const aoa = [];
   aoa.push(['Reporte de Inventario Físico']);
-  aoa.push(['Tienda', document.getElementById('tienda').value || 'SAHAGUN']);
+  aoa.push(['Empresa', nombreEmpresa]);
+  aoa.push(['Sucursal', s.nombre]);
   aoa.push(['Fecha', new Date().toLocaleString('es-MX')]);
   aoa.push(['Usuario', usuarioLogueado || '']);
   aoa.push([]);
@@ -1751,7 +2189,7 @@ function exportarInventario() {
   });
   rows.forEach(p => {
     const c = inventarioConteo[p.sku];
-    const d = calcularDif(p.exis, c);  // ← NUEVA FÓRMULA
+    const d = calcularDif(p.exis, c);
     const difMxn = d * (p.precio || 0);
     totalDifMxn += difMxn;
     totalDifPz += d;
@@ -1763,10 +2201,7 @@ function exportarInventario() {
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = [{ wch: 18 }, { wch: 45 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
 
-  // *** APLICAR COLORES a las columnas "Diferencia" (E) y "Dif $" (G) ***
-  // Encabezados en fila 6 (índice 5 en 0-based, en Excel es fila 6)
-  // Datos empiezan en fila 7 (índice 6 en 0-based)
-  const inicioDatos = 7; // fila Excel 1-based
+  const inicioDatos = 8;
   for (let i = 0; i < rows.length; i++) {
     const filaExcel = inicioDatos + i;
     const p = rows[i];
@@ -1775,29 +2210,25 @@ function exportarInventario() {
     const celdaE = 'E' + filaExcel;
     const celdaG = 'G' + filaExcel;
     if (d > 0) {
-      // Positivo → verde
       ws[celdaE] = ws[celdaE] || {};
       ws[celdaG] = ws[celdaG] || {};
       ws[celdaE].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
       ws[celdaG].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
     } else if (d < 0) {
-      // Negativo → rojo
       ws[celdaE] = ws[celdaE] || {};
       ws[celdaG] = ws[celdaG] || {};
       ws[celdaE].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
       ws[celdaG].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
     }
-    // Si d === 0, no aplicar color
   }
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
-  const tienda = document.getElementById('tienda').value || 'SAHAGUN';
   const fecha = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, `inventario_${tienda}_${fecha}.xlsx`);
+  const sId = s.abrev.replace(/[^A-Z0-9]/gi, '_');
+  XLSX.writeFile(wb, `inventario_${sId}_${fecha}.xlsx`);
   toast('📥 Descargado');
 }
-/* *** FIN *** */
 
 /* ============ CÁMARA ============ */
 function abrirCamara(origen) {
@@ -1882,7 +2313,6 @@ function procesarCodigoEnPedido(codigo) {
   document.getElementById('busqueda').value = c;
   toast('❌ No encontrado: ' + c, 'error');
 }
-
 function mostrarElegirProducto(codigo, productosArr, contexto) {
   elegirContexto = contexto;
   document.getElementById('elegirCodigo').textContent = codigo;
@@ -2055,7 +2485,8 @@ function agregarAlPedido(p, cant) {
   else pedido.push({
     sku: p.sku, descripcion: p.descripcion, precio: p.precio || 0,
     um: p.um, cantidad: cant, fuente: p.fuente || 'PDF',
-    agregadoPor: usuarioLogueado, fecha: new Date().toISOString()
+    agregadoPor: usuarioLogueado, sucursal: sucursalActual,
+    fecha: new Date().toISOString()
   });
   renderPedido();
   guardarEstado();
@@ -2085,7 +2516,8 @@ function guardarNuevoProducto() {
     alert('Ya existe un producto con ese SKU.'); return;
   }
   const nuevo = { sku, descripcion: desc, um, precio, fuente: 'Manual',
-                  creadoPor: usuarioLogueado, fecha: new Date().toISOString() };
+                  creadoPor: usuarioLogueado, sucursal: sucursalActual,
+                  fecha: new Date().toISOString() };
   productosManuales.push(nuevo);
   guardarEstado();
   document.getElementById('modalNuevoProducto').classList.remove('activo');
@@ -2155,7 +2587,7 @@ function asignarVincularRapido(sku) {
     toast('Ya está vinculado a este código');
     return;
   }
-  vinculos[codigo].push({ sku, creadoPor: usuarioLogueado, fecha: new Date().toISOString() });
+  vinculos[codigo].push({ sku, creadoPor: usuarioLogueado, sucursal: sucursalActual, fecha: new Date().toISOString() });
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   guardarEstado();
   renderVinculos();
@@ -2190,7 +2622,7 @@ function capturarCodigo() {
         <div style="font-family:monospace;">
           <div style="font-size:14px; font-weight:bold; color:#1a3a6b;">${it.sku}</div>
           ${prod ? '<div style="font-size:11px; color:#666;">' + prod.descripcion + '</div>' : ''}
-          <div style="font-size:10px; color:#888;">@${it.creadoPor || '—'} · ${fmtFecha(it.fecha)}</div>
+          <div style="font-size:10px; color:#888;">@${it.creadoPor || '—'} · ${it.sucursal || '—'} · ${fmtFecha(it.fecha)}</div>
         </div>
         <button class="rojo" style="padding:4px 8px; font-size:11px;"
                 onclick="quitarSkuDeCodigo('${codigo.replace(/'/g, "\\'")}', '${it.sku.replace(/'/g, "\\'")}')">🗑</button>
@@ -2292,7 +2724,7 @@ function guardarVinculo(sku) {
     toast('Ya está vinculado');
     return;
   }
-  vinculos[codigo].push({ sku, creadoPor: usuarioLogueado, fecha: new Date().toISOString() });
+  vinculos[codigo].push({ sku, creadoPor: usuarioLogueado, sucursal: sucursalActual, fecha: new Date().toISOString() });
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   guardarEstado();
   renderVinculos();
@@ -2302,7 +2734,8 @@ function guardarVinculo(sku) {
      <div style="font-size:18px; margin:8px 0;">${codigo}</div>
      <div style="opacity:.8; font-size:13px;">AGREGADO A</div>
      <div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>
-     ${prod ? '<div style="font-size:12px; opacity:.9;">' + prod.descripcion + '</div>' : ''}`;
+     ${prod ? '<div style="font-size:12px; opacity:.9;">' + prod.descripcion + '</div>' : ''}
+     <div style="font-size:11px; opacity:.9; margin-top:8px;">@${usuarioLogueado} · ${getSucursalActual().abrev}</div>`;
   document.getElementById('exitoFullscreen').classList.add('show');
   setTimeout(() => {
     document.getElementById('exitoFullscreen').classList.remove('show');
@@ -2325,8 +2758,9 @@ function renderVinculos() {
     lista.forEach(item => {
       const sku = typeof item === 'string' ? item : item.sku;
       const creador = (typeof item === 'object' && item.creadoPor) ? item.creadoPor : '—';
+      const sucursal = (typeof item === 'object' && item.sucursal) ? item.sucursal : '—';
       const fecha = (typeof item === 'object' && item.fecha) ? item.fecha : null;
-      filas.push({ cod, sku, creador, fecha });
+      filas.push({ cod, sku, creador, sucursal, fecha });
     });
   });
   const filtradas = filas.filter(f => {
@@ -2337,7 +2771,7 @@ function renderVinculos() {
   });
   document.getElementById('contadorVinculos').textContent = filas.length;
   if (!filtradas.length) {
-    tb.innerHTML = '<tr><td colspan="5" class="small" style="text-align:center; padding:20px;">Sin vínculos</td></tr>';
+    tb.innerHTML = '<tr><td colspan="6" class="small" style="text-align:center; padding:20px;">Sin vínculos</td></tr>';
     return;
   }
   tb.innerHTML = filtradas.map(f => {
@@ -2348,6 +2782,7 @@ function renderVinculos() {
       <td>${f.sku}</td>
       <td class="small">${desc}</td>
       <td class="small">@${f.creador}</td>
+      <td class="small">${f.sucursal}</td>
       <td><button class="rojo" style="padding:6px 10px; font-size:12px;"
               onclick="borrarVinculo('${f.cod.replace(/'/g, "\\'")}', '${f.sku.replace(/'/g, "\\'")}')">X</button></td>
     </tr>`;
@@ -2383,8 +2818,8 @@ function fusionarVinculos(actual, nuevos) {
   Object.entries(actual).forEach(([cod, arr]) => {
     const lista = Array.isArray(arr) ? arr : (typeof arr === 'string' ? [{ sku: arr }] : [arr]);
     out[cod] = lista.map(item => {
-      if (typeof item === 'string') return { sku: item, creadoPor: '—', fecha: null };
-      return { sku: item.sku, creadoPor: item.creadoPor || '—', fecha: item.fecha || null };
+      if (typeof item === 'string') return { sku: item, creadoPor: '—', sucursal: '—', fecha: null };
+      return { sku: item.sku, creadoPor: item.creadoPor || '—', sucursal: item.sucursal || '—', fecha: item.fecha || null };
     });
   });
   Object.entries(nuevos).forEach(([cod, arr]) => {
@@ -2398,34 +2833,35 @@ function fusionarVinculos(actual, nuevos) {
 }
 function exportarVinculos() {
   if (!Object.keys(vinculos).length) { alert('Sin vínculos.'); return; }
-  const data = { version: 3, exportado: new Date().toISOString(), vinculos };
+  const data = { version: 4, exportado: new Date().toISOString(), vinculos };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `vinculos_sahagun_${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `vinculos_${nombreEmpresa.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
   toast('📤');
 }
 function exportarVinculosExcel() {
   if (!Object.keys(vinculos).length) { alert('Sin vínculos.'); return; }
-  const aoa = [['Código de barras', 'SKU', 'Descripción', 'Creado por', 'Fecha']];
+  const aoa = [['Código de barras', 'SKU', 'Descripción', 'Creado por', 'Sucursal', 'Fecha']];
   Object.entries(vinculos).forEach(([cod, arr]) => {
     const lista = Array.isArray(arr) ? arr : (typeof arr === 'string' ? [{ sku: arr }] : [arr]);
     lista.forEach(item => {
       const sku = typeof item === 'string' ? item : item.sku;
       const creador = (typeof item === 'object' && item.creadoPor) ? item.creadoPor : '—';
+      const sucursal = (typeof item === 'object' && item.sucursal) ? item.sucursal : '—';
       const fecha = (typeof item === 'object' && item.fecha) ? fmtFecha(item.fecha) : '—';
       const prod = buscarProductoPorSku(sku);
-      aoa.push([cod, sku, prod ? prod.descripcion : '', creador, fecha]);
+      aoa.push([cod, sku, prod ? prod.descripcion : '', creador, sucursal, fecha]);
     });
   });
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 45 }, { wch: 15 }, { wch: 20 }];
+  ws['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 45 }, { wch: 15 }, { wch: 15 }, { wch: 20 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Vínculos');
-  XLSX.writeFile(wb, `vinculos_sahagun_${new Date().toISOString().slice(0,10)}.xlsx`);
+  XLSX.writeFile(wb, `vinculos_${nombreEmpresa.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.xlsx`);
   toast('📊 Descargado');
 }
 function importarVinculos(event) {
@@ -2442,8 +2878,8 @@ function importarVinculos(event) {
       Object.entries(nuevos).forEach(([cod, val]) => {
         const lista = Array.isArray(val) ? val : (typeof val === 'string' ? [{ sku: val }] : [val]);
         nuevosNorm[cod] = lista.map(item => {
-          if (typeof item === 'string') return { sku: item, creadoPor: '—', fecha: null };
-          return { sku: item.sku, creadoPor: item.creadoPor || '—', fecha: item.fecha || null };
+          if (typeof item === 'string') return { sku: item, creadoPor: '—', sucursal: '—', fecha: null };
+          return { sku: item.sku, creadoPor: item.creadoPor || '—', sucursal: item.sucursal || '—', fecha: item.fecha || null };
         });
       });
       importarVinculosPendiente = nuevosNorm;
@@ -2487,7 +2923,10 @@ function cerrarModalImportar() {
 /* ============ PEDIDO RENDER ============ */
 function renderPedido() {
   const tb = document.querySelector('#tablaPedido tbody');
-  tb.innerHTML = pedido.map((p, i) => {
+  // Filtrar por sucursal actual
+  const pedidoFiltrado = pedido.filter(p => p.sucursal === sucursalActual || !p.sucursal);
+  tb.innerHTML = pedidoFiltrado.map((p, i) => {
+    const idxOriginal = pedido.indexOf(p);
     let origenBadge = '';
     if (p.fuente === 'PDF') origenBadge = '<span class="badge badge-promo">🏷️</span>';
     else if (p.fuente === 'Sistema') origenBadge = '<span class="badge badge-sistema">📦</span>';
@@ -2499,43 +2938,50 @@ function renderPedido() {
       <td>${p.sku}</td>
       <td>${p.descripcion} ${origenBadge}</td>
       <td><input class="cant" type="number" min="1" value="${p.cantidad}"
-                 onchange="cambiarCant(${i}, this.value)"></td>
+                 onchange="cambiarCant(${idxOriginal}, this.value)"></td>
       <td style="text-align:center; font-family:monospace;">${existTxt}</td>
       <td style="text-align:center; font-family:monospace; font-weight:bold; color:#1a3a6b;">${totalPz}</td>
       <td><span class="badge ${claseUM(p.um)}">${p.um}</span></td>
-      <td><button class="rojo" onclick="eliminar(${i})" style="padding:6px 10px;">X</button></td>
+      <td><button class="rojo" onclick="eliminar(${idxOriginal})" style="padding:6px 10px;">X</button></td>
     </tr>`;
   }).join('');
-  const totalPido = pedido.reduce((s, p) => s + p.cantidad, 0);
-  const totalExist = pedido.reduce((s, p) => {
+  const totalPido = pedidoFiltrado.reduce((s, p) => s + p.cantidad, 0);
+  const totalExist = pedidoFiltrado.reduce((s, p) => {
     const e = getExistencias(p.sku);
     return s + (e !== null ? e : 0);
   }, 0);
   const totalPz = totalPido + totalExist;
-  const ti = pedido.reduce((s, p) => s + p.precio * p.cantidad, 0);
+  const ti = pedidoFiltrado.reduce((s, p) => s + p.precio * p.cantidad, 0);
   document.getElementById('totalPido').textContent = totalPido;
   document.getElementById('totalExist').textContent = totalExist;
   document.getElementById('totalPz').textContent = totalPz;
   document.getElementById('totalImp').textContent = '$' + ti.toFixed(2);
-  document.getElementById('contador').textContent = pedido.length;
+  document.getElementById('contador').textContent = pedidoFiltrado.length;
 }
 function cambiarCant(i, v) { pedido[i].cantidad = Math.max(1, parseInt(v) || 1); renderPedido(); guardarEstado(); }
 function eliminar(i) { pedido.splice(i, 1); renderPedido(); guardarEstado(); }
 function limpiarPedido() {
-  if (!pedido.length) return;
-  if (confirm('¿Borrar todo el pedido?')) { pedido = []; renderPedido(); guardarEstado(); }
+  const pedidoFiltrado = pedido.filter(p => p.sucursal === sucursalActual || !p.sucursal);
+  if (!pedidoFiltrado.length) return;
+  if (confirm(`¿Borrar el pedido de ${getSucursalActual().abrev}?`)) {
+    pedido = pedido.filter(p => p.sucursal && p.sucursal !== sucursalActual);
+    renderPedido();
+    guardarEstado();
+  }
 }
 function exportarExcel() {
-  if (!pedido.length) { alert('Lista vacía.'); return; }
-  const tienda = document.getElementById('tienda').value || 'SAHAGUN';
+  const s = getSucursalActual();
+  const pedidoFiltrado = pedido.filter(p => p.sucursal === sucursalActual || !p.sucursal);
+  if (!pedidoFiltrado.length) { alert('Lista vacía.'); return; }
   const fecha = new Date().toLocaleDateString('es-MX').replace(/\//g, '-');
   const aoa = [];
-  aoa.push(['Formato de Pedidos', '', 'Tienda', tienda]);
+  aoa.push(['Formato de Pedidos', '', 'Empresa', nombreEmpresa]);
+  aoa.push(['', '', 'Sucursal', s.nombre]);
   aoa.push(['', '', 'Fecha', fecha]);
   aoa.push(['', '', 'Usuario', usuarioLogueado || '']);
   aoa.push(['Rex', 'Descripción', 'Pido', 'Existencia', 'Total pz', 'Precio', 'Importe', 'UM', 'Fuente', 'Agregado por', 'Fecha registro']);
   let totPido = 0, totExist = 0, totPz = 0, totImp = 0;
-  pedido.forEach(p => {
+  pedidoFiltrado.forEach(p => {
     const e = getExistencias(p.sku);
     const ex = e !== null ? e : 0;
     const tpz = p.cantidad + ex;
@@ -2556,16 +3002,26 @@ function exportarExcel() {
   ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Pedido');
-  XLSX.writeFile(wb, `pedido_${tienda}_${fecha}.xlsx`);
+  const sId = s.abrev.replace(/[^A-Z0-9]/gi, '_');
+  XLSX.writeFile(wb, `pedido_${sId}_${fecha}.xlsx`);
 }
 
 /* ============ ARRANQUE ============ */
 function arrancar() {
   document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
-  try { cargarConfig(); inicializarUsuarios(); } catch(e) { console.error('Init:', e); }
-  const sesionUser = cargarSesion();
-  if (sesionUser) {
-    usuarioLogueado = sesionUser;
+  document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('activo'));
+  try {
+    cargarSucursales();
+    cargarNombreEmpresa();
+    cargarConfig();
+    inicializarUsuarios();
+    cargarInventarios();
+  } catch(e) { console.error('Init:', e); }
+  const sesion = cargarSesion();
+  if (sesion && sesion.usuario) {
+    usuarioLogueado = sesion.usuario;
+    sucursalActual = sesion.sucursalActual || (usuarios[usuarioLogueado]?.sucursalesPermitidas || [])[0] || sucursales[0].id;
+    actualizarInventarioActual();
     entrarApp();
   } else {
     document.getElementById('loginBg').style.display = 'flex';
