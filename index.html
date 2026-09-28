@@ -12,7 +12,6 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent;}
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
          margin: 0; background:#eef2f7; color:#222; padding-bottom:80px;}
-  
   header { background:#1a3a6b; color:white; position:sticky; top:0; z-index:50;
            box-shadow:0 2px 6px rgba(0,0,0,.15);}
   .header-top { display:flex; justify-content:space-between; align-items:center; padding:10px 14px;}
@@ -24,8 +23,7 @@
   .header-btn .linea2 { font-size:15px; font-weight:bold; margin-top:3px; padding-left:2px;
                         color:#ffe082; letter-spacing:.5px;}
   .header-right { align-items:flex-end; }
-  .header-right .linea1 { font-size:14px; }
-  .header-right .linea2 { padding-right:2px; }
+  .header-right .linea1 { font-size:15px; }
   .tabs-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; background:rgba(0,0,0,.15);}
   .tabs-scroll::-webkit-scrollbar { display:none;}
   .tabs { display:flex; gap:2px; padding:0 10px; min-width:max-content;}
@@ -33,7 +31,6 @@
          font-size:13px; font-weight:bold; cursor:pointer; white-space:nowrap;
          border-bottom:3px solid transparent;}
   .tab.activo { border-bottom-color:white; background:rgba(255,255,255,.1);}
-  
   .dropdown-menu { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5);
                    z-index:200; display:none; align-items:flex-start; justify-content:center;}
   .dropdown-menu.activo { display:flex;}
@@ -58,10 +55,8 @@
   .dropdown-user-header .nombre { font-weight:bold; color:#1a3a6b; font-size:16px;}
   .dropdown-user-header .usuario { font-family:monospace; color:#666; font-size:12px; margin-top:2px;}
   .dropdown-user-header .correo { font-size:12px; color:#666; margin-top:4px;}
-  
   .modal-pass-input { width:100%; font-size:18px; padding:14px; text-align:center;
                       border:2px solid #1a5fbf; border-radius:8px; margin-top:10px; font-weight:bold;}
-  
   .panel { background:white; margin:10px; padding:14px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,.08);}
   h3 { margin:0 0 10px 0; color:#1a3a6b; font-size:15px;}
   input, textarea, button, select { font-size:16px; padding:10px; box-sizing:border-box; font-family:inherit;}
@@ -84,11 +79,6 @@
   tr.resultado.sel td { background:#dbe9ff; }
   tr.resultado { cursor:pointer; }
   tr.ya-vinculado { background:#e8f5e9 !important; }
-  tr.sobrante { background:#e8f5e9 !important; }
-  tr.faltante { background:#fee !important; }
-  tr.ok-row { background:#f8f9fb !important; }
-  tr.negativo { background:#fff3e0 !important; }
-  tr.venta-row { background:#fff3e0 !important; }
   .cant { width:70px; text-align:center; font-weight:bold; }
   .small { font-size:12px; color:#666;}
   .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; color:white;}
@@ -96,7 +86,6 @@
   .badge-promo { background:#e67e22; }
   .badge-sistema { background:#1a5fbf; }
   .badge-manual { background:#7f8c8d; }
-  .badge-venta { background:#e67e22; }
   .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
            background:#1e8449; color:white; padding:10px 18px; border-radius:8px;
            box-shadow:0 4px 12px rgba(0,0,0,.25); opacity:0; transition:opacity .25s;
@@ -208,7 +197,6 @@
   .pill-manual { background:#f0f0f0; color:#555; border:1px solid #999;}
   .pill-existencias { background:#e8f5e9; color:#0d4d26; border:1px solid #1e8449;}
   .pill-sin-datos { background:#fff3e0; color:#7a3d00; border:1px solid #e67e22;}
-  .pill-venta { background:#fff3e0; color:#7a3d00; border:1px solid #e67e22;}
   .hint-scan { background:#fff3e0; padding:8px 10px; border-radius:6px; font-size:12px; color:#7a3d00;
                margin-top:8px; border-left:3px solid #e67e22;}
   .opcion-producto { background:#f0f7ff; padding:12px; border-radius:8px; margin:8px 0;
@@ -224,12 +212,9 @@
   .sucursal-row .nombre { font-weight:bold; color:#1a3a6b; }
   .sucursal-row .abrev { font-size:11px; color:#888; font-family:monospace; }
   .sucursal-row .acciones { display:flex; gap:6px;}
-  
-  /* ============ VISTA DE TARJETAS PARA PEDIDO EN CELULAR ============ */
   #pedidoCards { display:none; }
   .pedido-card { background:white; border:1px solid #ddd; border-left:4px solid #1a5fbf;
                  border-radius:8px; padding:12px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,.05);}
-  .pedido-card.venta { border-left-color:#e67e22; }
   .pedido-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;}
   .pedido-card-sku { font-family:monospace; font-weight:bold; font-size:14px; color:#1a3a6b;
                      word-break:break-all; flex:1;}
@@ -242,12 +227,23 @@
                               background:#f5f5f5; border-radius:6px; font-family:monospace;}
   .btn-x { background:#c0392b; color:white; border:none; border-radius:50%; width:32px; height:32px;
            cursor:pointer; font-weight:bold; font-size:14px; padding:0; flex-shrink:0;}
-  
+  /* Config sonido */
+  .config-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
+                padding:12px; background:#fafafa; border-radius:8px; margin-bottom:8px; border:1px solid #eee;}
+  .config-row label { font-size:14px; font-weight:bold; color:#333;}
+  .config-row .subtexto { font-size:11px; color:#888; margin-top:2px; font-weight:normal;}
+  input[type=range] { width:100%; }
+  .toggle-switch { position:relative; display:inline-block; width:56px; height:30px; flex-shrink:0;}
+  .toggle-switch input { opacity:0; width:0; height:0;}
+  .toggle-slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0;
+                   background-color:#ccc; transition:.3s; border-radius:30px;}
+  .toggle-slider:before { position:absolute; content:""; height:22px; width:22px; left:4px; bottom:4px;
+                          background-color:white; transition:.3s; border-radius:50%;}
+  input:checked + .toggle-slider { background-color:#1e8449;}
+  input:checked + .toggle-slider:before { transform:translateX(26px);}
   @media (max-width:640px) {
     #tablaPedidoWrap { display:none; }
     #pedidoCards { display:block; }
-    #tablaInventarioWrap { display:none; }
-    #tablaVinculosWrap { display:none; }
   }
   @media(min-width:700px){
     body { max-width:900px; margin:0 auto; padding-bottom:20px;}
@@ -273,13 +269,12 @@
     <button type="button" class="gris" style="width:100%; margin-top:10px; font-size:13px;"
             onclick="abrirRecuperar()">🆘 Olvidé mi contraseña</button>
     <p class="small" style="text-align:center; margin-top:20px;">
-      ¿Primera vez? Usuario <b>admin</b> / contraseña <b>admin123</b>
+      Usuario default: <b>admin</b> / <b>admin123</b>
     </p>
   </div>
 </div>
 
 <div id="app" style="display:none;">
-
 <header>
   <div class="header-top">
     <button class="header-btn" onclick="abrirMenuSucursal()">
@@ -288,7 +283,6 @@
     </button>
     <button class="header-btn header-right" onclick="abrirMenuUsuario()">
       <div class="linea1">👤 <span id="usuarioActualHeader">—</span> ▼</div>
-      <div class="linea2" id="headerSucursalUsuario">SAHAGUN</div>
     </button>
   </div>
   <div class="tabs-scroll">
@@ -334,7 +328,6 @@
   </div>
 </div>
 
-<!-- PESTAÑA PEDIDO -->
 <div id="pestanaPedido">
   <div class="panel">
     <h3>1 · Catálogo (sube el PDF)</h3>
@@ -376,18 +369,13 @@
       <div style="flex:1;"><label class="small">Fecha:</label>
         <input type="text" id="fecha" readonly></div>
     </div>
-    
-    <!-- Vista de tabla (PC) -->
     <div id="tablaPedidoWrap">
       <table id="tablaPedido">
         <thead><tr><th>Rex</th><th>Descripción</th><th>Pido</th><th>Exist.</th><th>Total pz</th><th>UM</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
-    
-    <!-- Vista de tarjetas (celular) -->
     <div id="pedidoCards"></div>
-    
     <div class="inv-stats" style="margin-top:14px;">
       <div class="inv-stat"><div class="num" id="totalPido">0</div><div class="lbl">Total pido</div></div>
       <div class="inv-stat"><div class="num" id="totalExist">0</div><div class="lbl">Total exist.</div></div>
@@ -401,13 +389,10 @@
   </div>
 </div>
 
-<!-- PESTAÑA INVENTARIO -->
 <div id="pestanaInventario" style="display:none;">
   <div class="panel">
     <h3>1 · Cargar inventario del sistema (<span id="invSucursalNombre"></span>)</h3>
-    <div class="ayuda">
-      Cada sucursal tiene <b>su propio inventario</b>. Sube el <b>Reporte de Inventario</b> (Excel) de esta sucursal.
-    </div>
+    <div class="ayuda">Cada sucursal tiene <b>su propio inventario</b>. Sube el <b>Reporte de Inventario</b> (Excel).</div>
     <input type="file" id="invFileInput" accept=".xlsx,.xls,.csv" onchange="procesarInventario(event)">
     <div id="invInfo" class="small" style="margin-top:8px;"></div>
     <div id="invSnapshotInfo" class="small" style="margin-top:4px;"></div>
@@ -415,10 +400,8 @@
       <button class="gris" style="font-size:12px; padding:6px 10px;" onclick="olvidarInventario()">🗑 Olvidar inventario de esta sucursal</button>
     </div>
   </div>
-
   <div class="panel" id="invPanelContar" style="display:none;">
     <h3>2 · Contar productos</h3>
-    
     <div style="background:#f0f7ff; padding:10px; border-radius:8px; margin-bottom:12px; border-left:4px solid #1a5fbf;">
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button id="btnModoPz" class="gris" style="flex:1; font-size:13px; padding:12px;"
@@ -427,20 +410,17 @@
                 onclick="abrirRegistrarVenta()">🛒 Registrar venta</button>
       </div>
       <div id="modoPzInfo" class="small" style="margin-top:8px; display:none; color:#7a3d00;">
-        ⚡ <b>Modo PZ activado:</b> cada escaneo suma +1 automáticamente al conteo del producto.
+        ⚡ <b>Modo PZ activado:</b> cada escaneo suma +1 automáticamente.
       </div>
     </div>
-    
     <div class="inv-stats" id="invStatsTop"></div>
     <div class="fila">
       <input type="text" id="invBusqueda" placeholder="SKU, descripción o escanea…"
              oninput="invBuscar()" onkeydown="invTeclaBusqueda(event)">
       <button class="camara" onclick="abrirCamara('inventario')">📷</button>
     </div>
-    <p class="small" style="margin:6px 0 0 0;">Escanea o busca. Ingresa la cantidad FÍSICA.</p>
     <div id="invResultados"></div>
   </div>
-
   <div class="panel" id="invPanelResumen" style="display:none;">
     <h3>3 · Resumen del conteo</h3>
     <div class="inv-stats" id="invStats"></div>
@@ -452,18 +432,16 @@
       </table>
     </div>
   </div>
-
   <div class="acciones-fijas" id="invAcciones" style="display:none;">
     <button class="verde" onclick="exportarInventario()">📥 Exportar reporte</button>
     <button class="rojo" onclick="limpiarConteo()">🗑 Limpiar conteo</button>
   </div>
 </div>
 
-<!-- PESTAÑA VINCULAR -->
 <div id="pestanaVincular" style="display:none;">
   <div class="panel">
     <h3>🔗 Vincular código de barras ↔ SKU</h3>
-    <div class="ayuda">Los vínculos son <b>globales</b> — compartidos entre todas las sucursales.</div>
+    <div class="ayuda">Los vínculos son <b>globales</b>.</div>
     <div class="paso">
       <div style="margin-bottom:8px;">
         <span class="paso-num">1</span><b>Escanea o escribe el código</b>
@@ -479,7 +457,7 @@
       </div>
       <div class="banner banner-info" id="bannerCodigoNuevo">
         <div class="banner-titulo"><span>📦</span><span>Código capturado</span></div>
-        <div>Selecciona abajo el SKU para AGREGARLO a este código.</div>
+        <div>Selecciona abajo el SKU.</div>
       </div>
     </div>
     <div id="paso2Wrap" class="paso" style="display:none; border-color:#1e8449;">
@@ -507,11 +485,9 @@
   </div>
 </div>
 
-<!-- PESTAÑA BASE DE DATOS -->
 <div id="pestanaBaseDatos" style="display:none;">
   <div class="panel">
     <h3>📤 Subir archivos</h3>
-    <div class="ayuda">Aquí puedes subir los archivos sin necesidad de acceder a Pedidos o Inventario.</div>
     <label class="small">📄 PDF de promociones</label>
     <input type="file" id="bdPdfInput" accept="application/pdf" onchange="procesarPDF(event)">
     <div id="bdInfoPdf" class="small" style="margin-top:4px;"></div>
@@ -525,7 +501,6 @@
   </div>
   <div class="panel">
     <h3>✏️ Productos agregados manualmente (<span id="bdContManuales">0</span>)</h3>
-    <div class="ayuda">Los productos manuales son <b>globales</b> (los ven todas las sucursales).</div>
     <input type="text" id="bdFiltroManuales" placeholder="Filtrar…" oninput="renderManuales()">
     <div class="tabla-scroll">
       <table id="tablaManuales">
@@ -536,8 +511,39 @@
   </div>
 </div>
 
-<!-- PESTAÑA AJUSTES -->
 <div id="pestanaAjustes" style="display:none;">
+  <div class="panel">
+    <h3>🔊 Sonido y vibración</h3>
+    <div class="config-row">
+      <div>
+        <label>Sonido</label>
+        <div class="subtexto">Reproducir beep al escanear</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="cfgSonido" onchange="guardarConfigSonido()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="config-row" id="cfgVolumenWrap">
+      <div style="flex:1;">
+        <label>Volumen</label>
+        <div class="subtexto"><span id="cfgVolumenVal">70</span>%</div>
+        <input type="range" id="cfgVolumen" min="0" max="100" value="70" oninput="cambiarVolumen(this.value)" onchange="guardarConfigSonido()">
+      </div>
+    </div>
+    <div class="config-row">
+      <div>
+        <label>Vibración</label>
+        <div class="subtexto">Vibrar al escanear (si el dispositivo lo soporta)</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="cfgVibracion" onchange="guardarConfigSonido()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <button class="verde" style="width:100%;" onclick="probarFeedback()">🧪 Probar sonido/vibración</button>
+  </div>
+
   <div class="panel">
     <h3>👥 Usuarios</h3>
     <button class="verde" style="width:100%; margin-bottom:10px;" onclick="abrirModalUsuario()">➕ Agregar usuario</button>
@@ -554,10 +560,6 @@
       <input type="text" id="cfgEmpresaNombre" placeholder="FC-Relma">
       <button class="verde" onclick="guardarNombreEmpresa()">💾</button>
     </div>
-  </div>
-  <div class="panel">
-    <h3>🔑 Mi contraseña</h3>
-    <button class="amarillo" style="width:100%;" onclick="abrirModalCambiarMiPassword()">🔑 Cambiar</button>
   </div>
   <div class="panel">
     <h3>💾 Respaldos</h3>
@@ -584,7 +586,6 @@
   </div>
 </div>
 
-<!-- MODALES -->
 <div class="modal-bg" id="modalCamara">
   <div class="modal"><h3>📷 Escanear</h3><div id="reader"></div>
     <button class="rojo" style="width:100%; margin-top:10px;" onclick="cerrarCamara()">Cancelar</button></div>
@@ -641,27 +642,24 @@
   <div class="modal">
     <h3>🛒 Registrar venta</h3>
     <div class="ayuda" style="background:#fff3e0; border-left-color:#e67e22;">
-      La venta se descontará del <b>esperado</b> del inventario. Si el producto aún no se ha contado, no habrá problema.
+      La venta se descontará del <b>esperado</b>. Si ya se contó, no lo afectará.
     </div>
     <label class="small">Buscar producto</label>
     <input type="text" id="ventaBusqueda" placeholder="SKU o descripción…"
            oninput="buscarProductoParaVenta()" onkeydown="teclaVenta(event)">
     <div id="ventaResultados" style="max-height:280px; overflow-y:auto; margin-top:8px;"></div>
-
     <div id="ventaProductoSel" style="display:none; margin-top:14px; background:#f0f7ff; padding:12px; border-radius:8px; border-left:4px solid #1a5fbf;">
       <div id="ventaInfo" style="margin-bottom:10px;"></div>
       <label class="small">Cantidad vendida</label>
       <input type="number" id="ventaCantidad" value="1" min="1" style="font-size:22px; text-align:center; font-weight:bold;">
     </div>
-
     <div class="fila" style="margin-top:14px;">
       <button class="verde" style="flex:1;" onclick="confirmarVenta()" id="btnConfirmarVenta" disabled>✔ Registrar venta</button>
       <button class="gris" onclick="cerrarModalRegistrarVenta()">Cancelar</button>
     </div>
-
     <hr style="margin:16px 0; border:none; border-top:1px solid #eee;">
     <h4 style="margin:0 0 8px 0; color:#1a3a6b; font-size:13px;">Ventas registradas hoy (<span id="contVentas">0</span>)</h4>
-    <div id="listaVentasHoy" style="max-height:200px; overflow-y:auto;"></div>
+    <div id="listaVentasHoy" style="max-height:300px; overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -720,12 +718,12 @@
     <button class="verde" style="width:100%; text-align:left; padding:14px; margin-bottom:8px;"
             onclick="solicitarImportacion('fusionar')">
       <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">🔀 FUSIONAR</div>
-      <div style="font-size:12px; opacity:.9;">No duplica. Quedarán <b id="impResultFusionar">0</b> vínculos.</div>
+      <div style="font-size:12px; opacity:.9;">Quedarán <b id="impResultFusionar">0</b> vínculos.</div>
     </button>
     <button class="amarillo" style="width:100%; text-align:left; padding:14px; margin-bottom:8px;"
             onclick="solicitarImportacion('reemplazar')">
       <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">🔄 REEMPLAZAR</div>
-      <div style="font-size:12px; opacity:.9;">Borra todos. Pide contraseña del usuario activo.</div>
+      <div style="font-size:12px; opacity:.9;">Borra todos. Pide contraseña del admin.</div>
     </button>
     <button class="gris" style="width:100%; text-align:left; padding:14px;"
             onclick="cerrarModalImportar()">
@@ -738,7 +736,7 @@
   <div class="modal">
     <h3 id="confirmarPassTitulo">🔐 Confirmar</h3>
     <div id="confirmarPassMensaje" class="ayuda"></div>
-    <label class="small">Tu contraseña (<span id="confirmarPassUser"></span>):</label>
+    <label class="small" id="confirmarPassLabel">Contraseña del administrador:</label>
     <input type="password" id="confirmarPassInput" class="modal-pass-input"
            onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarPassEjecutar();}">
     <div id="confirmarPassError" class="login-error" style="text-align:center;"></div>
@@ -756,18 +754,18 @@
     <hr style="border:none; border-top:1px solid #eee; margin:18px 0;">
     <h4 style="margin:0 0 10px 0; color:#1a3a6b; font-size:14px;">🔑 Cambiar contraseña</h4>
     <label class="small">Contraseña actual</label>
-    <input type="password" id="mcPassActual" autocomplete="current-password">
+    <input type="password" id="mcPassActual">
     <label class="small" style="display:block; margin-top:10px;">Nueva contraseña</label>
-    <input type="password" id="mcPassNueva" autocomplete="new-password">
+    <input type="password" id="mcPassNueva">
     <label class="small" style="display:block; margin-top:10px;">Confirmar nueva</label>
-    <input type="password" id="mcPassConfirmar" autocomplete="new-password">
+    <input type="password" id="mcPassConfirmar">
     <button class="verde" style="width:100%; margin-top:10px;" onclick="cambiarMiContraseña()">💾 Cambiar contraseña</button>
     <hr style="border:none; border-top:1px solid #eee; margin:18px 0;">
     <h4 style="margin:0 0 10px 0; color:#1a3a6b; font-size:14px;">📧 Cambiar correo</h4>
     <label class="small">Contraseña actual</label>
-    <input type="password" id="mcCorreoPass" autocomplete="current-password">
+    <input type="password" id="mcCorreoPass">
     <label class="small" style="display:block; margin-top:10px;">Nuevo correo</label>
-    <input type="email" id="mcCorreoNuevo" autocomplete="email">
+    <input type="email" id="mcCorreoNuevo">
     <button class="verde" style="width:100%; margin-top:10px;" onclick="cambiarMiCorreo()">💾 Cambiar correo</button>
     <button class="gris" style="width:100%; margin-top:20px;" onclick="document.getElementById('modalMiCuenta').classList.remove('activo')">Cerrar</button>
   </div>
@@ -800,10 +798,9 @@
   <div class="modal">
     <h3 id="modalSucursalTitulo">➕ Agregar sucursal</h3>
     <label class="small">Nombre completo *</label>
-    <input type="text" id="sucNombre" placeholder="Ej. GUADALAJARA CENTRO" style="text-transform:uppercase;">
-    <label class="small" style="display:block; margin-top:10px;">Abreviatura (para el header)</label>
-    <input type="text" id="sucAbrev" placeholder="Ej. GDL C." style="text-transform:uppercase;">
-    <p class="small" style="margin-top:6px;">Si lo dejas vacío, se usará el nombre completo.</p>
+    <input type="text" id="sucNombre" style="text-transform:uppercase;">
+    <label class="small" style="display:block; margin-top:10px;">Abreviatura</label>
+    <input type="text" id="sucAbrev" style="text-transform:uppercase;">
     <div class="fila" style="margin-top:16px;">
       <button class="verde" style="flex:1;" onclick="guardarSucursal()">💾 Guardar</button>
       <button class="gris" onclick="cerrarModalSucursal()">Cancelar</button>
@@ -817,9 +814,8 @@
   <div class="modal">
     <div id="recPaso1">
       <h3>🆘 Recuperar contraseña</h3>
-      <p class="small">Si el correo está registrado, te enviaremos un código de 6 dígitos.</p>
-      <input type="email" id="emailRecuperar" placeholder="tu@correo.com"
-             onkeydown="if(event.key==='Enter'){event.preventDefault();enviarCodigoOTP();}">
+      <p class="small">Si el correo está registrado, te enviaremos un código.</p>
+      <input type="email" id="emailRecuperar" placeholder="tu@correo.com">
       <div class="fila" style="margin-top:16px;">
         <button class="verde" style="flex:1;" onclick="enviarCodigoOTP()">📧 Enviar código</button>
         <button class="gris" onclick="cerrarRecuperar()">Cancelar</button>
@@ -843,7 +839,6 @@
         <button class="verde" style="flex:1;" onclick="verificarOTP()">✅ Restablecer</button>
         <button class="gris" onclick="volverRecPaso1()">↩ Atrás</button>
       </div>
-      <button class="gris" style="width:100%; margin-top:8px; font-size:13px;" onclick="enviarCodigoOTP()">🔄 Reenviar</button>
     </div>
   </div>
 </div>
@@ -859,20 +854,27 @@
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-const KEY_STATE   = 'sahagun_state_v16_4';
+// *** CLAVES FIJAS (no cambian entre versiones) ***
+const KEY_STATE   = 'sahagun_state_v2';
 const KEY_MAP     = 'sahagun_mappings_v3';
-const KEY_USERS   = 'sahagun_users_v2';
+const KEY_USERS   = 'sahagun_users_v3';
 const KEY_SESSION = 'sahagun_session_v2';
-const KEY_CFG     = 'sahagun_config_v2';
+const KEY_CFG     = 'sahagun_config_v3';
 const KEY_OTP     = 'sahagun_otp_v1';
-const KEY_INV     = 'sahagun_inventario_v16_4';
+const KEY_INV     = 'sahagun_inventario_v3';
 const KEY_MANUAL  = 'sahagun_manuales_v1';
-const KEY_SUCURSALES = 'sahagun_sucursales_v1';
+const KEY_SUCURSALES = 'sahagun_sucursales_v2';
 const KEY_EMPRESA = 'sahagun_empresa_v2';
-const KEY_VENTAS  = 'sahagun_ventas_v1';
+const KEY_VENTAS  = 'sahagun_ventas_v2';
+const KEY_SONIDO  = 'sahagun_sonido_v1';
+
+// Claves viejas para migrar
+const KEY_STATE_OLD = 'sahagun_state_v16_4';
+const KEY_INV_OLD = 'sahagun_inventario_v16_4';
+const KEY_USERS_OLD = 'sahagun_users_v2';
+
 const SESION_DIAS = 7;
 const OTP_MINUTOS = 10;
-
 const EMPRESA_DEFAULT = 'FC-Relma';
 
 const SUCURSALES_DEFAULT = [
@@ -912,7 +914,6 @@ let invProductoActual = null;
 let invUltimoSku = null;
 let elegirContexto = null;
 let importarVinculosPendiente = null;
-
 let sucursales = [];
 let sucursalActual = null;
 let inventariosPorSucursal = {};
@@ -920,30 +921,29 @@ let ventasPorSucursal = {};
 let nombreEmpresa = EMPRESA_DEFAULT;
 let modoEdicionSucursal = null;
 let _callbackConfirmPass = null;
-
-// Cámara
 let zxingReader = null;
 let camaraStream = null;
 let camaraLoop = null;
-
-// Modo escaneo por pieza
 let modoEscanearPz = false;
-let ultimoEscanerPz = null; // { sku, cantidadAnterior }
-let superaTotalPendiente = null; // { producto, cantidadNueva, ajustado }
-
-// Audio
+let ultimoEscanerPz = null;
+let superaTotalPendiente = null;
+let ventaProductoSel = null;
 let audioCtx = null;
+
+// Config sonido
+let configSonido = { activo: true, volumen: 70, vibrar: true };
 
 document.getElementById('fecha').value = new Date().toLocaleDateString('es-MX');
 
-/* ============ FEEDBACK (vibra + sonido) ============ */
+/* ============ FEEDBACK ============ */
 function getAudioCtx() {
   if (!audioCtx) {
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
   }
   return audioCtx;
 }
-function beep(freq, dur, vol) {
+function beep(freq, dur) {
+  if (!configSonido.activo) return;
   const ctx = getAudioCtx();
   if (!ctx) return;
   try {
@@ -953,29 +953,73 @@ function beep(freq, dur, vol) {
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.frequency.value = freq || 1000;
-    gain.gain.value = vol || 0.15;
+    gain.gain.value = (configSonido.volumen / 100) * 0.25;
     osc.start();
     osc.stop(ctx.currentTime + (dur || 0.15));
   } catch(e) {}
 }
+function vibrar(patron) {
+  if (!configSonido.vibrar) return;
+  if (navigator.vibrate) { try { navigator.vibrate(patron); } catch(e) {} }
+}
 function feedbackExito() {
-  if (navigator.vibrate) { try { navigator.vibrate(80); } catch(e) {} }
-  beep(1200, 0.1, 0.15);
+  vibrar(80);
+  beep(1200, 0.1);
 }
 function feedbackAlerta() {
-  if (navigator.vibrate) { try { navigator.vibrate([300,100,300,100,300]); } catch(e) {} }
-  beep(900, 0.3, 0.3);
-  setTimeout(() => beep(900, 0.3, 0.3), 400);
-  setTimeout(() => beep(900, 0.3, 0.3), 800);
+  vibrar([300,100,300,100,300]);
+  beep(900, 0.3);
+  setTimeout(() => beep(900, 0.3), 400);
+  setTimeout(() => beep(900, 0.3), 800);
 }
 function feedbackError() {
-  if (navigator.vibrate) { try { navigator.vibrate([500,200,500]); } catch(e) {} }
-  beep(400, 0.4, 0.3);
+  vibrar([500,200,500]);
+  beep(400, 0.4);
+}
+function probarFeedback() {
+  feedbackAlerta();
+  setTimeout(() => feedbackExito(), 1500);
+}
+function cargarConfigSonido() {
+  try {
+    const raw = localStorage.getItem(KEY_SONIDO);
+    if (raw) {
+      const c = JSON.parse(raw);
+      configSonido.activo = c.activo !== false;
+      configSonido.volumen = typeof c.volumen === 'number' ? c.volumen : 70;
+      configSonido.vibrar = c.vibrar !== false;
+    }
+  } catch(e) {}
+  document.getElementById('cfgSonido').checked = configSonido.activo;
+  document.getElementById('cfgVolumen').value = configSonido.volumen;
+  document.getElementById('cfgVolumenVal').textContent = configSonido.volumen;
+  document.getElementById('cfgVibracion').checked = configSonido.vibrar;
+  actualizarVolumenUI();
+}
+function guardarConfigSonido() {
+  configSonido.activo = document.getElementById('cfgSonido').checked;
+  configSonido.volumen = parseInt(document.getElementById('cfgVolumen').value) || 0;
+  configSonido.vibrar = document.getElementById('cfgVibracion').checked;
+  try { localStorage.setItem(KEY_SONIDO, JSON.stringify(configSonido)); } catch(e) {}
+  actualizarVolumenUI();
+  toast('✔ Configuración guardada');
+  // Feedback inmediato
+  if (configSonido.activo) feedbackExito();
+}
+function cambiarVolumen(v) {
+  document.getElementById('cfgVolumenVal').textContent = v;
+  configSonido.volumen = parseInt(v) || 0;
+  // Sonido inmediato de prueba
+  if (configSonido.activo) beep(800, 0.05);
+}
+function actualizarVolumenUI() {
+  const wrap = document.getElementById('cfgVolumenWrap');
+  if (wrap) wrap.style.opacity = configSonido.activo ? '1' : '.4';
 }
 
 /* ============ HASH ============ */
 function hashPassword(str) {
-  const sal = 'sahagun_v16_4_salt';
+  const sal = 'sahagun_v2_salt';
   const s = sal + str + sal;
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
   for (let k = 0; k < 500; k++) {
@@ -992,12 +1036,22 @@ function hashPassword(str) {
   return a + b + a + b;
 }
 
-/* ============ CONFIRMAR PASS (usuario activo) ============ */
-function pedirConfirmacionPass(titulo, mensaje, callback) {
-  _callbackConfirmPass = callback;
-  document.getElementById('confirmarPassTitulo').textContent = titulo || '🔐 Confirmar acción';
-  document.getElementById('confirmarPassMensaje').innerHTML = mensaje || 'Se requiere contraseña para continuar.';
-  document.getElementById('confirmarPassUser').textContent = usuarioLogueado || '';
+/* ============ CONFIRMAR PASS ============ */
+function pedirConfirmacionPassAdmin(titulo, mensaje, callback) {
+  _callbackConfirmPass = { tipo: 'admin', callback };
+  document.getElementById('confirmarPassTitulo').textContent = titulo;
+  document.getElementById('confirmarPassMensaje').innerHTML = mensaje;
+  document.getElementById('confirmarPassLabel').textContent = 'Contraseña del administrador:';
+  document.getElementById('confirmarPassInput').value = '';
+  document.getElementById('confirmarPassError').classList.remove('show');
+  document.getElementById('modalConfirmarPass').classList.add('activo');
+  setTimeout(() => document.getElementById('confirmarPassInput').focus(), 100);
+}
+function pedirConfirmacionPassActivo(titulo, mensaje, callback) {
+  _callbackConfirmPass = { tipo: 'activo', callback };
+  document.getElementById('confirmarPassTitulo').textContent = titulo;
+  document.getElementById('confirmarPassMensaje').innerHTML = mensaje;
+  document.getElementById('confirmarPassLabel').textContent = `Tu contraseña (@${usuarioLogueado}):`;
   document.getElementById('confirmarPassInput').value = '';
   document.getElementById('confirmarPassError').classList.remove('show');
   document.getElementById('modalConfirmarPass').classList.add('activo');
@@ -1007,23 +1061,49 @@ function cerrarModalConfirmarPass() {
   document.getElementById('modalConfirmarPass').classList.remove('activo');
   _callbackConfirmPass = null;
 }
+function buscarAdmin() {
+  const admins = Object.entries(usuarios).filter(([k,v]) => v.permisos.ajustes);
+  return admins[0] ? { user: admins[0][0], ...admins[0][1] } : null;
+}
 function confirmarPassEjecutar() {
   const pass = document.getElementById('confirmarPassInput').value;
-  if (!pass) {
-    document.getElementById('confirmarPassError').textContent = 'Escribe la contraseña.';
-    document.getElementById('confirmarPassError').classList.add('show');
-    return;
+  const err = document.getElementById('confirmarPassError');
+  if (!pass) { err.textContent = 'Escribe la contraseña.'; err.classList.add('show'); return; }
+  const pend = _callbackConfirmPass;
+  if (!pend) return;
+  let ok = false;
+  if (pend.tipo === 'activo') {
+    const u = usuarios[usuarioLogueado];
+    ok = u && hashPassword(pass) === u.hash;
+  } else {
+    // admin: validar contra cualquier admin
+    const admins = Object.entries(usuarios).filter(([k,v]) => v.permisos.ajustes);
+    ok = admins.some(([k,v]) => hashPassword(pass) === v.hash);
   }
-  const u = usuarios[usuarioLogueado];
-  if (!u || hashPassword(pass) !== u.hash) {
-    document.getElementById('confirmarPassError').textContent = 'Contraseña incorrecta.';
-    document.getElementById('confirmarPassError').classList.add('show');
+  if (!ok) {
+    err.textContent = 'Contraseña incorrecta.';
+    err.classList.add('show');
     feedbackError();
     return;
   }
-  const cb = _callbackConfirmPass;
   cerrarModalConfirmarPass();
-  if (cb) setTimeout(cb, 100);
+  if (pend.callback) setTimeout(pend.callback, 100);
+}
+
+/* ============ MIGRACIÓN DE CLAVES VIEJAS ============ */
+function migrarClavesAntiguas() {
+  // Estado
+  if (!localStorage.getItem(KEY_STATE) && localStorage.getItem(KEY_STATE_OLD)) {
+    localStorage.setItem(KEY_STATE, localStorage.getItem(KEY_STATE_OLD));
+  }
+  // Inventario
+  if (!localStorage.getItem(KEY_INV) && localStorage.getItem(KEY_INV_OLD)) {
+    localStorage.setItem(KEY_INV, localStorage.getItem(KEY_INV_OLD));
+  }
+  // Usuarios
+  if (!localStorage.getItem(KEY_USERS) && localStorage.getItem(KEY_USERS_OLD)) {
+    localStorage.setItem(KEY_USERS, localStorage.getItem(KEY_USERS_OLD));
+  }
 }
 
 /* ============ SUCURSALES ============ */
@@ -1065,9 +1145,14 @@ function guardarNombreEmpresa() {
   toast('✔ Nombre actualizado');
 }
 
-/* ============ INVENTARIOS Y VENTAS POR SUCURSAL ============ */
+/* ============ INVENTARIOS ============ */
 function guardarInventarios() {
-  try { localStorage.setItem(KEY_INV, JSON.stringify(inventariosPorSucursal)); } catch(e) {}
+  try {
+    localStorage.setItem(KEY_INV, JSON.stringify(inventariosPorSucursal));
+  } catch(e) {
+    console.error('Error guardando inventarios:', e);
+    alert('⚠️ No se pudo guardar el inventario. Puede que el almacenamiento esté lleno.');
+  }
 }
 function cargarInventarios() {
   try {
@@ -1080,7 +1165,7 @@ function cargarInventarios() {
         inventariosPorSucursal = { 'sahagun': { base: data, conteo: {} } };
       }
     }
-  } catch(e) {}
+  } catch(e) { console.error('Error cargando inventarios:', e); }
   sucursales.forEach(s => {
     if (!inventariosPorSucursal[s.id]) {
       inventariosPorSucursal[s.id] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
@@ -1091,7 +1176,6 @@ function cargarInventarios() {
   });
   actualizarInventarioActual();
 }
-
 function guardarVentas() {
   try { localStorage.setItem(KEY_VENTAS, JSON.stringify(ventasPorSucursal)); } catch(e) {}
 }
@@ -1114,7 +1198,6 @@ function getVentasActuales() {
 function totalVendidoDeSku(sku) {
   return getVentasActuales().filter(v => v.sku === sku).reduce((s, v) => s + v.cantidad, 0);
 }
-
 function actualizarInventarioActual() {
   const slot = inventariosPorSucursal[sucursalActual];
   if (slot) {
@@ -1159,7 +1242,7 @@ function setHoraConteoPorSku(sku, iso) {
   guardarInventarios();
 }
 
-/* ============ CONFIG EMAILJS ============ */
+/* ============ EMAILJS ============ */
 function cargarConfig() {
   try { const raw = localStorage.getItem(KEY_CFG); if (raw) configEmailJS = JSON.parse(raw); } catch(e) {}
   aplicarEmailJSInit();
@@ -1216,30 +1299,79 @@ function inicializarUsuarios() {
       usuarios[u].sucursalesPermitidas = sucursales.map(s => s.id);
     }
   });
+  // Crear usuarios por defecto si la lista está vacía
+  const todos = sucursales.map(s => s.id);
+  const permTodo = { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true };
   if (!usuarios || Object.keys(usuarios).length === 0) {
     usuarios = {};
     usuarios['admin'] = {
-      nombre: 'Administrador', email: '',
-      hash: hashPassword('admin123'),
-      permisos: { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true },
-      sucursalesPermitidas: sucursales.map(s => s.id),
+      nombre: 'Administrador', email: '', hash: hashPassword('admin123'),
+      permisos: { ...permTodo }, sucursalesPermitidas: todos,
       creado: new Date().toISOString(), primerLogin: true
     };
+    usuarios['diego'] = {
+      nombre: 'Diego', email: '', hash: hashPassword('24680'),
+      permisos: { ...permTodo }, sucursalesPermitidas: todos,
+      creado: new Date().toISOString(), primerLogin: false
+    };
+    usuarios['liz'] = {
+      nombre: 'Liz', email: '', hash: hashPassword('24680'),
+      permisos: { ...permTodo }, sucursalesPermitidas: todos,
+      creado: new Date().toISOString(), primerLogin: false
+    };
+    usuarios['jovany'] = {
+      nombre: 'Jovany', email: '', hash: hashPassword('24680'),
+      permisos: { ...permTodo }, sucursalesPermitidas: todos,
+      creado: new Date().toISOString(), primerLogin: false
+    };
     guardarUsuarios();
+  } else {
+    // Si ya hay usuarios, agregar los nuevos si no existen
+    let cambios = false;
+    if (!usuarios['diego']) {
+      usuarios['diego'] = { nombre: 'Diego', email: '', hash: hashPassword('24680'),
+        permisos: { ...permTodo }, sucursalesPermitidas: todos,
+        creado: new Date().toISOString(), primerLogin: false };
+      cambios = true;
+    }
+    if (!usuarios['liz']) {
+      usuarios['liz'] = { nombre: 'Liz', email: '', hash: hashPassword('24680'),
+        permisos: { ...permTodo }, sucursalesPermitidas: todos,
+        creado: new Date().toISOString(), primerLogin: false };
+      cambios = true;
+    }
+    if (!usuarios['jovany']) {
+      usuarios['jovany'] = { nombre: 'Jovany', email: '', hash: hashPassword('24680'),
+        permisos: { ...permTodo }, sucursalesPermitidas: todos,
+        creado: new Date().toISOString(), primerLogin: false };
+      cambios = true;
+    }
+    if (cambios) guardarUsuarios();
   }
 }
 function guardarUsuarios() { try { localStorage.setItem(KEY_USERS, JSON.stringify(usuarios)); } catch(e) {} }
 function reiniciarUsuarios() {
-  if (!usuarioLogueado || !usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔'); return; }
-  pedirConfirmacionPass('🔄 Reiniciar sistema',
-    '⚠️ Vas a <b>borrar TODOS los usuarios</b> y volver a admin/admin123.<br><br>Esta acción no se puede deshacer.',
+  if (!usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔'); return; }
+  if (!confirm('⚠️ Borrar TODOS los usuarios y volver a los de fábrica?')) return;
+  pedirConfirmacionPassAdmin('🔄 Reiniciar usuarios',
+    'Vas a borrar todos los usuarios y volver a los predeterminados:<br><br>' +
+    '• admin / admin123<br>• diego / 24680<br>• liz / 24680<br>• jovany / 24680',
     () => {
-      usuarios = {};
-      usuarios['admin'] = {
-        nombre: 'Administrador', email: '', hash: hashPassword('admin123'),
-        permisos: { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true },
-        sucursalesPermitidas: sucursales.map(s => s.id),
-        creado: new Date().toISOString(), primerLogin: true
+      const todos = sucursales.map(s => s.id);
+      const permTodo = { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true };
+      usuarios = {
+        admin: { nombre: 'Administrador', email: '', hash: hashPassword('admin123'),
+          permisos: { ...permTodo }, sucursalesPermitidas: todos,
+          creado: new Date().toISOString(), primerLogin: true },
+        diego: { nombre: 'Diego', email: '', hash: hashPassword('24680'),
+          permisos: { ...permTodo }, sucursalesPermitidas: todos,
+          creado: new Date().toISOString(), primerLogin: false },
+        liz: { nombre: 'Liz', email: '', hash: hashPassword('24680'),
+          permisos: { ...permTodo }, sucursalesPermitidas: todos,
+          creado: new Date().toISOString(), primerLogin: false },
+        jovany: { nombre: 'Jovany', email: '', hash: hashPassword('24680'),
+          permisos: { ...permTodo }, sucursalesPermitidas: todos,
+          creado: new Date().toISOString(), primerLogin: false }
       };
       guardarUsuarios();
       localStorage.removeItem(KEY_SESSION);
@@ -1251,9 +1383,7 @@ function reiniciarUsuarios() {
 function guardarSesion(u) {
   const expira = Date.now() + SESION_DIAS * 24 * 60 * 60 * 1000;
   try {
-    localStorage.setItem(KEY_SESSION, JSON.stringify({
-      usuario: u, expira, sucursalActual: sucursalActual
-    }));
+    localStorage.setItem(KEY_SESSION, JSON.stringify({ usuario: u, expira, sucursalActual }));
   } catch(e) {}
 }
 function cargarSesion() {
@@ -1282,17 +1412,9 @@ function intentarLogin() {
   }
   usuarioLogueado = u;
   const permitidas = usuario.sucursalesPermitidas || [];
-  if (!permitidas.length) {
-    err.textContent = 'Este usuario no tiene sucursales asignadas. Pide al admin.';
-    err.classList.add('show');
-    usuarioLogueado = null;
-    return;
-  }
-  if (permitidas.includes('sahagun')) {
-    sucursalActual = 'sahagun';
-  } else {
-    sucursalActual = permitidas[0];
-  }
+  if (!permitidas.length) { err.textContent = 'Sin sucursales asignadas.'; err.classList.add('show'); usuarioLogueado = null; return; }
+  if (permitidas.includes('sahagun')) sucursalActual = 'sahagun';
+  else sucursalActual = permitidas[0];
   actualizarInventarioActual();
   guardarSesion(u);
   entrarApp();
@@ -1322,10 +1444,9 @@ function cambiarDeCuenta() {
   document.getElementById('loginUsuario').value = '';
   document.getElementById('loginPassword').value = '';
   document.getElementById('loginUsuario').focus();
-  toast('👋 Ingresa con tu cuenta');
 }
 
-/* ============ HEADER: MENÚS ============ */
+/* ============ MENÚS ============ */
 function abrirMenuSucursal() {
   const u = usuarios[usuarioLogueado];
   if (!u) return;
@@ -1336,12 +1457,9 @@ function abrirMenuSucursal() {
     if (!s) return '';
     const activa = id === sucursalActual;
     return `<div class="dropdown-item ${activa ? 'activo' : ''}" onclick="cambiarSucursal('${id}')">
-      <div class="info">
-        <span class="icono">🏢</span>
-        <div>
-          <div class="texto">${s.nombre}</div>
-          ${s.abrev !== s.nombre ? '<div class="subtexto">' + s.abrev + '</div>' : ''}
-        </div>
+      <div class="info"><span class="icono">🏢</span>
+        <div><div class="texto">${s.nombre}</div>
+        ${s.abrev !== s.nombre ? '<div class="subtexto">' + s.abrev + '</div>' : ''}</div>
       </div>
       ${activa ? '<span class="check">✓</span>' : ''}
     </div>`;
@@ -1365,16 +1483,13 @@ function cambiarSucursal(id) {
   actualizarInfoSnapshot();
   toast(`🏢 Cambiado a: ${getSucursalActual().nombre}`);
 }
-
 function abrirMenuUsuario() {
   const u = usuarios[usuarioLogueado];
   if (!u) return;
-  const s = getSucursalActual();
   document.getElementById('dropdownUserHeader').innerHTML = `
     <div class="nombre">${u.nombre || usuarioLogueado}</div>
     <div class="usuario">@${usuarioLogueado}</div>
     ${u.email ? '<div class="correo">📧 ' + u.email + '</div>' : ''}
-    <div class="correo" style="margin-top:4px;">🏢 ${s ? s.nombre : '—'}</div>
   `;
   document.getElementById('menuUsuario').classList.add('activo');
 }
@@ -1407,8 +1522,7 @@ function cambiarMiContraseña() {
   if (hashPassword(actual) !== u.hash) { alert('Contraseña actual incorrecta.'); return; }
   if (nueva.length < 4) { alert('La nueva contraseña debe tener al menos 4 caracteres.'); return; }
   if (nueva !== confirmar) { alert('Las contraseñas nuevas no coinciden.'); return; }
-  u.hash = hashPassword(nueva);
-  u.primerLogin = false;
+  u.hash = hashPassword(nueva); u.primerLogin = false;
   guardarUsuarios();
   document.getElementById('mcPassActual').value = '';
   document.getElementById('mcPassNueva').value = '';
@@ -1432,7 +1546,6 @@ function actualizarHeaderSucursal() {
   const s = getSucursalActual();
   if (!s) return;
   document.getElementById('headerSucursal').textContent = s.abrev || s.nombre;
-  document.getElementById('headerSucursalUsuario').textContent = s.abrev || s.nombre;
   document.getElementById('tienda').value = s.nombre;
 }
 function actualizarSucursalNombreEnVistas() {
@@ -1537,11 +1650,10 @@ function verificarOTP() {
   guardarUsuarios();
   otpActual = null;
   try { localStorage.removeItem(KEY_OTP); } catch(e) {}
-  detenerOTP();
+  detenerTimerOTP();
   cerrarRecuperar();
   alert(`✅ Listo. Usuario: ${u}`);
 }
-function detenerOTP() { detenerTimerOTP(); }
 
 /* ============ ENTRAR ============ */
 function entrarApp() {
@@ -1595,7 +1707,7 @@ function cambiarPestana(t) {
     if (p) p.style.display = (x === t) ? 'block' : 'none';
   });
   if (t === 'vincular') setTimeout(() => document.getElementById('inputCodigo').focus(), 100);
-  if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); }
+  if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); }
   if (t === 'inventario') { renderInvTopStats(); renderInventario(); actualizarSucursalNombreEnVistas(); }
   if (t === 'baseDatos') { renderManuales(); renderBaseDatosStats(); }
   guardarEstado();
@@ -1669,11 +1781,8 @@ function abrirModalUsuario(username) {
     inpU.value = ''; inpU.disabled = false;
     inpN.value = ''; inpE.value = ''; inpP.value = '';
     lblP.textContent = 'Contraseña';
-    perm.pedido.checked = true;
-    perm.inventario.checked = false;
-    perm.vincular.checked = false;
-    perm.baseDatos.checked = false;
-    perm.ajustes.checked = false;
+    perm.pedido.checked = true; perm.inventario.checked = false;
+    perm.vincular.checked = false; perm.baseDatos.checked = false; perm.ajustes.checked = false;
     renderSucursalesUsuario([]);
   }
   document.getElementById('modalUsuario').classList.add('activo');
@@ -1698,21 +1807,17 @@ function guardarUsuario() {
     const cb = document.getElementById('suc_' + s.id);
     return cb && cb.checked;
   }).map(s => s.id);
-
   if (!nombre) { alert('Pon nombre.'); return; }
   if (!username || !/^[a-z0-9._-]{3,20}$/.test(username)) { alert('Usuario inválido.'); return; }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Correo inválido.'); return; }
   if (!Object.values(permisos).some(v => v)) { alert('Marca al menos 1 pestaña.'); return; }
   if (!sucursalesPermitidas.length) { alert('Marca al menos 1 sucursal.'); return; }
-
   const esEd = !!modoEdicionUsuario;
   if (!esEd) {
     if (usuarios[username]) { alert('Ya existe.'); return; }
     if (password.length < 4) { alert('Mínimo 4.'); return; }
-    usuarios[username] = {
-      nombre, email, hash: hashPassword(password), permisos, sucursalesPermitidas,
-      creado: new Date().toISOString(), primerLogin: false
-    };
+    usuarios[username] = { nombre, email, hash: hashPassword(password), permisos, sucursalesPermitidas,
+      creado: new Date().toISOString(), primerLogin: false };
   } else {
     const u = usuarios[modoEdicionUsuario];
     u.nombre = nombre; u.email = email; u.permisos = permisos; u.sucursalesPermitidas = sucursalesPermitidas;
@@ -1726,10 +1831,8 @@ function guardarUsuario() {
 }
 function eliminarUsuario(username) {
   if (username === usuarioLogueado) { alert('No puedes eliminarte.'); return; }
-  // Solo el admin (con permiso ajustes) puede eliminar usuarios
   if (!usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔ Solo el admin.'); return; }
-  if (!confirm(`¿Eliminar a "${usuarios[username].nombre || username}"?`)) return;
-  pedirConfirmacionPass('🗑 Eliminar usuario',
+  pedirConfirmacionPassAdmin('🗑 Eliminar usuario',
     `¿Eliminar a <b>${usuarios[username].nombre || username}</b>?`,
     () => {
       delete usuarios[username];
@@ -1802,8 +1905,7 @@ function guardarSucursal() {
   if (!nombre) { alert('Pon el nombre.'); return; }
   if (modoEdicionSucursal) {
     const s = getSucursal(modoEdicionSucursal);
-    s.nombre = nombre;
-    s.abrev = abrev;
+    s.nombre = nombre; s.abrev = abrev;
     toast('✔ Sucursal actualizada');
   } else {
     const id = nombre.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) + '_' + Date.now().toString().slice(-4);
@@ -1824,9 +1926,8 @@ function eliminarSucursal(id) {
   if (sucursales.length <= 1) { alert('Debe haber al menos 1 sucursal.'); return; }
   if (!usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔ Solo el admin.'); return; }
   const s = getSucursal(id);
-  if (!confirm(`¿Eliminar la sucursal "${s.nombre}"?`)) return;
-  pedirConfirmacionPass('🗑 Eliminar sucursal',
-    `¿Eliminar la sucursal <b>${s.nombre}</b>?<br><br>Se eliminará también su inventario y ventas cargadas.`,
+  pedirConfirmacionPassAdmin('🗑 Eliminar sucursal',
+    `¿Eliminar la sucursal <b>${s.nombre}</b>?<br>Se eliminará su inventario y ventas.`,
     () => {
       sucursales = sucursales.filter(x => x.id !== id);
       delete inventariosPorSucursal[id];
@@ -1839,21 +1940,17 @@ function eliminarSucursal(id) {
         actualizarInventarioActual();
         actualizarHeaderSucursal();
       }
-      guardarSucursales();
-      guardarInventarios();
-      guardarVentas();
-      guardarUsuarios();
-      renderSucursales();
-      renderUsuarios();
+      guardarSucursales(); guardarInventarios(); guardarVentas(); guardarUsuarios();
+      renderSucursales(); renderUsuarios();
       toast('🗑 Sucursal eliminada');
     });
 }
 
 /* ============ RESPALDO ============ */
 function exportarRespaldo() {
-  const data = { version: 14, exportado: new Date().toISOString(),
+  const data = { version: 15, exportado: new Date().toISOString(),
     productos, productosManuales, pedido, vinculos, usuarios, configEmailJS,
-    inventariosPorSucursal, ventasPorSucursal, sucursales, nombreEmpresa, sucursalActual };
+    inventariosPorSucursal, ventasPorSucursal, sucursales, nombreEmpresa, sucursalActual, configSonido };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1878,15 +1975,10 @@ function importarRespaldo(event) {
       if (data.vinculos) { vinculos = data.vinculos; migrarVinculos(); }
       if (data.usuarios) { usuarios = data.usuarios; guardarUsuarios(); }
       if (data.configEmailJS) { configEmailJS = data.configEmailJS; localStorage.setItem(KEY_CFG, JSON.stringify(configEmailJS)); }
-      if (Array.isArray(data.sucursales) && data.sucursales.length) {
-        sucursales = data.sucursales; guardarSucursales();
-      }
-      if (data.inventariosPorSucursal) {
-        inventariosPorSucursal = data.inventariosPorSucursal; guardarInventarios();
-      }
-      if (data.ventasPorSucursal) {
-        ventasPorSucursal = data.ventasPorSucursal; guardarVentas();
-      }
+      if (Array.isArray(data.sucursales) && data.sucursales.length) { sucursales = data.sucursales; guardarSucursales(); }
+      if (data.inventariosPorSucursal) { inventariosPorSucursal = data.inventariosPorSucursal; guardarInventarios(); }
+      if (data.ventasPorSucursal) { ventasPorSucursal = data.ventasPorSucursal; guardarVentas(); }
+      if (data.configSonido) { configSonido = data.configSonido; localStorage.setItem(KEY_SONIDO, JSON.stringify(configSonido)); }
       if (data.nombreEmpresa) { nombreEmpresa = data.nombreEmpresa; localStorage.setItem(KEY_EMPRESA, nombreEmpresa); cargarNombreEmpresa(); }
       if (data.sucursalActual) sucursalActual = data.sucursalActual;
       guardarEstado();
@@ -1894,7 +1986,7 @@ function importarRespaldo(event) {
       renderPedido(); renderVinculos(); renderUsuarios(); renderSucursales();
       renderInvTopStats(); renderInventario(); renderManuales(); renderBaseDatosStats();
       actualizarHeaderSucursal(); actualizarSucursalNombreEnVistas();
-      actualizarEstadoEmailJS();
+      actualizarEstadoEmailJS(); cargarConfigSonido();
       toast('✔');
     } catch (err) { alert('Error: ' + err.message); }
   };
@@ -1968,17 +2060,13 @@ function skusDeCodigo(codigo) {
 }
 function fmtFecha(iso) {
   if (!iso) return '—';
-  try {
-    const d = new Date(iso);
-    return d.toLocaleDateString('es-MX') + ' ' + d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
-  } catch(e) { return '—'; }
+  try { const d = new Date(iso); return d.toLocaleDateString('es-MX') + ' ' + d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}); }
+  catch(e) { return '—'; }
 }
 function fmtHora(iso) {
   if (!iso) return '—';
-  try {
-    const d = new Date(iso);
-    return d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-  } catch(e) { return '—'; }
+  try { const d = new Date(iso); return d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
+  catch(e) { return '—'; }
 }
 function buscarProductoPorSku(sku) {
   if (!sku) return null;
@@ -2005,8 +2093,7 @@ function badgeFuente(fuente) {
 function guardarEstado() {
   try {
     localStorage.setItem(KEY_STATE, JSON.stringify({
-      productos, productosManuales, pedido, vinculos,
-      fecha: new Date().toISOString()
+      productos, productosManuales, pedido, vinculos, fecha: new Date().toISOString()
     }));
     localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
     localStorage.setItem(KEY_MANUAL, JSON.stringify(productosManuales));
@@ -2151,15 +2238,12 @@ function olvidarInventario() {
   const tieneConteo = Object.keys(inventarioConteo).length > 0;
   const tieneVentas = getVentasActuales().length > 0;
   if (!tieneBase && !tieneConteo && !tieneVentas) { toast('No hay nada que borrar'); return; }
-
   let mensaje = `Vas a borrar de <b>${s.nombre}</b>:<br><br>`;
   if (tieneBase) mensaje += `• El Excel del sistema (${inventarioBase.length} productos)<br>`;
   if (tieneConteo) mensaje += `• El conteo capturado (${Object.keys(inventarioConteo).length} productos)<br>`;
   if (tieneVentas) mensaje += `• Las ventas registradas (${getVentasActuales().length} ventas)<br>`;
   mensaje += `<br>¿Confirmas?`;
-
   if (!confirm(mensaje.replace(/<br>/g, '\n').replace(/<b>|<\/b>/g, ''))) return;
-
   inventarioBase = [];
   inventarioConteo = {};
   ventasPorSucursal[sucursalActual] = [];
@@ -2169,8 +2253,7 @@ function olvidarInventario() {
     inventariosPorSucursal[sucursalActual].fechaCargaBase = null;
     inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
   }
-  guardarInventarios();
-  guardarVentas();
+  guardarInventarios(); guardarVentas();
   document.getElementById('invInfo').textContent = '';
   document.getElementById('invBtnOlvidarWrap').style.display = 'none';
   document.getElementById('invPanelContar').style.display = 'none';
@@ -2188,7 +2271,6 @@ async function procesarInventario(event) {
   const fechaAnterior = getFechaCargaBase();
   const yaHayBase = inventarioBase.length > 0;
   const contadosCount = Object.keys(inventarioConteo).length;
-
   if (yaHayBase && contadosCount > 0) {
     const opcion = await preguntarReemplazoExcel(contadosCount, fechaAnterior);
     if (opcion === 'cancelar') return;
@@ -2202,7 +2284,6 @@ async function procesarInventario(event) {
   }
   await cargarExcelInventario(file, 'todo');
 }
-
 function preguntarReemplazoExcel(contadosCount, fechaAnterior) {
   return new Promise(resolve => {
     const msg = `
@@ -2210,9 +2291,9 @@ function preguntarReemplazoExcel(contadosCount, fechaAnterior) {
       📸 Referencia actual: <b>${fmtFecha(fechaAnterior)}</b><br>
       ✅ Productos contados: <b>${contadosCount}</b><br><br>
       <b>🔄 Solo actualizar los NO contados:</b><br>
-      Los ${contadosCount} ya contados se quedan igual. Solo se actualizan los pendientes.<br><br>
+      Los ${contadosCount} ya contados se quedan igual.<br><br>
       <b>📸 Reemplazar TODA la referencia:</b><br>
-      Se actualiza toda la referencia del sistema.
+      Se actualiza toda la referencia.
     `;
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;padding:15px;';
@@ -2236,7 +2317,6 @@ function preguntarReemplazoExcel(contadosCount, fechaAnterior) {
     modal.querySelector('#btnCancelar').onclick = () => { modal.remove(); resolve('cancelar'); };
   });
 }
-
 async function cargarExcelInventario(file, modoCarga) {
   const s = getSucursalActual();
   const info = document.getElementById('invInfo');
@@ -2255,7 +2335,7 @@ async function cargarExcelInventario(file, modoCarga) {
       const tieneExis = r.some(h => h.includes('EXIS') || h.includes('EXIST') || h.includes('CANTIDAD'));
       if (tieneClave && tieneExis) { headerIdx = i; break; }
     }
-    if (headerIdx < 0) { alert('No se encontraron encabezados (Clave, Descripción, Precio U., Exis).'); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; return; }
+    if (headerIdx < 0) { alert('No se encontraron encabezados.'); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; return; }
     const header = rows[headerIdx].map(x => String(x || '').toUpperCase().trim());
     const findCol = (...keys) => {
       for (let i = 0; i < header.length; i++) {
@@ -2269,7 +2349,6 @@ async function cargarExcelInventario(file, modoCarga) {
     const idxPrecio = findCol('PRECIO');
     const idxExis = findCol('EXIS', 'EXIST', 'CANTIDAD', 'INV ACTUAL');
     if (idxSku < 0 || idxExis < 0) { alert('Falta Clave o Exis.'); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; return; }
-
     const nuevos = [];
     const skusVistos = new Set();
     for (let i = headerIdx + 1; i < rows.length; i++) {
@@ -2293,7 +2372,6 @@ async function cargarExcelInventario(file, modoCarga) {
       skusVistos.add(sku);
       nuevos.push({ sku, descripcion, precio, exis });
     }
-
     if (modoCarga === 'noContados') {
       const nuevosMap = new Map();
       nuevos.forEach(p => nuevosMap.set(p.sku, p));
@@ -2302,20 +2380,15 @@ async function cargarExcelInventario(file, modoCarga) {
         return nuevosMap.get(p.sku) || p;
       });
       nuevos.forEach(p => {
-        if (!inventarioBase.some(x => x.sku === p.sku)) {
-          inventarioBase.push(p);
-        }
+        if (!inventarioBase.some(x => x.sku === p.sku)) inventarioBase.push(p);
       });
     } else {
       inventarioBase = nuevos;
     }
-
     setFechaCargaBase(new Date().toISOString());
     persistirInventarioActual();
-
     const msg = `✔ <b>${inventarioBase.length}</b> productos (${s.nombre})`;
-    const modoMsg = modoCarga === 'noContados' ? ' · Modo: solo actualizados los no contados' : ' · Referencia completa actualizada';
-    if (info) info.innerHTML = msg + modoMsg;
+    if (info) info.innerHTML = msg;
     if (infoBD) infoBD.innerHTML = msg;
     document.getElementById('invBtnOlvidarWrap').style.display = 'block';
     document.getElementById('invPanelContar').style.display = 'block';
@@ -2327,7 +2400,7 @@ async function cargarExcelInventario(file, modoCarga) {
   } catch (err) { console.error(err); alert('Error al leer: ' + err.message); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; }
 }
 
-/* ============ MODO PZ (escanear por pieza) ============ */
+/* ============ MODO PZ ============ */
 function toggleModoPz() {
   modoEscanearPz = !modoEscanearPz;
   const btn = document.getElementById('btnModoPz');
@@ -2345,9 +2418,7 @@ function toggleModoPz() {
     toast('Modo normal');
   }
 }
-
 function escanearPorPieza(codigo) {
-  // Buscar producto
   const items = skusDeCodigo(codigo);
   let p = null;
   if (items.length === 1) {
@@ -2363,29 +2434,21 @@ function escanearPorPieza(codigo) {
     toast('❌ No encontrado: ' + codigo, 'error');
     return;
   }
-
   const actual = inventarioConteo[p.sku] || 0;
   const nuevo = actual + 1;
   const esperado = p.exis;
   const vendido = totalVendidoDeSku(p.sku);
   const ajustado = esperado - vendido;
-
-  // Verificar si supera el total
   if (nuevo > ajustado) {
     feedbackAlerta();
     superaTotalPendiente = { producto: p, cantidadNueva: nuevo, ajustado, cantidadAnterior: actual };
     document.getElementById('superaTotalInfo').innerHTML = `
-      <b>${p.sku}</b><br>
-      ${p.descripcion}<br><br>
+      <b>${p.sku}</b><br>${p.descripcion}<br><br>
       Ya tienes <b>${actual}</b> contado(s) de un total esperado de <b>${ajustado}</b>.<br>
-      Estás intentando guardar <b>${nuevo}</b>.<br><br>
-      ¿Es correcto?
-    `;
+      Estás intentando guardar <b>${nuevo}</b>.<br><br>¿Es correcto?`;
     document.getElementById('modalSuperaTotal').classList.add('activo');
     return;
   }
-
-  // Guardar
   inventarioConteo[p.sku] = nuevo;
   setHoraConteoPorSku(p.sku, new Date().toISOString());
   ultimoEscanerPz = { sku: p.sku, cantidadAnterior: actual };
@@ -2395,7 +2458,6 @@ function escanearPorPieza(codigo) {
   renderInvTopStats();
   renderInventario();
 }
-
 function confirmarSuperaTotal() {
   if (!superaTotalPendiente) return;
   const { producto, cantidadNueva, ajustado, cantidadAnterior } = superaTotalPendiente;
@@ -2410,22 +2472,14 @@ function confirmarSuperaTotal() {
   renderInvTopStats();
   renderInventario();
 }
-
 function deshacerUltimoEscaner() {
-  if (!superaTotalPendiente) {
-    document.getElementById('modalSuperaTotal').classList.remove('activo');
-    return;
-  }
-  // No guardar nada
   document.getElementById('modalSuperaTotal').classList.remove('activo');
   superaTotalPendiente = null;
   feedbackExito();
   toast('↩ Escaneo cancelado');
 }
 
-/* ============ REGISTRAR VENTA ============ */
-let ventaProductoSel = null;
-
+/* ============ VENTAS ============ */
 function abrirRegistrarVenta() {
   ventaProductoSel = null;
   document.getElementById('ventaBusqueda').value = '';
@@ -2444,7 +2498,7 @@ function buscarProductoParaVenta() {
   const q = document.getElementById('ventaBusqueda').value.toLowerCase().trim();
   const cont = document.getElementById('ventaResultados');
   if (!q) { cont.innerHTML = ''; return; }
-  if (!inventarioBase.length) { cont.innerHTML = '<p class="small">Carga el Excel del sistema primero.</p>'; return; }
+  if (!inventarioBase.length) { cont.innerHTML = '<p class="small">Carga el Excel primero.</p>'; return; }
   const res = inventarioBase.filter(p =>
     p.sku.toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q)
   ).slice(0, 20);
@@ -2461,7 +2515,6 @@ function teclaVenta(e) {
     e.preventDefault();
     const q = document.getElementById('ventaBusqueda').value.trim().toUpperCase();
     if (!q) return;
-    // Buscar por código vinculado o SKU directo
     const items = skusDeCodigo(q);
     let p = null;
     if (items.length === 1) p = inventarioBase.find(x => x.sku.toUpperCase() === items[0].sku.toUpperCase());
@@ -2480,11 +2533,8 @@ function seleccionarParaVenta(sku) {
   document.getElementById('ventaInfo').innerHTML = `
     <div style="font-weight:bold; color:#1a3a6b; font-size:15px;">${p.sku}</div>
     <div class="small" style="margin-top:4px;">${p.descripcion || ''}</div>
-    <div class="small" style="margin-top:6px;">
-      Exis: <b>${p.exis}</b> · Vendido hoy: <b>${vendido}</b>
-    </div>
-    ${yaContado ? '<div class="small" style="margin-top:6px; color:#1e8449;">✅ Ya contado — la venta no lo afectará</div>' : '<div class="small" style="margin-top:6px; color:#e67e22;">⚠️ Aún no contado — se descontará del esperado</div>'}
-  `;
+    <div class="small" style="margin-top:6px;">Exis: <b>${p.exis}</b> · Vendido hoy: <b>${vendido}</b></div>
+    ${yaContado ? '<div class="small" style="margin-top:6px; color:#1e8449;">✅ Ya contado</div>' : '<div class="small" style="margin-top:6px; color:#e67e22;">⚠️ Aún no contado</div>'}`;
   document.getElementById('ventaProductoSel').style.display = 'block';
   document.getElementById('btnConfirmarVenta').disabled = false;
   document.getElementById('ventaCantidad').value = 1;
@@ -2495,26 +2545,18 @@ function confirmarVenta() {
   if (!ventaProductoSel) return;
   const cant = Math.max(1, parseInt(document.getElementById('ventaCantidad').value) || 1);
   const p = ventaProductoSel;
-
-  // Registrar la venta
   if (!ventasPorSucursal[sucursalActual]) ventasPorSucursal[sucursalActual] = [];
   ventasPorSucursal[sucursalActual].push({
-    sku: p.sku,
-    descripcion: p.descripcion || '',
-    cantidad: cant,
-    hora: new Date().toISOString(),
-    usuario: usuarioLogueado
+    sku: p.sku, descripcion: p.descripcion || '', cantidad: cant,
+    hora: new Date().toISOString(), usuario: usuarioLogueado
   });
   guardarVentas();
-
   feedbackExito();
   toast(`🛒 Venta registrada: ${cant} × ${p.sku}`, 'warn');
   renderVentasHoy();
   renderInvTopStats();
   renderInventario();
   actualizarInfoSnapshot();
-
-  // Limpiar para el siguiente
   ventaProductoSel = null;
   document.getElementById('ventaBusqueda').value = '';
   document.getElementById('ventaResultados').innerHTML = '';
@@ -2522,27 +2564,43 @@ function confirmarVenta() {
   document.getElementById('btnConfirmarVenta').disabled = true;
   document.getElementById('ventaBusqueda').focus();
 }
-
 function renderVentasHoy() {
   const ventas = getVentasActuales();
   document.getElementById('contVentas').textContent = ventas.length;
   const cont = document.getElementById('listaVentasHoy');
-  if (!ventas.length) {
-    cont.innerHTML = '<p class="small">Sin ventas registradas</p>';
-    return;
-  }
-  // Mostrar las últimas 20, más recientes primero
-  const ordenadas = [...ventas].reverse().slice(0, 20);
+  if (!ventas.length) { cont.innerHTML = '<p class="small">Sin ventas registradas</p>'; return; }
+  const ordenadas = ventas.map((v, i) => ({ ...v, idx: i })).reverse().slice(0, 30);
   cont.innerHTML = ordenadas.map(v => `
-    <div style="display:flex; justify-content:space-between; align-items:center; background:#fff3e0; padding:8px; border-radius:6px; margin-bottom:4px; font-size:12px;">
-      <div>
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#fff3e0; padding:8px; border-radius:6px; margin-bottom:4px; font-size:12px; gap:8px;">
+      <div style="flex:1; min-width:0;">
         <div style="font-weight:bold; color:#7a3d00;">${v.sku}</div>
-        <div style="color:#666;">${v.descripcion || ''}</div>
+        <div style="color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${v.descripcion || ''}</div>
         <div style="color:#888; font-size:10px;">${fmtHora(v.hora)} · @${v.usuario}</div>
       </div>
       <div style="font-weight:bold; color:#7a3d00; font-size:16px;">${v.cantidad}</div>
+      <button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="eliminarVenta(${v.idx})">🗑</button>
     </div>
   `).join('');
+}
+function eliminarVenta(idx) {
+  const ventas = getVentasActuales();
+  if (idx < 0 || idx >= ventas.length) return;
+  const v = ventas[idx];
+  pedirConfirmacionPassAdmin('🗑 Eliminar venta',
+    `¿Eliminar la venta?<br><br>
+    <b>${v.sku}</b><br>${v.descripcion || ''}<br>
+    Cantidad: <b>${v.cantidad}</b><br>
+    Hora: ${fmtHora(v.hora)}<br>
+    Registrada por: @${v.usuario}`,
+    () => {
+      ventas.splice(idx, 1);
+      guardarVentas();
+      renderVentasHoy();
+      renderInvTopStats();
+      renderInventario();
+      actualizarInfoSnapshot();
+      toast('🗑 Venta eliminada');
+    });
 }
 
 /* ============ RENDER INVENTARIO ============ */
@@ -2660,16 +2718,12 @@ function invTeclaBusqueda(e) {
       }
       return;
     }
-
-    // MODO PZ: suma +1 automático
     if (modoEscanearPz) {
       inp.value = '';
       inp.focus();
       escanearPorPieza(q.toUpperCase());
       return;
     }
-
-    // Modo normal
     const c = q.toUpperCase();
     const items = skusDeCodigo(c);
     if (items.length === 1) {
@@ -2687,13 +2741,26 @@ function invTeclaBusqueda(e) {
     let p = inventarioBase.find(x => x.sku.toUpperCase() === c);
     if (p) { inp.value = ''; abrirModalConteo(p); return; }
     if (invResultados.length && invIndiceSel >= 0) { invSeleccionar(invIndiceSel); return; }
+    // *** NO ENCONTRADO: ofrecer agregar como producto nuevo ***
     feedbackError();
-    toast('❌ No encontrado: ' + c, 'error');
+    const codigoNoEnc = c;
+    inp.value = '';
+    if (confirm(`❌ No se encontró el código: ${codigoNoEnc}\n\n¿Quieres agregarlo como producto nuevo?`)) {
+      abrirModalNuevoProductoDesdeInventario(codigoNoEnc);
+    }
     return;
   }
   if (!invResultados.length) return;
   if (e.key === 'ArrowDown') { e.preventDefault(); invIndiceSel = Math.min(invIndiceSel + 1, invResultados.length - 1); invPintarSeleccion(); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); invIndiceSel = Math.max(invIndiceSel - 1, 0); invPintarSeleccion(); }
+}
+function abrirModalNuevoProductoDesdeInventario(codigo) {
+  document.getElementById('npSku').value = (codigo || '').toUpperCase();
+  document.getElementById('npDesc').value = '';
+  document.getElementById('npUm').value = 'PIEZA';
+  document.getElementById('npPrecio').value = '';
+  document.getElementById('modalNuevoProducto').classList.add('activo');
+  setTimeout(() => document.getElementById('npDesc').focus(), 100);
 }
 function invSeleccionar(i) {
   const p = invResultados[i];
@@ -2720,10 +2787,7 @@ function abrirModalConteo(p) {
     ${contado !== undefined ? '<div class="small" style="margin-top:6px; color:#1e8449;">Contado antes: <b>' + contado + '</b></div>' : ''}`;
   const inp = document.getElementById('inputConteo');
   inp.value = contado !== undefined ? contado : '';
-
-  // Mostrar botón "Quitar conteo" solo si ya estaba contado (reconteo)
   document.getElementById('btnQuitarConteoWrap').style.display = contado !== undefined ? 'block' : 'none';
-
   document.getElementById('modalConteo').classList.add('activo');
   setTimeout(() => { inp.focus(); inp.select(); }, 100);
 }
@@ -2752,13 +2816,11 @@ function confirmarConteo() {
   inp.focus();
   setTimeout(() => { inp.select(); }, 50);
 }
-
 function quitarConteoActual() {
   if (!invProductoActual) return;
   const p = invProductoActual;
   if (!confirm(`¿Quitar el conteo de este producto?\n\n${p.sku}\n${p.descripcion || ''}`)) return;
   delete inventarioConteo[p.sku];
-  // Quitar la hora también
   if (inventariosPorSucursal[sucursalActual] && inventariosPorSucursal[sucursalActual].horaConteoPorSku) {
     delete inventariosPorSucursal[sucursalActual].horaConteoPorSku[p.sku];
   }
@@ -2771,7 +2833,6 @@ function quitarConteoActual() {
   renderInventario();
   document.getElementById('invBusqueda').focus();
 }
-
 function renderInventario() {
   const tb = document.querySelector('#tablaInventario tbody');
   if (!tb) return;
@@ -2838,14 +2899,12 @@ function renderInventario() {
     </tr>`;
   }).join('');
 }
-
 function abrirQuitarConteo(sku) {
   const p = inventarioBase.find(x => x.sku === sku);
   if (!p) return;
   invProductoActual = p;
   abrirModalConteo(p);
 }
-
 function limpiarConteo() {
   if (!Object.keys(inventarioConteo).length) { alert('No hay conteo.'); return; }
   const s = getSucursalActual();
@@ -2862,7 +2921,7 @@ function limpiarConteo() {
   toast('🗑 Conteo borrado');
 }
 
-/* ============ EXPORTAR INVENTARIO (3 HOJAS) ============ */
+/* ============ EXPORTAR INVENTARIO CON FORMATO ============ */
 function exportarInventario() {
   if (!Object.keys(inventarioConteo).length) { alert('No has contado nada.'); return; }
   const s = getSucursalActual();
@@ -2870,15 +2929,15 @@ function exportarInventario() {
   const horas = getHoraConteoPorSku();
   const ventas = getVentasActuales();
 
-  // ============= HOJA 1: RESUMEN =============
+  // HOJA 1: RESUMEN con formato
   const aoa1 = [];
-  aoa1.push(['Reporte de Inventario Físico']);
-  aoa1.push(['Empresa', nombreEmpresa]);
-  aoa1.push(['Sucursal', s.nombre]);
-  aoa1.push(['Fecha reporte', new Date().toLocaleString('es-MX')]);
-  aoa1.push(['Usuario', usuarioLogueado || '']);
-  if (fechaBase) aoa1.push(['Referencia del sistema', fmtFecha(fechaBase)]);
-  aoa1.push([]);
+  aoa1.push(['Reporte de Inventario Físico', '', '', '', '', '', '', '', '']);
+  aoa1.push(['Empresa', nombreEmpresa, '', '', '', '', '', '', '']);
+  aoa1.push(['Sucursal', s.nombre, '', '', '', '', '', '', '']);
+  aoa1.push(['Fecha reporte', new Date().toLocaleString('es-MX'), '', '', '', '', '', '', '']);
+  aoa1.push(['Usuario', usuarioLogueado || '', '', '', '', '', '', '', '']);
+  if (fechaBase) aoa1.push(['Referencia del sistema', fmtFecha(fechaBase), '', '', '', '', '', '', '']);
+  aoa1.push(['', '', '', '', '', '', '', '', '']);
   aoa1.push(['Clave', 'Descripción', 'Esperado', 'Vendido', 'Ajustado', 'Contado', 'Dif', 'Precio U.', 'Dif $']);
   let totalDifMxn = 0, totalDifPz = 0;
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
@@ -2901,14 +2960,25 @@ function exportarInventario() {
     totalDifPz += d;
     aoa1.push([p.sku, p.descripcion || '', p.exis, vendido, ajustado, c, d, p.precio || 0, difMxn]);
   });
-  aoa1.push([]);
   aoa1.push(['', '', '', '', '', 'TOTALES', totalDifPz, '', totalDifMxn]);
 
   const ws1 = XLSX.utils.aoa_to_sheet(aoa1);
   ws1['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 12 }];
 
-  // Colorear columnas "Dif" (G) y "Dif $" (I)
-  const inicioDatos = fechaBase ? 9 : 8;
+  // Estilos encabezado
+  const headerRow = fechaBase ? 8 : 7;
+  ['A','B','C','D','E','F','G','H','I'].forEach(col => {
+    const cell = col + (headerRow + 1);
+    if (ws1[cell]) {
+      ws1[cell].s = { fill: { fgColor: { rgb: '1A5FBF' } }, font: { color: { rgb: 'FFFFFF' }, bold: true },
+                      alignment: { horizontal: 'center', vertical: 'center' } };
+    }
+  });
+  // Título grande
+  if (ws1['A1']) ws1['A1'].s = { font: { bold: true, sz: 14, color: { rgb: '1A3A6B' } } };
+
+  // Colores por fila
+  const inicioDatos = headerRow + 2;
   for (let i = 0; i < rows.length; i++) {
     const filaExcel = inicioDatos + i;
     const p = rows[i];
@@ -2916,28 +2986,36 @@ function exportarInventario() {
     const vendido = totalVendidoDeSku(p.sku);
     const ajustado = p.exis - vendido;
     const d = calcularDif(ajustado, c);
+    // Dif y Dif $ con color
     const celdaG = 'G' + filaExcel;
     const celdaI = 'I' + filaExcel;
     if (d > 0) {
-      ws1[celdaG] = ws1[celdaG] || {};
-      ws1[celdaI] = ws1[celdaI] || {};
+      if (!ws1[celdaG]) ws1[celdaG] = {};
+      if (!ws1[celdaI]) ws1[celdaI] = {};
       ws1[celdaG].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
       ws1[celdaI].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
     } else if (d < 0) {
-      ws1[celdaG] = ws1[celdaG] || {};
-      ws1[celdaI] = ws1[celdaI] || {};
+      if (!ws1[celdaG]) ws1[celdaG] = {};
+      if (!ws1[celdaI]) ws1[celdaI] = {};
       ws1[celdaG].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
       ws1[celdaI].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
     }
-    // Columna "Vendido" (D) en naranja si tiene ventas
+    // Vendido en naranja si tiene
     if (vendido > 0) {
       const celdaD = 'D' + filaExcel;
-      ws1[celdaD] = ws1[celdaD] || {};
+      if (!ws1[celdaD]) ws1[celdaD] = {};
       ws1[celdaD].s = { fill: { fgColor: { rgb: 'FFE0B2' } }, font: { color: { rgb: '7A3D00' }, bold: true } };
     }
   }
+  // Totales en negrita
+  const filaTotal = inicioDatos + rows.length;
+  ['A','B','C','D','E','F','G','H','I'].forEach(col => {
+    const cell = col + filaTotal;
+    if (!ws1[cell]) ws1[cell] = {};
+    ws1[cell].s = { font: { bold: true }, fill: { fgColor: { rgb: 'E3F2FD' } } };
+  });
 
-  // ============= HOJA 2: DETALLE CONTEO =============
+  // HOJA 2: DETALLE CONTEO
   const aoa2 = [];
   aoa2.push(['Detalle de Conteo (hora por producto)']);
   aoa2.push(['Empresa', nombreEmpresa]);
@@ -2945,12 +3023,9 @@ function exportarInventario() {
   aoa2.push(['Fecha reporte', new Date().toLocaleString('es-MX')]);
   aoa2.push([]);
   aoa2.push(['Clave', 'Descripción', 'Hora conteo', 'Contado', 'UM']);
-  // Ordenar por hora
   const conteosConHora = rows.map(p => ({
-    sku: p.sku,
-    descripcion: p.descripcion || '',
-    hora: horas[p.sku] || null,
-    cantidad: inventarioConteo[p.sku],
+    sku: p.sku, descripcion: p.descripcion || '',
+    hora: horas[p.sku] || null, cantidad: inventarioConteo[p.sku],
     um: p.um || detectarUM(p.sku)
   })).sort((a, b) => {
     if (!a.hora) return 1;
@@ -2962,8 +3037,13 @@ function exportarInventario() {
   });
   const ws2 = XLSX.utils.aoa_to_sheet(aoa2);
   ws2['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 22 }, { wch: 10 }, { wch: 8 }];
+  if (ws2['A1']) ws2['A1'].s = { font: { bold: true, sz: 14, color: { rgb: '1A3A6B' } } };
+  ['A','B','C','D','E'].forEach(col => {
+    const cell = col + '6';
+    if (ws2[cell]) ws2[cell].s = { fill: { fgColor: { rgb: '1A5FBF' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } };
+  });
 
-  // ============= HOJA 3: VENTAS =============
+  // HOJA 3: VENTAS
   const aoa3 = [];
   aoa3.push(['Ventas durante el inventario']);
   aoa3.push(['Empresa', nombreEmpresa]);
@@ -2980,8 +3060,12 @@ function exportarInventario() {
   aoa3.push(['', 'TOTAL', totalVendido, '', '']);
   const ws3 = XLSX.utils.aoa_to_sheet(aoa3);
   ws3['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 16 }, { wch: 12 }, { wch: 15 }];
+  if (ws3['A1']) ws3['A1'].s = { font: { bold: true, sz: 14, color: { rgb: '7A3D00' } } };
+  ['A','B','C','D','E'].forEach(col => {
+    const cell = col + '6';
+    if (ws3[cell]) ws3[cell].s = { fill: { fgColor: { rgb: 'E67E22' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } };
+  });
 
-  // ============= CREAR LIBRO =============
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
   XLSX.utils.book_append_sheet(wb, ws2, 'Detalle conteo');
@@ -3000,7 +3084,6 @@ const tieneBarcodeDetector = 'BarcodeDetector' in window;
 async function abrirCamara(origen) {
   camaraOrigen = origen;
   document.getElementById('modalCamara').classList.add('activo');
-
   const cont = document.getElementById('reader');
   cont.innerHTML = '';
   const video = document.createElement('video');
@@ -3009,40 +3092,28 @@ async function abrirCamara(origen) {
   video.setAttribute('muted', 'true');
   video.style.cssText = 'width:100%; border-radius:10px; background:#000; display:block;';
   cont.appendChild(video);
-
   const status = document.createElement('div');
   status.id = 'scanStatus';
   status.style.cssText = 'margin-top:8px; font-size:12px; color:#1a5fbf; font-weight:bold; text-align:center;';
   status.textContent = '⏳ Iniciando cámara…';
   cont.appendChild(status);
-
   try {
     camaraStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      },
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: false
     });
     video.srcObject = camaraStream;
     await video.play();
     status.textContent = '🔍 Apunta al código…';
-
-    if (tieneBarcodeDetector && !esIOS) {
-      iniciarBarcodeDetector(video, status);
-    } else if (typeof ZXing !== 'undefined') {
-      iniciarZXing(video, status);
-    } else {
-      status.textContent = '⚠️ Este navegador no soporta lectura de códigos';
-    }
+    if (tieneBarcodeDetector && !esIOS) iniciarBarcodeDetector(video, status);
+    else if (typeof ZXing !== 'undefined') iniciarZXing(video, status);
+    else status.textContent = '⚠️ Este navegador no soporta lectura de códigos';
   } catch (err) {
     console.error(err);
-    alert('No se pudo abrir la cámara:\n' + (err.message || err) + '\n\nRecuerda que la cámara requiere HTTPS.');
+    alert('No se pudo abrir la cámara:\n' + (err.message || err));
     cerrarCamara();
   }
 }
-
 function iniciarBarcodeDetector(video, status) {
   try {
     const detector = new BarcodeDetector({
@@ -3054,88 +3125,56 @@ function iniciarBarcodeDetector(video, status) {
       detectando = true;
       try {
         const codigos = await detector.detect(video);
-        if (codigos && codigos.length > 0) {
-          onCamaraDetecta(codigos[0].rawValue);
-        }
+        if (codigos && codigos.length > 0) onCamaraDetecta(codigos[0].rawValue);
       } catch (e) {}
       detectando = false;
     }, 150);
   } catch (e) {
-    console.error('BarcodeDetector error:', e);
     if (typeof ZXing !== 'undefined') iniciarZXing(video, status);
   }
 }
-
 function iniciarZXing(video, status) {
   try {
     const hints = new Map();
-    const formats = [
-      ZXing.BarcodeFormat.CODE_128,
-      ZXing.BarcodeFormat.CODE_39,
-      ZXing.BarcodeFormat.EAN_13,
-      ZXing.BarcodeFormat.EAN_8,
-      ZXing.BarcodeFormat.UPC_A,
-      ZXing.BarcodeFormat.UPC_E,
-      ZXing.BarcodeFormat.CODABAR,
-      ZXing.BarcodeFormat.ITF,
-      ZXing.BarcodeFormat.QR_CODE
-    ];
+    const formats = [ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.CODABAR, ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.QR_CODE];
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
     hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
     const reader = new ZXing.BrowserMultiFormatReader(hints);
     zxingReader = reader;
-
     reader.decodeFromVideoElement(video, (result, err) => {
-      if (result) {
-        onCamaraDetecta(result.getText());
-      }
+      if (result) onCamaraDetecta(result.getText());
     });
   } catch (e) {
-    console.error('ZXing error:', e);
     status.textContent = '⚠️ Error al iniciar el lector';
   }
 }
-
 function cerrarCamara() {
-  if (camaraLoop) {
-    clearInterval(camaraLoop);
-    camaraLoop = null;
-  }
-  if (zxingReader) {
-    try { zxingReader.reset(); } catch(e) {}
-    zxingReader = null;
-  }
-  if (camaraStream) {
-    camaraStream.getTracks().forEach(t => t.stop());
-    camaraStream = null;
-  }
+  if (camaraLoop) { clearInterval(camaraLoop); camaraLoop = null; }
+  if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
+  if (camaraStream) { camaraStream.getTracks().forEach(t => t.stop()); camaraStream = null; }
   document.getElementById('modalCamara').classList.remove('activo');
   const cont = document.getElementById('reader');
   if (cont) cont.innerHTML = '';
 }
-
 function onCamaraDetecta(codigo) {
   const c = String(codigo).toUpperCase().trim();
   if (!c) return;
-  if (navigator.vibrate) { try { navigator.vibrate(80); } catch(e) {} }
+  vibrar(80);
   cerrarCamara();
   setTimeout(() => {
     if (camaraOrigen === 'vincular') {
       document.getElementById('inputCodigo').value = c;
       capturarCodigo();
     } else if (camaraOrigen === 'inventario') {
-      if (modoEscanearPz) {
-        escanearPorPieza(c);
-      } else {
-        procesarCodigoInv(c);
-      }
+      if (modoEscanearPz) escanearPorPieza(c);
+      else procesarCodigoInv(c);
     } else {
       procesarCodigoEnPedido(c);
     }
   }, 200);
 }
-
 function procesarCodigoInv(codigo) {
   const items = skusDeCodigo(codigo);
   if (items.length === 1) {
@@ -3155,7 +3194,11 @@ function procesarCodigoInv(codigo) {
   }
   const p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
   if (p) { abrirModalConteo(p); return; }
-  toast('❌ No está en inventario: ' + codigo, 'error');
+  // NO ENCONTRADO
+  feedbackError();
+  if (confirm(`❌ No se encontró el código: ${codigo}\n\n¿Quieres agregarlo como producto nuevo?`)) {
+    abrirModalNuevoProductoDesdeInventario(codigo);
+  }
 }
 
 /* ============ PROCESAR CÓDIGO EN PEDIDO ============ */
@@ -3214,17 +3257,14 @@ function elegirProductoDeLista(sku) {
   cerrarModalElegir();
   if (ctx === 'inventario') {
     const p = inventarioBase.find(x => x.sku.toUpperCase() === sku.toUpperCase());
-    if (p) {
-      if (modoEscanearPz) escanearPorPieza(p.sku);
-      else abrirModalConteo(p);
-    }
+    if (p) { if (modoEscanearPz) escanearPorPieza(p.sku); else abrirModalConteo(p); }
   } else {
     const p = buscarProductoPorSku(sku);
     if (p) abrirModalCantidad(p);
   }
 }
 
-/* ============ BUSCAR (PEDIDO) ============ */
+/* ============ BUSCAR PEDIDO ============ */
 function buscar() {
   const q = document.getElementById('busqueda').value.toLowerCase().trim();
   const cont = document.getElementById('resultados');
@@ -3238,23 +3278,20 @@ function buscar() {
   }
   const encontrados = new Map();
   productos.forEach(p => {
-    if (p.sku.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q)) {
+    if (p.sku.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q))
       encontrados.set(p.sku.toUpperCase(), { ...p, fuente: 'PDF' });
-    }
   });
   inventarioBase.forEach(p => {
     const key = p.sku.toUpperCase();
     if (encontrados.has(key)) return;
-    if (p.sku.toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q)) {
+    if (p.sku.toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q))
       encontrados.set(key, { sku: p.sku, descripcion: p.descripcion || '', precio: p.precio || 0, um: detectarUM(p.sku), fuente: 'Sistema' });
-    }
   });
   productosManuales.forEach(p => {
     const key = p.sku.toUpperCase();
     if (encontrados.has(key)) return;
-    if (p.sku.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q)) {
+    if (p.sku.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q))
       encontrados.set(key, { ...p, fuente: 'Manual' });
-    }
   });
   resultadosActuales = Array.from(encontrados.values()).slice(0, 30);
   if (!resultadosActuales.length) {
@@ -3267,10 +3304,8 @@ function buscar() {
       const exist = getExistencias(p.sku);
       const exisTxt = (exist !== null) ? `<div class="small" style="color:#1e8449;">Exist: ${exist}</div>` : '';
       return `<tr class="resultado" data-idx="${i}" onclick="seleccionar(${i})">
-        <td>${p.sku}${exisTxt}</td>
-        <td>${p.descripcion}</td>
-        <td>$${(p.precio || 0).toFixed(2)}</td>
-        <td>${badgeFuente(p.fuente)}</td>
+        <td>${p.sku}${exisTxt}</td><td>${p.descripcion}</td>
+        <td>$${(p.precio || 0).toFixed(2)}</td><td>${badgeFuente(p.fuente)}</td>
       </tr>`;
     }).join('') + '</tbody></table>';
   indiceSel = 0;
@@ -3287,10 +3322,7 @@ function teclaBusqueda(e) {
   if (e.key === 'Enter') {
     e.preventDefault();
     const q = document.getElementById('busqueda').value.trim();
-    if (!q) {
-      if (ultimoProductoAgregado) { abrirModalCantidad(ultimoProductoAgregado); }
-      return;
-    }
+    if (!q) { if (ultimoProductoAgregado) abrirModalCantidad(ultimoProductoAgregado); return; }
     procesarCodigoEnPedido(q);
     return;
   }
@@ -3298,11 +3330,7 @@ function teclaBusqueda(e) {
   if (e.key === 'ArrowDown') { e.preventDefault(); indiceSel = Math.min(indiceSel + 1, resultadosActuales.length - 1); pintarSeleccion(); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); indiceSel = Math.max(indiceSel - 1, 0); pintarSeleccion(); }
 }
-function seleccionar(i) {
-  const p = resultadosActuales[i];
-  if (!p) return;
-  abrirModalCantidad(p);
-}
+function seleccionar(i) { const p = resultadosActuales[i]; if (p) abrirModalCantidad(p); }
 function abrirModalCantidad(p) {
   productoSeleccionado = p;
   const exist = getExistencias(p.sku);
@@ -3322,10 +3350,7 @@ function abrirModalCantidad(p) {
         <span style="color:#1a5fbf; font-weight:bold; margin-left:8px;">$${(p.precio || 0).toFixed(2)}</span>
       </div>
     </div>
-    <div class="modal-cant-info">
-      ${fuenteHTML}
-      ${existHTML}
-    </div>`;
+    <div class="modal-cant-info">${fuenteHTML} ${existHTML}</div>`;
   const inp = document.getElementById('inputCant');
   inp.value = 1;
   document.getElementById('modalCantidad').classList.add('activo');
@@ -3334,8 +3359,7 @@ function abrirModalCantidad(p) {
 function cerrarModalCantidad(keepSelection) {
   document.getElementById('modalCantidad').classList.remove('activo');
   if (!keepSelection) {
-    productoSeleccionado = null;
-    ultimoProductoAgregado = null;
+    productoSeleccionado = null; ultimoProductoAgregado = null;
     document.getElementById('busqueda').value = '';
     document.getElementById('resultados').innerHTML = '';
     document.getElementById('noEncontradoWrap').style.display = 'none';
@@ -3362,12 +3386,8 @@ function confirmarCantidad() {
 function agregarAlPedido(p, cant) {
   const ex = pedido.find(x => x.sku === p.sku && x.sucursal === sucursalActual);
   if (ex) ex.cantidad += cant;
-  else pedido.push({
-    sku: p.sku, descripcion: p.descripcion, precio: p.precio || 0,
-    um: p.um, cantidad: cant, fuente: p.fuente || 'PDF',
-    agregadoPor: usuarioLogueado, sucursal: sucursalActual,
-    fecha: new Date().toISOString()
-  });
+  else pedido.push({ sku: p.sku, descripcion: p.descripcion, precio: p.precio || 0, um: p.um, cantidad: cant,
+    fuente: p.fuente || 'PDF', agregadoPor: usuarioLogueado, sucursal: sucursalActual, fecha: new Date().toISOString() });
   renderPedido();
   guardarEstado();
 }
@@ -3390,14 +3410,11 @@ function guardarNuevoProducto() {
   if (!sku) { alert('Pon el SKU.'); return; }
   if (!desc) { alert('Pon la descripción.'); return; }
   if (precio < 0) { alert('Precio inválido.'); return; }
-  if (productosManuales.some(p => p.sku === sku) ||
-      productos.some(p => p.sku === sku) ||
-      inventarioBase.some(p => p.sku === sku)) {
+  if (productosManuales.some(p => p.sku === sku) || productos.some(p => p.sku === sku) || inventarioBase.some(p => p.sku === sku)) {
     alert('Ya existe un producto con ese SKU.'); return;
   }
   const nuevo = { sku, descripcion: desc, um, precio, fuente: 'Manual',
-                  creadoPor: usuarioLogueado, sucursal: sucursalActual,
-                  fecha: new Date().toISOString() };
+                  creadoPor: usuarioLogueado, sucursal: sucursalActual, fecha: new Date().toISOString() };
   productosManuales.push(nuevo);
   guardarEstado();
   document.getElementById('modalNuevoProducto').classList.remove('activo');
@@ -3445,40 +3462,24 @@ function buscarVincularRapido() {
     res.map(p => {
       const yaEsta = codigosDelPendiente.includes(p.sku.toUpperCase());
       let celda;
-      if (yaEsta) {
-        celda = `<div class="estado-ok">✔ Ya vinculado</div>`;
-      } else {
-        celda = `<button class="verde" style="padding:6px 10px; font-size:12px;"
-                  onclick="asignarVincularRapido('${p.sku.replace(/'/g, "\\'")}')">🔗 Agregar</button>`;
-      }
-      return `<tr class="resultado ${yaEsta ? 'ya-vinculado' : ''}">
-        <td>${p.sku}</td><td>${p.descripcion}</td>
-        <td style="text-align:center;">${celda}</td></tr>`;
+      if (yaEsta) celda = `<div class="estado-ok">✔ Ya vinculado</div>`;
+      else celda = `<button class="verde" style="padding:6px 10px; font-size:12px;" onclick="asignarVincularRapido('${p.sku.replace(/'/g, "\\'")}')">🔗 Agregar</button>`;
+      return `<tr class="resultado ${yaEsta ? 'ya-vinculado' : ''}"><td>${p.sku}</td><td>${p.descripcion}</td><td style="text-align:center;">${celda}</td></tr>`;
     }).join('') + '</tbody></table>';
 }
 function asignarVincularRapido(sku) {
   if (!codigoRapidoPendiente) return;
   const codigo = codigoRapidoPendiente;
   if (!vinculos[codigo]) vinculos[codigo] = [];
-  if (!Array.isArray(vinculos[codigo])) {
-    vinculos[codigo] = vinculos[codigo] ? [vinculos[codigo]] : [];
-  }
-  if (vinculos[codigo].some(x => (x.sku || x).toUpperCase() === sku.toUpperCase())) {
-    toast('Ya está vinculado a este código');
-    return;
-  }
+  if (!Array.isArray(vinculos[codigo])) vinculos[codigo] = vinculos[codigo] ? [vinculos[codigo]] : [];
+  if (vinculos[codigo].some(x => (x.sku || x).toUpperCase() === sku.toUpperCase())) { toast('Ya está vinculado'); return; }
   vinculos[codigo].push({ sku, creadoPor: usuarioLogueado, sucursal: sucursalActual, fecha: new Date().toISOString() });
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   guardarEstado();
   renderVinculos();
   document.getElementById('modalVincularRapido').classList.remove('activo');
   const prod = buscarProductoPorSku(sku);
-  document.getElementById('exitoFullscreenDetalle').innerHTML =
-    `<div style="opacity:.8; font-size:13px;">CÓDIGO</div>
-     <div style="font-size:18px; margin:8px 0;">${codigo}</div>
-     <div style="opacity:.8; font-size:13px;">AGREGADO A</div>
-     <div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>
-     ${prod ? '<div style="font-size:12px; opacity:.9; margin-top:6px;">' + prod.descripcion + '</div>' : ''}`;
+  document.getElementById('exitoFullscreenDetalle').innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${codigo}</div><div style="opacity:.8; font-size:13px;">AGREGADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9; margin-top:6px;">' + prod.descripcion + '</div>' : ''}`;
   document.getElementById('exitoFullscreen').classList.add('show');
   setTimeout(() => {
     document.getElementById('exitoFullscreen').classList.remove('show');
@@ -3504,18 +3505,15 @@ function capturarCodigo() {
           ${prod ? '<div style="font-size:11px; color:#666;">' + prod.descripcion + '</div>' : ''}
           <div style="font-size:10px; color:#888;">@${it.creadoPor || '—'} · ${it.sucursal || '—'} · ${fmtFecha(it.fecha)}</div>
         </div>
-        <button class="rojo" style="padding:4px 8px; font-size:11px;"
-                onclick="quitarSkuDeCodigo('${codigo.replace(/'/g, "\\'")}', '${it.sku.replace(/'/g, "\\'")}')">🗑</button>
+        <button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="quitarSkuDeCodigo('${codigo.replace(/'/g, "\\'")}', '${it.sku.replace(/'/g, "\\'")}')">🗑</button>
       </div>`;
     }).join('');
     document.getElementById('bannerCodigoYaVinculadoTexto').innerHTML = `
       <div>El código <b style="font-family:monospace;">${codigo}</b> está asignado a <b>${items.length}</b> producto(s):</div>
       <div style="margin-top:6px;">${listaHTML}</div>
       <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="verde" style="font-size:13px; padding:8px 14px;"
-                onclick="agregarSkuACodigo('${codigo.replace(/'/g, "\\'")}')">➕ Agregar otro SKU</button>
-        <button class="gris" style="font-size:13px; padding:8px 14px;"
-                onclick="limpiarInputCodigo()">Listo</button>
+        <button class="verde" style="font-size:13px; padding:8px 14px;" onclick="agregarSkuACodigo('${codigo.replace(/'/g, "\\'")}')">➕ Agregar otro SKU</button>
+        <button class="gris" style="font-size:13px; padding:8px 14px;" onclick="limpiarInputCodigo()">Listo</button>
       </div>`;
     document.getElementById('bannerCodigoYaVinculado').classList.add('show');
     document.getElementById('paso2Wrap').style.display = 'none';
@@ -3583,39 +3581,23 @@ function buscarParaVincular() {
     res.map(p => {
       const yaEsta = yaAsignados.includes(p.sku.toUpperCase());
       let celda;
-      if (yaEsta) {
-        celda = `<div class="estado-ok">✔ Ya en este código</div>`;
-      } else {
-        celda = `<button class="verde" style="padding:6px 10px; font-size:12px;"
-                  onclick="guardarVinculo('${p.sku.replace(/'/g, "\\'")}')">🔗 Asignar</button>`;
-      }
-      return `<tr class="resultado ${yaEsta ? 'ya-vinculado' : ''}"><td>${p.sku}</td><td>${p.descripcion}</td>
-        <td style="text-align:center;">${celda}</td></tr>`;
+      if (yaEsta) celda = `<div class="estado-ok">✔ Ya en este código</div>`;
+      else celda = `<button class="verde" style="padding:6px 10px; font-size:12px;" onclick="guardarVinculo('${p.sku.replace(/'/g, "\\'")}')">🔗 Asignar</button>`;
+      return `<tr class="resultado ${yaEsta ? 'ya-vinculado' : ''}"><td>${p.sku}</td><td>${p.descripcion}</td><td style="text-align:center;">${celda}</td></tr>`;
     }).join('') + '</tbody></table>';
 }
 function guardarVinculo(sku) {
   if (!codigoPendiente) return;
   const codigo = codigoPendiente;
   if (!vinculos[codigo]) vinculos[codigo] = [];
-  if (!Array.isArray(vinculos[codigo])) {
-    vinculos[codigo] = vinculos[codigo] ? [vinculos[codigo]] : [];
-  }
-  if (vinculos[codigo].some(x => (x.sku || x).toUpperCase() === sku.toUpperCase())) {
-    toast('Ya está vinculado');
-    return;
-  }
+  if (!Array.isArray(vinculos[codigo])) vinculos[codigo] = vinculos[codigo] ? [vinculos[codigo]] : [];
+  if (vinculos[codigo].some(x => (x.sku || x).toUpperCase() === sku.toUpperCase())) { toast('Ya está vinculado'); return; }
   vinculos[codigo].push({ sku, creadoPor: usuarioLogueado, sucursal: sucursalActual, fecha: new Date().toISOString() });
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   guardarEstado();
   renderVinculos();
   const prod = buscarProductoPorSku(sku);
-  document.getElementById('exitoFullscreenDetalle').innerHTML =
-    `<div style="opacity:.8; font-size:13px;">CÓDIGO</div>
-     <div style="font-size:18px; margin:8px 0;">${codigo}</div>
-     <div style="opacity:.8; font-size:13px;">AGREGADO A</div>
-     <div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>
-     ${prod ? '<div style="font-size:12px; opacity:.9;">' + prod.descripcion + '</div>' : ''}
-     <div style="font-size:11px; opacity:.9; margin-top:8px;">@${usuarioLogueado} · ${getSucursalActual().abrev}</div>`;
+  document.getElementById('exitoFullscreenDetalle').innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${codigo}</div><div style="opacity:.8; font-size:13px;">AGREGADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9;">' + prod.descripcion + '</div>' : ''}<div style="font-size:11px; opacity:.9; margin-top:8px;">@${usuarioLogueado} · ${getSucursalActual().abrev}</div>`;
   document.getElementById('exitoFullscreen').classList.add('show');
   setTimeout(() => {
     document.getElementById('exitoFullscreen').classList.remove('show');
@@ -3639,8 +3621,7 @@ function renderVinculos() {
       const sku = typeof item === 'string' ? item : item.sku;
       const creador = (typeof item === 'object' && item.creadoPor) ? item.creadoPor : '—';
       const sucursal = (typeof item === 'object' && item.sucursal) ? item.sucursal : '—';
-      const fecha = (typeof item === 'object' && item.fecha) ? item.fecha : null;
-      filas.push({ cod, sku, creador, sucursal, fecha });
+      filas.push({ cod, sku, creador, sucursal });
     });
   });
   const filtradas = filas.filter(f => {
@@ -3657,15 +3638,10 @@ function renderVinculos() {
   tb.innerHTML = filtradas.map(f => {
     const prod = buscarProductoPorSku(f.sku);
     const desc = prod ? prod.descripcion : '⚠️';
-    return `<tr>
-      <td style="font-family:monospace;">${f.cod}</td>
-      <td>${f.sku}</td>
-      <td class="small">${desc}</td>
-      <td class="small">@${f.creador}</td>
+    return `<tr><td style="font-family:monospace;">${f.cod}</td><td>${f.sku}</td>
+      <td class="small">${desc}</td><td class="small">@${f.creador}</td>
       <td class="small">${f.sucursal}</td>
-      <td><button class="rojo" style="padding:6px 10px; font-size:12px;"
-              onclick="borrarVinculo('${f.cod.replace(/'/g, "\\'")}', '${f.sku.replace(/'/g, "\\'")}')">X</button></td>
-    </tr>`;
+      <td><button class="rojo" style="padding:6px 10px; font-size:12px;" onclick="borrarVinculo('${f.cod.replace(/'/g, "\\'")}', '${f.sku.replace(/'/g, "\\'")}')">X</button></td></tr>`;
   }).join('');
 }
 function borrarVinculo(codigo, sku) {
@@ -3713,7 +3689,7 @@ function fusionarVinculos(actual, nuevos) {
 }
 function exportarVinculos() {
   if (!Object.keys(vinculos).length) { alert('Sin vínculos.'); return; }
-  const data = { version: 6, exportado: new Date().toISOString(), vinculos };
+  const data = { version: 7, exportado: new Date().toISOString(), vinculos };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -3766,10 +3742,9 @@ function importarVinculos(event) {
       const totalActual = contarVinculos();
       const totalArchivo = contarVinculos(nuevosNorm);
       const fusionado = fusionarVinculos(vinculos, nuevosNorm);
-      const totalFusionado = contarVinculos(fusionado);
       document.getElementById('impTotalActual').textContent = totalActual;
       document.getElementById('impTotalArchivo').textContent = totalArchivo;
-      document.getElementById('impResultFusionar').textContent = totalFusionado;
+      document.getElementById('impResultFusionar').textContent = contarVinculos(fusionado);
       document.getElementById('impResultReemplazar').textContent = totalArchivo;
       document.getElementById('modalImportarVinculos').classList.add('activo');
     } catch (err) { alert('Error: ' + err.message); }
@@ -3777,24 +3752,17 @@ function importarVinculos(event) {
   reader.readAsText(file);
 }
 function solicitarImportacion(modo) {
-  if (modo === 'fusionar') {
-    ejecutarImportacion('fusionar');
-    return;
-  }
+  if (modo === 'fusionar') { ejecutarImportacion('fusionar'); return; }
   const backup = JSON.stringify(vinculos);
   document.getElementById('modalImportarVinculos').classList.remove('activo');
-  pedirConfirmacionPass('🔄 Reemplazar vínculos',
+  pedirConfirmacionPassAdmin('🔄 Reemplazar vínculos',
     `⚠️ Vas a <b>borrar TODOS los vínculos actuales</b> y reemplazarlos con los del archivo.<br><br>
-    • Actuales: <b>${contarVinculos()}</b><br>
-    • Del archivo: <b>${contarVinculos(importarVinculosPendiente)}</b><br><br>
-    Se guardará un respaldo automático.`,
+    • Actuales: <b>${contarVinculos()}</b><br>• Del archivo: <b>${contarVinculos(importarVinculosPendiente)}</b>`,
     () => {
       try {
         localStorage.setItem('sahagun_vinculos_backup_' + Date.now(), backup);
         const keys = Object.keys(localStorage).filter(k => k.startsWith('sahagun_vinculos_backup_'));
-        if (keys.length > 5) {
-          keys.sort().slice(0, keys.length - 5).forEach(k => localStorage.removeItem(k));
-        }
+        if (keys.length > 5) keys.sort().slice(0, keys.length - 5).forEach(k => localStorage.removeItem(k));
       } catch(e) {}
       ejecutarImportacion('reemplazar');
     });
@@ -3802,15 +3770,11 @@ function solicitarImportacion(modo) {
 function ejecutarImportacion(modo) {
   if (!importarVinculosPendiente) return;
   const nuevos = importarVinculosPendiente;
-  if (modo === 'fusionar') {
-    vinculos = fusionarVinculos(vinculos, nuevos);
-    toast('✔ Vínculos fusionados');
-  } else if (modo === 'reemplazar') {
+  if (modo === 'fusionar') { vinculos = fusionarVinculos(vinculos, nuevos); toast('✔ Vínculos fusionados'); }
+  else if (modo === 'reemplazar') {
     vinculos = {};
-    Object.entries(nuevos).forEach(([cod, arr]) => {
-      vinculos[cod] = arr.map(item => ({ ...item }));
-    });
-    toast('✔ Vínculos reemplazados (respaldo guardado)');
+    Object.entries(nuevos).forEach(([cod, arr]) => { vinculos[cod] = arr.map(item => ({ ...item })); });
+    toast('✔ Vínculos reemplazados');
   }
   importarVinculosPendiente = null;
   cerrarModalImportar();
@@ -3826,8 +3790,6 @@ function cerrarModalImportar() {
 /* ============ PEDIDO RENDER ============ */
 function renderPedido() {
   const pedidoFiltrado = pedido.filter(p => p.sucursal === sucursalActual || !p.sucursal);
-
-  // Tabla (PC)
   const tb = document.querySelector('#tablaPedido tbody');
   tb.innerHTML = pedidoFiltrado.map((p) => {
     const idxOriginal = pedido.indexOf(p);
@@ -3838,19 +3800,13 @@ function renderPedido() {
     const exist = getExistencias(p.sku);
     const existTxt = (exist !== null) ? exist : '—';
     const totalPz = p.cantidad + (exist !== null ? exist : 0);
-    return `<tr>
-      <td>${p.sku}</td>
-      <td>${p.descripcion} ${origenBadge}</td>
-      <td><input class="cant" type="number" min="1" value="${p.cantidad}"
-                 onchange="cambiarCant(${idxOriginal}, this.value)"></td>
+    return `<tr><td>${p.sku}</td><td>${p.descripcion} ${origenBadge}</td>
+      <td><input class="cant" type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)"></td>
       <td style="text-align:center; font-family:monospace;">${existTxt}</td>
       <td style="text-align:center; font-family:monospace; font-weight:bold; color:#1a3a6b;">${totalPz}</td>
       <td><span class="badge ${claseUM(p.um)}">${p.um}</span></td>
-      <td><button class="rojo" onclick="eliminar(${idxOriginal})" style="padding:6px 10px;">X</button></td>
-    </tr>`;
+      <td><button class="rojo" onclick="eliminar(${idxOriginal})" style="padding:6px 10px;">X</button></td></tr>`;
   }).join('');
-
-  // Tarjetas (celular)
   const cards = document.getElementById('pedidoCards');
   if (cards) {
     cards.innerHTML = pedidoFiltrado.map((p) => {
@@ -3863,34 +3819,22 @@ function renderPedido() {
       const existTxt = (exist !== null) ? exist : '—';
       const totalPz = p.cantidad + (exist !== null ? exist : 0);
       return `<div class="pedido-card">
-        <div class="pedido-card-top">
-          <div class="pedido-card-sku">${p.sku}</div>
-          <button class="btn-x" onclick="eliminar(${idxOriginal})">X</button>
-        </div>
+        <div class="pedido-card-top"><div class="pedido-card-sku">${p.sku}</div>
+          <button class="btn-x" onclick="eliminar(${idxOriginal})">X</button></div>
         <div class="pedido-card-desc">${p.descripcion} ${origenBadge}</div>
         <div class="pedido-card-row">
-          <div class="pedido-card-field">
-            <label>Pido</label>
-            <input type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)">
-          </div>
-          <div class="pedido-card-field">
-            <label>Exist.</label>
-            <div class="valor">${existTxt}</div>
-          </div>
-          <div class="pedido-card-field">
-            <label>Total pz (${p.um})</label>
-            <div class="valor" style="background:#e3f2fd; color:#1a3a6b;">${totalPz}</div>
-          </div>
+          <div class="pedido-card-field"><label>Pido</label>
+            <input type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)"></div>
+          <div class="pedido-card-field"><label>Exist.</label>
+            <div class="valor">${existTxt}</div></div>
+          <div class="pedido-card-field"><label>Total pz (${p.um})</label>
+            <div class="valor" style="background:#e3f2fd; color:#1a3a6b;">${totalPz}</div></div>
         </div>
       </div>`;
     }).join('');
   }
-
   const totalPido = pedidoFiltrado.reduce((s, p) => s + p.cantidad, 0);
-  const totalExist = pedidoFiltrado.reduce((s, p) => {
-    const e = getExistencias(p.sku);
-    return s + (e !== null ? e : 0);
-  }, 0);
+  const totalExist = pedidoFiltrado.reduce((s, p) => { const e = getExistencias(p.sku); return s + (e !== null ? e : 0); }, 0);
   const totalPz = totalPido + totalExist;
   const ti = pedidoFiltrado.reduce((s, p) => s + p.precio * p.cantidad, 0);
   document.getElementById('totalPido').textContent = totalPido;
@@ -3905,8 +3849,8 @@ function limpiarPedido() {
   const pedidoFiltrado = pedido.filter(p => p.sucursal === sucursalActual || !p.sucursal);
   if (!pedidoFiltrado.length) return;
   if (!confirm(`¿Borrar el pedido completo de ${getSucursalActual().abrev}?`)) return;
-  pedirConfirmacionPass('🗑 Borrar pedido',
-    `¿Borrar el pedido completo de <b>${getSucursalActual().nombre}</b>?<br><br>Se requiere tu contraseña.`,
+  pedirConfirmacionPassActivo('🗑 Borrar pedido',
+    `¿Borrar el pedido completo de <b>${getSucursalActual().nombre}</b>?`,
     () => {
       pedido = pedido.filter(p => p.sucursal && p.sucursal !== sucursalActual);
       renderPedido();
@@ -3932,18 +3876,13 @@ function exportarExcel() {
     const tpz = p.cantidad + ex;
     const imp = p.precio * p.cantidad;
     totPido += p.cantidad; totExist += ex; totPz += tpz; totImp += imp;
-    aoa.push([
-      p.sku, p.descripcion, p.cantidad, ex, tpz,
-      p.precio || 0, imp, p.um,
-      p.fuente || '', p.agregadoPor || '', fmtFecha(p.fecha)
-    ]);
+    aoa.push([p.sku, p.descripcion, p.cantidad, ex, tpz, p.precio || 0, imp, p.um, p.fuente || '', p.agregadoPor || '', fmtFecha(p.fecha)]);
   });
   aoa.push([]);
   aoa.push(['', 'TOTALES', totPido, totExist, totPz, '', totImp, '', '', '', '']);
   for (let i = 0; i < 8; i++) aoa.push(['', '', '', '', '', '', '', '', '', '', '']);
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 8 }, { wch: 10 }, { wch: 10 },
-                 { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 14 }, { wch: 20 }];
+  ws['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 14 }, { wch: 20 }];
   ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Pedido');
@@ -3956,9 +3895,11 @@ function arrancar() {
   document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
   document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('activo'));
   try {
+    migrarClavesAntiguas();
     cargarSucursales();
     cargarNombreEmpresa();
     cargarConfig();
+    cargarConfigSonido();
     inicializarUsuarios();
     cargarInventarios();
     cargarVentas();
@@ -3990,7 +3931,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') { e.preventDefault(); verificarOTP(); }
     });
   });
-  // Inicializar audio en el primer toque (iOS requiere interacción)
   document.body.addEventListener('touchstart', () => { getAudioCtx(); }, { once: true });
   document.body.addEventListener('click', () => { getAudioCtx(); }, { once: true });
 });
