@@ -73,6 +73,8 @@
   button.rojo { background:#c0392b;} button.verde { background:#1e8449;}
   button.gris { background:#7f8c8d;} button.amarillo { background:#e67e22;}
   button.camara { background:#1e8449; padding:10px 14px; font-size:20px; }
+  button.modo-activo { background:#e67e22; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.7;} }
   .fila { display:flex; gap:8px; align-items:stretch; }
   .fila input { flex:1; }
   table { width:100%; border-collapse:collapse; background:white; margin-top:8px;}
@@ -86,6 +88,7 @@
   tr.faltante { background:#fee !important; }
   tr.ok-row { background:#f8f9fb !important; }
   tr.negativo { background:#fff3e0 !important; }
+  tr.venta-row { background:#fff3e0 !important; }
   .cant { width:70px; text-align:center; font-weight:bold; }
   .small { font-size:12px; color:#666;}
   .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; color:white;}
@@ -93,12 +96,15 @@
   .badge-promo { background:#e67e22; }
   .badge-sistema { background:#1a5fbf; }
   .badge-manual { background:#7f8c8d; }
+  .badge-venta { background:#e67e22; }
   .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
            background:#1e8449; color:white; padding:10px 18px; border-radius:8px;
            box-shadow:0 4px 12px rgba(0,0,0,.25); opacity:0; transition:opacity .25s;
            font-weight:bold; z-index:999; pointer-events:none; max-width:90%; text-align:center; font-size:14px;}
   .toast.show { opacity:1; }
   .toast.error { background:#c0392b; }
+  .toast.warn { background:#e67e22; }
+  .toast.big { font-size:20px; padding:16px 24px; }
   .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:1100; display:none;
               align-items:center; justify-content:center; padding:15px; overflow-y:auto;}
   .modal-bg.activo { display:flex;}
@@ -189,6 +195,8 @@
                   border-radius:10px; font-size:10px; font-weight:bold; margin-left:4px;}
   .chip-time { display:inline-block; background:#e3f2fd; color:#1a3a6b; padding:2px 6px;
                border-radius:10px; font-size:10px; margin-left:4px; font-family:monospace;}
+  .chip-venta { display:inline-block; background:#e67e22; color:white; padding:2px 6px;
+                border-radius:10px; font-size:10px; margin-left:4px;}
   .modal-cant-header { background:#f0f7ff; padding:12px; border-radius:8px; margin-bottom:12px;
                        border-left:4px solid #1a5fbf; }
   .modal-cant-sku { font-weight:bold; font-size:15px; color:#1a3a6b; }
@@ -200,7 +208,7 @@
   .pill-manual { background:#f0f0f0; color:#555; border:1px solid #999;}
   .pill-existencias { background:#e8f5e9; color:#0d4d26; border:1px solid #1e8449;}
   .pill-sin-datos { background:#fff3e0; color:#7a3d00; border:1px solid #e67e22;}
-  .pill-snapshot { background:#f3e5f5; color:#4a148c; border:1px solid #8e24aa;}
+  .pill-venta { background:#fff3e0; color:#7a3d00; border:1px solid #e67e22;}
   .hint-scan { background:#fff3e0; padding:8px 10px; border-radius:6px; font-size:12px; color:#7a3d00;
                margin-top:8px; border-left:3px solid #e67e22;}
   .opcion-producto { background:#f0f7ff; padding:12px; border-radius:8px; margin:8px 0;
@@ -216,6 +224,31 @@
   .sucursal-row .nombre { font-weight:bold; color:#1a3a6b; }
   .sucursal-row .abrev { font-size:11px; color:#888; font-family:monospace; }
   .sucursal-row .acciones { display:flex; gap:6px;}
+  
+  /* ============ VISTA DE TARJETAS PARA PEDIDO EN CELULAR ============ */
+  #pedidoCards { display:none; }
+  .pedido-card { background:white; border:1px solid #ddd; border-left:4px solid #1a5fbf;
+                 border-radius:8px; padding:12px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,.05);}
+  .pedido-card.venta { border-left-color:#e67e22; }
+  .pedido-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;}
+  .pedido-card-sku { font-family:monospace; font-weight:bold; font-size:14px; color:#1a3a6b;
+                     word-break:break-all; flex:1;}
+  .pedido-card-desc { font-size:13px; color:#333; margin-bottom:10px; line-height:1.4;}
+  .pedido-card-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; align-items:end;}
+  .pedido-card-field { display:flex; flex-direction:column; gap:2px;}
+  .pedido-card-field label { font-size:10px; color:#666; font-weight:bold; text-transform:uppercase;}
+  .pedido-card-field input { padding:8px; font-size:16px; text-align:center; font-weight:bold;}
+  .pedido-card-field .valor { padding:8px; font-size:15px; text-align:center; font-weight:bold;
+                              background:#f5f5f5; border-radius:6px; font-family:monospace;}
+  .btn-x { background:#c0392b; color:white; border:none; border-radius:50%; width:32px; height:32px;
+           cursor:pointer; font-weight:bold; font-size:14px; padding:0; flex-shrink:0;}
+  
+  @media (max-width:640px) {
+    #tablaPedidoWrap { display:none; }
+    #pedidoCards { display:block; }
+    #tablaInventarioWrap { display:none; }
+    #tablaVinculosWrap { display:none; }
+  }
   @media(min-width:700px){
     body { max-width:900px; margin:0 auto; padding-bottom:20px;}
     .acciones-fijas { position:static; margin:10px; box-shadow:0 2px 6px rgba(0,0,0,.08); border-radius:10px;}
@@ -301,6 +334,7 @@
   </div>
 </div>
 
+<!-- PESTAÑA PEDIDO -->
 <div id="pestanaPedido">
   <div class="panel">
     <h3>1 · Catálogo (sube el PDF)</h3>
@@ -342,18 +376,24 @@
       <div style="flex:1;"><label class="small">Fecha:</label>
         <input type="text" id="fecha" readonly></div>
     </div>
-    <table id="tablaPedido">
-      <thead><tr><th>Rex</th><th>Descripción</th><th>Pido</th><th>Exist.</th><th>Total pz</th><th>UM</th><th></th></tr></thead>
-      <tbody></tbody>
-      <tfoot>
-        <tr><th colspan="2" style="text-align:right">Totales:</th>
-          <th id="totalPido">0</th>
-          <th id="totalExist">0</th>
-          <th id="totalPz">0</th>
-          <th colspan="2" id="totalImp">$0</th>
-        </tr>
-      </tfoot>
-    </table>
+    
+    <!-- Vista de tabla (PC) -->
+    <div id="tablaPedidoWrap">
+      <table id="tablaPedido">
+        <thead><tr><th>Rex</th><th>Descripción</th><th>Pido</th><th>Exist.</th><th>Total pz</th><th>UM</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    
+    <!-- Vista de tarjetas (celular) -->
+    <div id="pedidoCards"></div>
+    
+    <div class="inv-stats" style="margin-top:14px;">
+      <div class="inv-stat"><div class="num" id="totalPido">0</div><div class="lbl">Total pido</div></div>
+      <div class="inv-stat"><div class="num" id="totalExist">0</div><div class="lbl">Total exist.</div></div>
+      <div class="inv-stat ok"><div class="num" id="totalPz">0</div><div class="lbl">Total pz</div></div>
+      <div class="inv-stat"><div class="num" id="totalImp">$0</div><div class="lbl">Importe</div></div>
+    </div>
   </div>
   <div class="acciones-fijas">
     <button class="verde" onclick="exportarExcel()">📥 Exportar Excel</button>
@@ -361,12 +401,12 @@
   </div>
 </div>
 
+<!-- PESTAÑA INVENTARIO -->
 <div id="pestanaInventario" style="display:none;">
   <div class="panel">
     <h3>1 · Cargar inventario del sistema (<span id="invSucursalNombre"></span>)</h3>
     <div class="ayuda">
       Cada sucursal tiene <b>su propio inventario</b>. Sube el <b>Reporte de Inventario</b> (Excel) de esta sucursal.
-      Las existencias negativas se conservan.
     </div>
     <input type="file" id="invFileInput" accept=".xlsx,.xls,.csv" onchange="procesarInventario(event)">
     <div id="invInfo" class="small" style="margin-top:8px;"></div>
@@ -378,6 +418,19 @@
 
   <div class="panel" id="invPanelContar" style="display:none;">
     <h3>2 · Contar productos</h3>
+    
+    <div style="background:#f0f7ff; padding:10px; border-radius:8px; margin-bottom:12px; border-left:4px solid #1a5fbf;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <button id="btnModoPz" class="gris" style="flex:1; font-size:13px; padding:12px;"
+                onclick="toggleModoPz()">⚡ Modo PZ: Desactivado</button>
+        <button class="amarillo" style="flex:1; font-size:13px; padding:12px;"
+                onclick="abrirRegistrarVenta()">🛒 Registrar venta</button>
+      </div>
+      <div id="modoPzInfo" class="small" style="margin-top:8px; display:none; color:#7a3d00;">
+        ⚡ <b>Modo PZ activado:</b> cada escaneo suma +1 automáticamente al conteo del producto.
+      </div>
+    </div>
+    
     <div class="inv-stats" id="invStatsTop"></div>
     <div class="fila">
       <input type="text" id="invBusqueda" placeholder="SKU, descripción o escanea…"
@@ -394,7 +447,7 @@
     <input type="text" id="invFiltro" placeholder="Filtrar productos…" oninput="renderInventario()">
     <div class="tabla-scroll">
       <table id="tablaInventario">
-        <thead><tr><th>SKU</th><th>Descripción</th><th>Debe haber</th><th>Contado</th><th>Dif</th><th>Dif $</th></tr></thead>
+        <thead><tr><th>SKU</th><th>Descripción</th><th>Debe haber</th><th>Contado</th><th>Dif</th><th>Dif $</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -406,6 +459,7 @@
   </div>
 </div>
 
+<!-- PESTAÑA VINCULAR -->
 <div id="pestanaVincular" style="display:none;">
   <div class="panel">
     <h3>🔗 Vincular código de barras ↔ SKU</h3>
@@ -453,6 +507,7 @@
   </div>
 </div>
 
+<!-- PESTAÑA BASE DE DATOS -->
 <div id="pestanaBaseDatos" style="display:none;">
   <div class="panel">
     <h3>📤 Subir archivos</h3>
@@ -481,6 +536,7 @@
   </div>
 </div>
 
+<!-- PESTAÑA AJUSTES -->
 <div id="pestanaAjustes" style="display:none;">
   <div class="panel">
     <h3>👥 Usuarios</h3>
@@ -494,7 +550,6 @@
   </div>
   <div class="panel">
     <h3>🏬 Nombre de la empresa</h3>
-    <p class="small">Este nombre aparece en el login y en el header.</p>
     <div class="fila">
       <input type="text" id="cfgEmpresaNombre" placeholder="FC-Relma">
       <button class="verde" onclick="guardarNombreEmpresa()">💾</button>
@@ -529,6 +584,7 @@
   </div>
 </div>
 
+<!-- MODALES -->
 <div class="modal-bg" id="modalCamara">
   <div class="modal"><h3>📷 Escanear</h3><div id="reader"></div>
     <button class="rojo" style="width:100%; margin-top:10px;" onclick="cerrarCamara()">Cancelar</button></div>
@@ -580,6 +636,47 @@
   </div>
 </div>
 
+<!-- MODAL REGISTRAR VENTA -->
+<div class="modal-bg" id="modalRegistrarVenta">
+  <div class="modal">
+    <h3>🛒 Registrar venta</h3>
+    <div class="ayuda" style="background:#fff3e0; border-left-color:#e67e22;">
+      La venta se descontará del <b>esperado</b> del inventario. Si el producto aún no se ha contado, no habrá problema.
+    </div>
+    <label class="small">Buscar producto</label>
+    <input type="text" id="ventaBusqueda" placeholder="SKU o descripción…"
+           oninput="buscarProductoParaVenta()" onkeydown="teclaVenta(event)">
+    <div id="ventaResultados" style="max-height:280px; overflow-y:auto; margin-top:8px;"></div>
+
+    <div id="ventaProductoSel" style="display:none; margin-top:14px; background:#f0f7ff; padding:12px; border-radius:8px; border-left:4px solid #1a5fbf;">
+      <div id="ventaInfo" style="margin-bottom:10px;"></div>
+      <label class="small">Cantidad vendida</label>
+      <input type="number" id="ventaCantidad" value="1" min="1" style="font-size:22px; text-align:center; font-weight:bold;">
+    </div>
+
+    <div class="fila" style="margin-top:14px;">
+      <button class="verde" style="flex:1;" onclick="confirmarVenta()" id="btnConfirmarVenta" disabled>✔ Registrar venta</button>
+      <button class="gris" onclick="cerrarModalRegistrarVenta()">Cancelar</button>
+    </div>
+
+    <hr style="margin:16px 0; border:none; border-top:1px solid #eee;">
+    <h4 style="margin:0 0 8px 0; color:#1a3a6b; font-size:13px;">Ventas registradas hoy (<span id="contVentas">0</span>)</h4>
+    <div id="listaVentasHoy" style="max-height:200px; overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- MODAL SUPERA TOTAL -->
+<div class="modal-bg" id="modalSuperaTotal">
+  <div class="modal" style="border:3px solid #e67e22;">
+    <h3 style="color:#e67e22;">⚠️ Ya contaste el total</h3>
+    <div id="superaTotalInfo" class="ayuda" style="background:#fff3e0; border-left-color:#e67e22;"></div>
+    <div class="fila" style="margin-top:16px;">
+      <button class="verde" style="flex:1;" onclick="confirmarSuperaTotal()">✔ Sí, guardar</button>
+      <button class="amarillo" onclick="deshacerUltimoEscaner()">↩ Deshacer</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modalConteo">
   <div class="modal">
     <div id="conteoInfoProducto" style="margin-bottom:12px;"></div>
@@ -590,6 +687,9 @@
     <div class="fila" style="margin-top:10px;">
       <button class="verde" style="flex:1;" onclick="confirmarConteo()">✔ Guardar</button>
       <button class="gris" onclick="cerrarModalConteo()">Cancelar</button>
+    </div>
+    <div id="btnQuitarConteoWrap" style="display:none; margin-top:10px;">
+      <button class="rojo" style="width:100%; font-size:13px;" onclick="quitarConteoActual()">🗑 Quitar conteo de este producto</button>
     </div>
   </div>
 </div>
@@ -625,7 +725,7 @@
     <button class="amarillo" style="width:100%; text-align:left; padding:14px; margin-bottom:8px;"
             onclick="solicitarImportacion('reemplazar')">
       <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">🔄 REEMPLAZAR</div>
-      <div style="font-size:12px; opacity:.9;">Borra todos. Pide contraseña.</div>
+      <div style="font-size:12px; opacity:.9;">Borra todos. Pide contraseña del usuario activo.</div>
     </button>
     <button class="gris" style="width:100%; text-align:left; padding:14px;"
             onclick="cerrarModalImportar()">
@@ -638,7 +738,7 @@
   <div class="modal">
     <h3 id="confirmarPassTitulo">🔐 Confirmar</h3>
     <div id="confirmarPassMensaje" class="ayuda"></div>
-    <label class="small">Contraseña del administrador:</label>
+    <label class="small">Tu contraseña (<span id="confirmarPassUser"></span>):</label>
     <input type="password" id="confirmarPassInput" class="modal-pass-input"
            onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarPassEjecutar();}">
     <div id="confirmarPassError" class="login-error" style="text-align:center;"></div>
@@ -653,7 +753,6 @@
   <div class="modal">
     <h3>⚙️ Mi cuenta</h3>
     <div id="miCuentaInfo"></div>
-
     <hr style="border:none; border-top:1px solid #eee; margin:18px 0;">
     <h4 style="margin:0 0 10px 0; color:#1a3a6b; font-size:14px;">🔑 Cambiar contraseña</h4>
     <label class="small">Contraseña actual</label>
@@ -663,7 +762,6 @@
     <label class="small" style="display:block; margin-top:10px;">Confirmar nueva</label>
     <input type="password" id="mcPassConfirmar" autocomplete="new-password">
     <button class="verde" style="width:100%; margin-top:10px;" onclick="cambiarMiContraseña()">💾 Cambiar contraseña</button>
-
     <hr style="border:none; border-top:1px solid #eee; margin:18px 0;">
     <h4 style="margin:0 0 10px 0; color:#1a3a6b; font-size:14px;">📧 Cambiar correo</h4>
     <label class="small">Contraseña actual</label>
@@ -671,7 +769,6 @@
     <label class="small" style="display:block; margin-top:10px;">Nuevo correo</label>
     <input type="email" id="mcCorreoNuevo" autocomplete="email">
     <button class="verde" style="width:100%; margin-top:10px;" onclick="cambiarMiCorreo()">💾 Cambiar correo</button>
-
     <button class="gris" style="width:100%; margin-top:20px;" onclick="document.getElementById('modalMiCuenta').classList.remove('activo')">Cerrar</button>
   </div>
 </div>
@@ -762,16 +859,17 @@
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-const KEY_STATE   = 'sahagun_state_v16_3';
+const KEY_STATE   = 'sahagun_state_v16_4';
 const KEY_MAP     = 'sahagun_mappings_v3';
 const KEY_USERS   = 'sahagun_users_v2';
 const KEY_SESSION = 'sahagun_session_v2';
 const KEY_CFG     = 'sahagun_config_v2';
 const KEY_OTP     = 'sahagun_otp_v1';
-const KEY_INV     = 'sahagun_inventario_v16_2';
+const KEY_INV     = 'sahagun_inventario_v16_4';
 const KEY_MANUAL  = 'sahagun_manuales_v1';
 const KEY_SUCURSALES = 'sahagun_sucursales_v1';
 const KEY_EMPRESA = 'sahagun_empresa_v2';
+const KEY_VENTAS  = 'sahagun_ventas_v1';
 const SESION_DIAS = 7;
 const OTP_MINUTOS = 10;
 
@@ -795,7 +893,6 @@ let resultadosActuales = [];
 let indiceSel = -1;
 let productoSeleccionado = null;
 let ultimoProductoAgregado = null;
-let modo = 'pedido';
 let tabActual = 'pedido';
 let vinculos = {};
 let codigoPendiente = null;
@@ -815,14 +912,13 @@ let invProductoActual = null;
 let invUltimoSku = null;
 let elegirContexto = null;
 let importarVinculosPendiente = null;
-let modoImportarPendiente = null;
 
 let sucursales = [];
 let sucursalActual = null;
 let inventariosPorSucursal = {};
+let ventasPorSucursal = {};
 let nombreEmpresa = EMPRESA_DEFAULT;
 let modoEdicionSucursal = null;
-
 let _callbackConfirmPass = null;
 
 // Cámara
@@ -830,11 +926,56 @@ let zxingReader = null;
 let camaraStream = null;
 let camaraLoop = null;
 
+// Modo escaneo por pieza
+let modoEscanearPz = false;
+let ultimoEscanerPz = null; // { sku, cantidadAnterior }
+let superaTotalPendiente = null; // { producto, cantidadNueva, ajustado }
+
+// Audio
+let audioCtx = null;
+
 document.getElementById('fecha').value = new Date().toLocaleDateString('es-MX');
+
+/* ============ FEEDBACK (vibra + sonido) ============ */
+function getAudioCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  return audioCtx;
+}
+function beep(freq, dur, vol) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    if (ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq || 1000;
+    gain.gain.value = vol || 0.15;
+    osc.start();
+    osc.stop(ctx.currentTime + (dur || 0.15));
+  } catch(e) {}
+}
+function feedbackExito() {
+  if (navigator.vibrate) { try { navigator.vibrate(80); } catch(e) {} }
+  beep(1200, 0.1, 0.15);
+}
+function feedbackAlerta() {
+  if (navigator.vibrate) { try { navigator.vibrate([300,100,300,100,300]); } catch(e) {} }
+  beep(900, 0.3, 0.3);
+  setTimeout(() => beep(900, 0.3, 0.3), 400);
+  setTimeout(() => beep(900, 0.3, 0.3), 800);
+}
+function feedbackError() {
+  if (navigator.vibrate) { try { navigator.vibrate([500,200,500]); } catch(e) {} }
+  beep(400, 0.4, 0.3);
+}
 
 /* ============ HASH ============ */
 function hashPassword(str) {
-  const sal = 'sahagun_v16_3_salt';
+  const sal = 'sahagun_v16_4_salt';
   const s = sal + str + sal;
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
   for (let k = 0; k < 500; k++) {
@@ -851,11 +992,12 @@ function hashPassword(str) {
   return a + b + a + b;
 }
 
-/* ============ MODAL CONFIRMAR PASS ============ */
+/* ============ CONFIRMAR PASS (usuario activo) ============ */
 function pedirConfirmacionPass(titulo, mensaje, callback) {
   _callbackConfirmPass = callback;
   document.getElementById('confirmarPassTitulo').textContent = titulo || '🔐 Confirmar acción';
   document.getElementById('confirmarPassMensaje').innerHTML = mensaje || 'Se requiere contraseña para continuar.';
+  document.getElementById('confirmarPassUser').textContent = usuarioLogueado || '';
   document.getElementById('confirmarPassInput').value = '';
   document.getElementById('confirmarPassError').classList.remove('show');
   document.getElementById('modalConfirmarPass').classList.add('activo');
@@ -867,11 +1009,16 @@ function cerrarModalConfirmarPass() {
 }
 function confirmarPassEjecutar() {
   const pass = document.getElementById('confirmarPassInput').value;
-  if (!pass) { document.getElementById('confirmarPassError').textContent = 'Escribe la contraseña.'; document.getElementById('confirmarPassError').classList.add('show'); return; }
+  if (!pass) {
+    document.getElementById('confirmarPassError').textContent = 'Escribe la contraseña.';
+    document.getElementById('confirmarPassError').classList.add('show');
+    return;
+  }
   const u = usuarios[usuarioLogueado];
   if (!u || hashPassword(pass) !== u.hash) {
     document.getElementById('confirmarPassError').textContent = 'Contraseña incorrecta.';
     document.getElementById('confirmarPassError').classList.add('show');
+    feedbackError();
     return;
   }
   const cb = _callbackConfirmPass;
@@ -918,7 +1065,7 @@ function guardarNombreEmpresa() {
   toast('✔ Nombre actualizado');
 }
 
-/* ============ INVENTARIOS POR SUCURSAL ============ */
+/* ============ INVENTARIOS Y VENTAS POR SUCURSAL ============ */
 function guardarInventarios() {
   try { localStorage.setItem(KEY_INV, JSON.stringify(inventariosPorSucursal)); } catch(e) {}
 }
@@ -944,6 +1091,30 @@ function cargarInventarios() {
   });
   actualizarInventarioActual();
 }
+
+function guardarVentas() {
+  try { localStorage.setItem(KEY_VENTAS, JSON.stringify(ventasPorSucursal)); } catch(e) {}
+}
+function cargarVentas() {
+  try {
+    const raw = localStorage.getItem(KEY_VENTAS);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data && typeof data === 'object') ventasPorSucursal = data;
+    }
+  } catch(e) {}
+  sucursales.forEach(s => {
+    if (!ventasPorSucursal[s.id]) ventasPorSucursal[s.id] = [];
+  });
+}
+function getVentasActuales() {
+  if (!ventasPorSucursal[sucursalActual]) ventasPorSucursal[sucursalActual] = [];
+  return ventasPorSucursal[sucursalActual];
+}
+function totalVendidoDeSku(sku) {
+  return getVentasActuales().filter(v => v.sku === sku).reduce((s, v) => s + v.cantidad, 0);
+}
+
 function actualizarInventarioActual() {
   const slot = inventariosPorSucursal[sucursalActual];
   if (slot) {
@@ -1060,18 +1231,20 @@ function inicializarUsuarios() {
 function guardarUsuarios() { try { localStorage.setItem(KEY_USERS, JSON.stringify(usuarios)); } catch(e) {} }
 function reiniciarUsuarios() {
   if (!usuarioLogueado || !usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔'); return; }
-  if (!confirm('⚠️ Borrar TODOS los usuarios?')) return;
-  if (prompt('Escribe BORRAR:') !== 'BORRAR') return;
-  usuarios = {};
-  usuarios['admin'] = {
-    nombre: 'Administrador', email: '', hash: hashPassword('admin123'),
-    permisos: { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true },
-    sucursalesPermitidas: sucursales.map(s => s.id),
-    creado: new Date().toISOString(), primerLogin: true
-  };
-  guardarUsuarios();
-  localStorage.removeItem(KEY_SESSION);
-  location.reload();
+  pedirConfirmacionPass('🔄 Reiniciar sistema',
+    '⚠️ Vas a <b>borrar TODOS los usuarios</b> y volver a admin/admin123.<br><br>Esta acción no se puede deshacer.',
+    () => {
+      usuarios = {};
+      usuarios['admin'] = {
+        nombre: 'Administrador', email: '', hash: hashPassword('admin123'),
+        permisos: { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true },
+        sucursalesPermitidas: sucursales.map(s => s.id),
+        creado: new Date().toISOString(), primerLogin: true
+      };
+      guardarUsuarios();
+      localStorage.removeItem(KEY_SESSION);
+      location.reload();
+    });
 }
 
 /* ============ SESIÓN ============ */
@@ -1276,7 +1449,10 @@ function actualizarInfoSnapshot() {
   const fecha = getFechaCargaBase();
   if (!fecha) { el.innerHTML = ''; return; }
   const contados = Object.keys(inventarioConteo).length;
-  el.innerHTML = `<span class="chip-time">📸 Referencia: ${fmtFecha(fecha)}</span> <span class="chip-time">Contados: ${contados}</span>`;
+  const ventas = getVentasActuales().length;
+  el.innerHTML = `<span class="chip-time">📸 Referencia: ${fmtFecha(fecha)}</span>
+                  <span class="chip-time">Contados: ${contados}</span>
+                  ${ventas ? '<span class="chip-venta">🛒 Ventas: ' + ventas + '</span>' : ''}`;
 }
 
 /* ============ OTP ============ */
@@ -1361,10 +1537,11 @@ function verificarOTP() {
   guardarUsuarios();
   otpActual = null;
   try { localStorage.removeItem(KEY_OTP); } catch(e) {}
-  detenerTimerOTP();
+  detenerOTP();
   cerrarRecuperar();
   alert(`✅ Listo. Usuario: ${u}`);
 }
+function detenerOTP() { detenerTimerOTP(); }
 
 /* ============ ENTRAR ============ */
 function entrarApp() {
@@ -1549,8 +1726,11 @@ function guardarUsuario() {
 }
 function eliminarUsuario(username) {
   if (username === usuarioLogueado) { alert('No puedes eliminarte.'); return; }
+  // Solo el admin (con permiso ajustes) puede eliminar usuarios
+  if (!usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔ Solo el admin.'); return; }
+  if (!confirm(`¿Eliminar a "${usuarios[username].nombre || username}"?`)) return;
   pedirConfirmacionPass('🗑 Eliminar usuario',
-    `¿Eliminar a <b>${usuarios[username].nombre || username}</b>?<br><br>Esta acción no se puede deshacer.`,
+    `¿Eliminar a <b>${usuarios[username].nombre || username}</b>?`,
     () => {
       delete usuarios[username];
       guardarUsuarios();
@@ -1629,10 +1809,12 @@ function guardarSucursal() {
     const id = nombre.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) + '_' + Date.now().toString().slice(-4);
     sucursales.push({ id, nombre, abrev });
     inventariosPorSucursal[id] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
+    ventasPorSucursal[id] = [];
     toast('✔ Sucursal agregada');
   }
   guardarSucursales();
   guardarInventarios();
+  guardarVentas();
   cerrarModalSucursal();
   renderSucursales();
   renderUsuarios();
@@ -1640,12 +1822,15 @@ function guardarSucursal() {
 }
 function eliminarSucursal(id) {
   if (sucursales.length <= 1) { alert('Debe haber al menos 1 sucursal.'); return; }
+  if (!usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔ Solo el admin.'); return; }
   const s = getSucursal(id);
+  if (!confirm(`¿Eliminar la sucursal "${s.nombre}"?`)) return;
   pedirConfirmacionPass('🗑 Eliminar sucursal',
-    `¿Eliminar la sucursal <b>${s.nombre}</b>?<br><br>Se eliminará también su inventario cargado.<br>Esta acción no se puede deshacer.`,
+    `¿Eliminar la sucursal <b>${s.nombre}</b>?<br><br>Se eliminará también su inventario y ventas cargadas.`,
     () => {
       sucursales = sucursales.filter(x => x.id !== id);
       delete inventariosPorSucursal[id];
+      delete ventasPorSucursal[id];
       Object.keys(usuarios).forEach(u => {
         usuarios[u].sucursalesPermitidas = (usuarios[u].sucursalesPermitidas || []).filter(x => x !== id);
       });
@@ -1656,6 +1841,7 @@ function eliminarSucursal(id) {
       }
       guardarSucursales();
       guardarInventarios();
+      guardarVentas();
       guardarUsuarios();
       renderSucursales();
       renderUsuarios();
@@ -1665,9 +1851,9 @@ function eliminarSucursal(id) {
 
 /* ============ RESPALDO ============ */
 function exportarRespaldo() {
-  const data = { version: 13, exportado: new Date().toISOString(),
+  const data = { version: 14, exportado: new Date().toISOString(),
     productos, productosManuales, pedido, vinculos, usuarios, configEmailJS,
-    inventariosPorSucursal, sucursales, nombreEmpresa, sucursalActual };
+    inventariosPorSucursal, ventasPorSucursal, sucursales, nombreEmpresa, sucursalActual };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1697,6 +1883,9 @@ function importarRespaldo(event) {
       }
       if (data.inventariosPorSucursal) {
         inventariosPorSucursal = data.inventariosPorSucursal; guardarInventarios();
+      }
+      if (data.ventasPorSucursal) {
+        ventasPorSucursal = data.ventasPorSucursal; guardarVentas();
       }
       if (data.nombreEmpresa) { nombreEmpresa = data.nombreEmpresa; localStorage.setItem(KEY_EMPRESA, nombreEmpresa); cargarNombreEmpresa(); }
       if (data.sucursalActual) sucursalActual = data.sucursalActual;
@@ -1743,7 +1932,10 @@ function esSKU(str) {
 function toast(msg, tipo) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.classList.toggle('error', tipo === 'error');
+  t.className = 'toast';
+  if (tipo === 'error') t.classList.add('error');
+  if (tipo === 'warn') t.classList.add('warn');
+  if (tipo === 'big') t.classList.add('big');
   t.classList.add('show');
   clearTimeout(window._toastT);
   window._toastT = setTimeout(() => t.classList.remove('show'), 2500);
@@ -1779,6 +1971,13 @@ function fmtFecha(iso) {
   try {
     const d = new Date(iso);
     return d.toLocaleDateString('es-MX') + ' ' + d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+  } catch(e) { return '—'; }
+}
+function fmtHora(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
   } catch(e) { return '—'; }
 }
 function buscarProductoPorSku(sku) {
@@ -1950,34 +2149,38 @@ function olvidarInventario() {
   const s = getSucursalActual();
   const tieneBase = inventarioBase.length > 0;
   const tieneConteo = Object.keys(inventarioConteo).length > 0;
-  if (!tieneBase && !tieneConteo) { toast('No hay nada que borrar'); return; }
+  const tieneVentas = getVentasActuales().length > 0;
+  if (!tieneBase && !tieneConteo && !tieneVentas) { toast('No hay nada que borrar'); return; }
 
   let mensaje = `Vas a borrar de <b>${s.nombre}</b>:<br><br>`;
   if (tieneBase) mensaje += `• El Excel del sistema (${inventarioBase.length} productos)<br>`;
   if (tieneConteo) mensaje += `• El conteo capturado (${Object.keys(inventarioConteo).length} productos)<br>`;
-  mensaje += `<br>Se requiere contraseña para confirmar.`;
+  if (tieneVentas) mensaje += `• Las ventas registradas (${getVentasActuales().length} ventas)<br>`;
+  mensaje += `<br>¿Confirmas?`;
 
-  pedirConfirmacionPass('🗑 Borrar inventario', mensaje, () => {
-    inventarioBase = [];
-    inventarioConteo = {};
-    if (inventariosPorSucursal[sucursalActual]) {
-      inventariosPorSucursal[sucursalActual].base = [];
-      inventariosPorSucursal[sucursalActual].conteo = {};
-      inventariosPorSucursal[sucursalActual].fechaCargaBase = null;
-      inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
-    }
-    guardarInventarios();
-    document.getElementById('invInfo').textContent = '';
-    document.getElementById('invBtnOlvidarWrap').style.display = 'none';
-    document.getElementById('invPanelContar').style.display = 'none';
-    document.getElementById('invPanelResumen').style.display = 'none';
-    document.getElementById('invAcciones').style.display = 'none';
-    document.getElementById('invResultados').innerHTML = '';
-    document.getElementById('invBusqueda').value = '';
-    actualizarInfoSnapshot();
-    renderBaseDatosStats();
-    toast('🗑 Inventario borrado');
-  });
+  if (!confirm(mensaje.replace(/<br>/g, '\n').replace(/<b>|<\/b>/g, ''))) return;
+
+  inventarioBase = [];
+  inventarioConteo = {};
+  ventasPorSucursal[sucursalActual] = [];
+  if (inventariosPorSucursal[sucursalActual]) {
+    inventariosPorSucursal[sucursalActual].base = [];
+    inventariosPorSucursal[sucursalActual].conteo = {};
+    inventariosPorSucursal[sucursalActual].fechaCargaBase = null;
+    inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
+  }
+  guardarInventarios();
+  guardarVentas();
+  document.getElementById('invInfo').textContent = '';
+  document.getElementById('invBtnOlvidarWrap').style.display = 'none';
+  document.getElementById('invPanelContar').style.display = 'none';
+  document.getElementById('invPanelResumen').style.display = 'none';
+  document.getElementById('invAcciones').style.display = 'none';
+  document.getElementById('invResultados').innerHTML = '';
+  document.getElementById('invBusqueda').value = '';
+  actualizarInfoSnapshot();
+  renderBaseDatosStats();
+  toast('🗑 Inventario borrado');
 }
 async function procesarInventario(event) {
   const file = event.target.files[0];
@@ -2006,11 +2209,10 @@ function preguntarReemplazoExcel(contadosCount, fechaAnterior) {
       <b>Ya tienes un inventario en proceso.</b><br><br>
       📸 Referencia actual: <b>${fmtFecha(fechaAnterior)}</b><br>
       ✅ Productos contados: <b>${contadosCount}</b><br><br>
-      ¿Qué quieres hacer con el nuevo Excel?<br><br>
       <b>🔄 Solo actualizar los NO contados:</b><br>
-      Los ${contadosCount} ya contados se quedan con su referencia original. Solo se actualizan los pendientes.<br><br>
-      <b>📸 Reemplazar TODO:</b><br>
-      Se actualiza toda la referencia. Los conteos ya hechos se conservan pero se recalcularán con los nuevos valores del sistema.
+      Los ${contadosCount} ya contados se quedan igual. Solo se actualizan los pendientes.<br><br>
+      <b>📸 Reemplazar TODA la referencia:</b><br>
+      Se actualiza toda la referencia del sistema.
     `;
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;padding:15px;';
@@ -2020,15 +2222,12 @@ function preguntarReemplazoExcel(contadosCount, fechaAnterior) {
         <div style="background:#e3f2fd;padding:12px;border-radius:8px;font-size:13px;line-height:1.6;border-left:4px solid #1a5fbf;">${msg}</div>
         <button class="verde" style="width:100%;text-align:left;padding:14px;margin-top:14px;margin-bottom:8px;" id="btnSoloNoContados">
           <div style="font-size:15px;font-weight:bold;margin-bottom:4px;">🔄 Solo actualizar los NO contados</div>
-          <div style="font-size:12px;opacity:.9;">Mantiene los ya contados con su referencia original</div>
         </button>
         <button class="amarillo" style="width:100%;text-align:left;padding:14px;margin-bottom:8px;" id="btnTodo">
           <div style="font-size:15px;font-weight:bold;margin-bottom:4px;">📸 Reemplazar TODA la referencia</div>
-          <div style="font-size:12px;opacity:.9;">Usa el nuevo Excel como referencia general</div>
         </button>
         <button class="gris" style="width:100%;text-align:left;padding:14px;" id="btnCancelar">
           <div style="font-size:15px;font-weight:bold;">❌ Cancelar</div>
-          <div style="font-size:12px;opacity:.9;">No hacer nada, mantener todo como está</div>
         </button>
       </div>`;
     document.body.appendChild(modal);
@@ -2128,6 +2327,225 @@ async function cargarExcelInventario(file, modoCarga) {
   } catch (err) { console.error(err); alert('Error al leer: ' + err.message); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; }
 }
 
+/* ============ MODO PZ (escanear por pieza) ============ */
+function toggleModoPz() {
+  modoEscanearPz = !modoEscanearPz;
+  const btn = document.getElementById('btnModoPz');
+  const info = document.getElementById('modoPzInfo');
+  if (modoEscanearPz) {
+    btn.textContent = '⚡ Modo PZ: ACTIVO';
+    btn.className = 'modo-activo';
+    info.style.display = 'block';
+    toast('⚡ Modo escaneo por pieza ACTIVADO', 'warn');
+    feedbackExito();
+  } else {
+    btn.textContent = '⚡ Modo PZ: Desactivado';
+    btn.className = 'gris';
+    info.style.display = 'none';
+    toast('Modo normal');
+  }
+}
+
+function escanearPorPieza(codigo) {
+  // Buscar producto
+  const items = skusDeCodigo(codigo);
+  let p = null;
+  if (items.length === 1) {
+    p = inventarioBase.find(x => x.sku.toUpperCase() === items[0].sku.toUpperCase());
+  } else if (items.length > 1) {
+    const candidatos = items.map(it => inventarioBase.find(x => x.sku.toUpperCase() === it.sku.toUpperCase())).filter(Boolean);
+    if (candidatos.length === 1) p = candidatos[0];
+    else if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, 'inventario'); return; }
+  }
+  if (!p) p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
+  if (!p) {
+    feedbackError();
+    toast('❌ No encontrado: ' + codigo, 'error');
+    return;
+  }
+
+  const actual = inventarioConteo[p.sku] || 0;
+  const nuevo = actual + 1;
+  const esperado = p.exis;
+  const vendido = totalVendidoDeSku(p.sku);
+  const ajustado = esperado - vendido;
+
+  // Verificar si supera el total
+  if (nuevo > ajustado) {
+    feedbackAlerta();
+    superaTotalPendiente = { producto: p, cantidadNueva: nuevo, ajustado, cantidadAnterior: actual };
+    document.getElementById('superaTotalInfo').innerHTML = `
+      <b>${p.sku}</b><br>
+      ${p.descripcion}<br><br>
+      Ya tienes <b>${actual}</b> contado(s) de un total esperado de <b>${ajustado}</b>.<br>
+      Estás intentando guardar <b>${nuevo}</b>.<br><br>
+      ¿Es correcto?
+    `;
+    document.getElementById('modalSuperaTotal').classList.add('activo');
+    return;
+  }
+
+  // Guardar
+  inventarioConteo[p.sku] = nuevo;
+  setHoraConteoPorSku(p.sku, new Date().toISOString());
+  ultimoEscanerPz = { sku: p.sku, cantidadAnterior: actual };
+  persistirInventarioActual();
+  feedbackExito();
+  toast(`✔ ${p.sku} = ${nuevo}/${ajustado}`, 'big');
+  renderInvTopStats();
+  renderInventario();
+}
+
+function confirmarSuperaTotal() {
+  if (!superaTotalPendiente) return;
+  const { producto, cantidadNueva, ajustado, cantidadAnterior } = superaTotalPendiente;
+  inventarioConteo[producto.sku] = cantidadNueva;
+  setHoraConteoPorSku(producto.sku, new Date().toISOString());
+  ultimoEscanerPz = { sku: producto.sku, cantidadAnterior };
+  persistirInventarioActual();
+  document.getElementById('modalSuperaTotal').classList.remove('activo');
+  superaTotalPendiente = null;
+  feedbackExito();
+  toast(`⚠️ ${producto.sku} = ${cantidadNueva} (supera el esperado)`, 'warn');
+  renderInvTopStats();
+  renderInventario();
+}
+
+function deshacerUltimoEscaner() {
+  if (!superaTotalPendiente) {
+    document.getElementById('modalSuperaTotal').classList.remove('activo');
+    return;
+  }
+  // No guardar nada
+  document.getElementById('modalSuperaTotal').classList.remove('activo');
+  superaTotalPendiente = null;
+  feedbackExito();
+  toast('↩ Escaneo cancelado');
+}
+
+/* ============ REGISTRAR VENTA ============ */
+let ventaProductoSel = null;
+
+function abrirRegistrarVenta() {
+  ventaProductoSel = null;
+  document.getElementById('ventaBusqueda').value = '';
+  document.getElementById('ventaResultados').innerHTML = '';
+  document.getElementById('ventaProductoSel').style.display = 'none';
+  document.getElementById('btnConfirmarVenta').disabled = true;
+  renderVentasHoy();
+  document.getElementById('modalRegistrarVenta').classList.add('activo');
+  setTimeout(() => document.getElementById('ventaBusqueda').focus(), 100);
+}
+function cerrarModalRegistrarVenta() {
+  document.getElementById('modalRegistrarVenta').classList.remove('activo');
+  ventaProductoSel = null;
+}
+function buscarProductoParaVenta() {
+  const q = document.getElementById('ventaBusqueda').value.toLowerCase().trim();
+  const cont = document.getElementById('ventaResultados');
+  if (!q) { cont.innerHTML = ''; return; }
+  if (!inventarioBase.length) { cont.innerHTML = '<p class="small">Carga el Excel del sistema primero.</p>'; return; }
+  const res = inventarioBase.filter(p =>
+    p.sku.toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q)
+  ).slice(0, 20);
+  if (!res.length) { cont.innerHTML = '<p class="small">Sin resultados.</p>'; return; }
+  cont.innerHTML = '<table><thead><tr><th>SKU</th><th>Descripción</th><th>Exis</th><th></th></tr></thead><tbody>' +
+    res.map(p => `<tr class="resultado" onclick="seleccionarParaVenta('${p.sku.replace(/'/g, "\\'")}')">
+      <td>${p.sku}</td><td>${p.descripcion || ''}</td>
+      <td style="text-align:right; font-family:monospace;">${p.exis}</td>
+      <td style="text-align:center;">→</td>
+    </tr>`).join('') + '</tbody></table>';
+}
+function teclaVenta(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const q = document.getElementById('ventaBusqueda').value.trim().toUpperCase();
+    if (!q) return;
+    // Buscar por código vinculado o SKU directo
+    const items = skusDeCodigo(q);
+    let p = null;
+    if (items.length === 1) p = inventarioBase.find(x => x.sku.toUpperCase() === items[0].sku.toUpperCase());
+    if (!p) p = inventarioBase.find(x => x.sku.toUpperCase() === q);
+    if (p) { seleccionarParaVenta(p.sku); return; }
+    feedbackError();
+    toast('❌ No encontrado', 'error');
+  }
+}
+function seleccionarParaVenta(sku) {
+  const p = inventarioBase.find(x => x.sku.toUpperCase() === sku.toUpperCase());
+  if (!p) return;
+  ventaProductoSel = p;
+  const yaContado = inventarioConteo[p.sku] !== undefined;
+  const vendido = totalVendidoDeSku(p.sku);
+  document.getElementById('ventaInfo').innerHTML = `
+    <div style="font-weight:bold; color:#1a3a6b; font-size:15px;">${p.sku}</div>
+    <div class="small" style="margin-top:4px;">${p.descripcion || ''}</div>
+    <div class="small" style="margin-top:6px;">
+      Exis: <b>${p.exis}</b> · Vendido hoy: <b>${vendido}</b>
+    </div>
+    ${yaContado ? '<div class="small" style="margin-top:6px; color:#1e8449;">✅ Ya contado — la venta no lo afectará</div>' : '<div class="small" style="margin-top:6px; color:#e67e22;">⚠️ Aún no contado — se descontará del esperado</div>'}
+  `;
+  document.getElementById('ventaProductoSel').style.display = 'block';
+  document.getElementById('btnConfirmarVenta').disabled = false;
+  document.getElementById('ventaCantidad').value = 1;
+  document.getElementById('ventaCantidad').focus();
+  document.getElementById('ventaCantidad').select();
+}
+function confirmarVenta() {
+  if (!ventaProductoSel) return;
+  const cant = Math.max(1, parseInt(document.getElementById('ventaCantidad').value) || 1);
+  const p = ventaProductoSel;
+
+  // Registrar la venta
+  if (!ventasPorSucursal[sucursalActual]) ventasPorSucursal[sucursalActual] = [];
+  ventasPorSucursal[sucursalActual].push({
+    sku: p.sku,
+    descripcion: p.descripcion || '',
+    cantidad: cant,
+    hora: new Date().toISOString(),
+    usuario: usuarioLogueado
+  });
+  guardarVentas();
+
+  feedbackExito();
+  toast(`🛒 Venta registrada: ${cant} × ${p.sku}`, 'warn');
+  renderVentasHoy();
+  renderInvTopStats();
+  renderInventario();
+  actualizarInfoSnapshot();
+
+  // Limpiar para el siguiente
+  ventaProductoSel = null;
+  document.getElementById('ventaBusqueda').value = '';
+  document.getElementById('ventaResultados').innerHTML = '';
+  document.getElementById('ventaProductoSel').style.display = 'none';
+  document.getElementById('btnConfirmarVenta').disabled = true;
+  document.getElementById('ventaBusqueda').focus();
+}
+
+function renderVentasHoy() {
+  const ventas = getVentasActuales();
+  document.getElementById('contVentas').textContent = ventas.length;
+  const cont = document.getElementById('listaVentasHoy');
+  if (!ventas.length) {
+    cont.innerHTML = '<p class="small">Sin ventas registradas</p>';
+    return;
+  }
+  // Mostrar las últimas 20, más recientes primero
+  const ordenadas = [...ventas].reverse().slice(0, 20);
+  cont.innerHTML = ordenadas.map(v => `
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#fff3e0; padding:8px; border-radius:6px; margin-bottom:4px; font-size:12px;">
+      <div>
+        <div style="font-weight:bold; color:#7a3d00;">${v.sku}</div>
+        <div style="color:#666;">${v.descripcion || ''}</div>
+        <div style="color:#888; font-size:10px;">${fmtHora(v.hora)} · @${v.usuario}</div>
+      </div>
+      <div style="font-weight:bold; color:#7a3d00; font-size:16px;">${v.cantidad}</div>
+    </div>
+  `).join('');
+}
+
+/* ============ RENDER INVENTARIO ============ */
 function renderInvTopStats() {
   const el = document.getElementById('invStatsTop');
   if (!el) return;
@@ -2136,11 +2554,13 @@ function renderInvTopStats() {
   const contados = Object.keys(inventarioConteo).length;
   const pendientes = total - contados;
   const negativos = inventarioBase.filter(p => p.exis < 0).length;
+  const ventas = getVentasActuales().length;
   el.innerHTML = `
     <div class="inv-stat"><div class="num">${total}</div><div class="lbl">Productos</div></div>
     <div class="inv-stat ok"><div class="num">${contados}</div><div class="lbl">Contados</div></div>
     <div class="inv-stat warn"><div class="num">${pendientes}</div><div class="lbl">Pendientes</div></div>
-    <div class="inv-stat ${negativos ? 'err' : ''}"><div class="num">${negativos}</div><div class="lbl">Negativos</div></div>`;
+    <div class="inv-stat ${negativos ? 'err' : ''}"><div class="num">${negativos}</div><div class="lbl">Negativos</div></div>
+    <div class="inv-stat ${ventas ? 'warn' : ''}"><div class="num">${ventas}</div><div class="lbl">Ventas</div></div>`;
   actualizarInfoSnapshot();
 }
 function renderBaseDatosStats() {
@@ -2198,7 +2618,7 @@ function invBuscar() {
   const cont = document.getElementById('invResultados');
   invIndiceSel = -1;
   if (!q) { cont.innerHTML = ''; invResultados = []; return; }
-  if (!inventarioBase.length) { cont.innerHTML = '<p class="small">Primero sube el Reporte de Inventario de esta sucursal.</p>'; return; }
+  if (!inventarioBase.length) { cont.innerHTML = '<p class="small">Primero sube el Reporte de Inventario.</p>'; return; }
   invResultados = inventarioBase.filter(p =>
     p.sku.toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q)
   ).slice(0, 30);
@@ -2209,7 +2629,7 @@ function invBuscar() {
       const contado = inventarioConteo[p.sku];
       const hora = horas[p.sku];
       const chip = (contado !== undefined) ? `<span class="chip-counted">✔ ${contado}</span>` : `<span class="chip-pending">pendiente</span>`;
-      const chipHora = hora ? `<span class="chip-time">${new Date(hora).toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'})}</span>` : '';
+      const chipHora = hora ? `<span class="chip-time">${fmtHora(hora)}</span>` : '';
       const claseExis = p.exis < 0 ? 'neg-num' : '';
       return `<tr class="resultado" data-idx="${i}" onclick="invSeleccionar(${i})">
         <td>${p.sku}${chip}${chipHora}</td>
@@ -2240,6 +2660,16 @@ function invTeclaBusqueda(e) {
       }
       return;
     }
+
+    // MODO PZ: suma +1 automático
+    if (modoEscanearPz) {
+      inp.value = '';
+      inp.focus();
+      escanearPorPieza(q.toUpperCase());
+      return;
+    }
+
+    // Modo normal
     const c = q.toUpperCase();
     const items = skusDeCodigo(c);
     if (items.length === 1) {
@@ -2257,6 +2687,7 @@ function invTeclaBusqueda(e) {
     let p = inventarioBase.find(x => x.sku.toUpperCase() === c);
     if (p) { inp.value = ''; abrirModalConteo(p); return; }
     if (invResultados.length && invIndiceSel >= 0) { invSeleccionar(invIndiceSel); return; }
+    feedbackError();
     toast('❌ No encontrado: ' + c, 'error');
     return;
   }
@@ -2273,18 +2704,26 @@ function abrirModalConteo(p) {
   invProductoActual = p;
   const contado = inventarioConteo[p.sku];
   const fechaBase = getFechaCargaBase();
+  const vendido = totalVendidoDeSku(p.sku);
+  const ajustado = p.exis - vendido;
   document.getElementById('conteoInfoProducto').innerHTML = `
     <div style="font-weight:bold; font-size:15px; color:#1a3a6b;">${p.sku}</div>
     <div class="small" style="margin-top:4px;">${p.descripcion || ''}</div>
-    ${fechaBase ? '<div class="small" style="margin-top:4px; color:#8e24aa;">📸 Referencia: ' + fmtFecha(fechaBase) + '</div>' : ''}`;
+    ${fechaBase ? '<div class="small" style="margin-top:4px; color:#8e24aa;">📸 Referencia: ' + fmtFecha(fechaBase) + '</div>' : ''}
+    ${vendido > 0 ? '<div class="small" style="margin-top:4px; color:#e67e22;">🛒 Vendido hoy: ' + vendido + '</div>' : ''}`;
   const claseExis = p.exis < 0 ? 'color:#c0392b;' : 'color:#1a3a6b;';
   document.getElementById('conteoSistema').innerHTML = `
     <div class="small" style="color:#666;">SISTEMA DICE QUE HAY</div>
     <div style="font-size:32px; font-weight:bold; ${claseExis}">${p.exis}</div>
+    ${vendido > 0 ? '<div class="small" style="color:#e67e22; margin-top:4px;">Ajustado por ventas: <b>' + ajustado + '</b></div>' : ''}
     ${p.exis < 0 ? '<div class="small" style="color:#c0392b; font-weight:bold;">⚠️ NEGATIVO - Revisar</div>' : ''}
     ${contado !== undefined ? '<div class="small" style="margin-top:6px; color:#1e8449;">Contado antes: <b>' + contado + '</b></div>' : ''}`;
   const inp = document.getElementById('inputConteo');
   inp.value = contado !== undefined ? contado : '';
+
+  // Mostrar botón "Quitar conteo" solo si ya estaba contado (reconteo)
+  document.getElementById('btnQuitarConteoWrap').style.display = contado !== undefined ? 'block' : 'none';
+
   document.getElementById('modalConteo').classList.add('activo');
   setTimeout(() => { inp.focus(); inp.select(); }, 100);
 }
@@ -2302,16 +2741,37 @@ function confirmarConteo() {
   setHoraConteoPorSku(invProductoActual.sku, new Date().toISOString());
   invUltimoSku = invProductoActual.sku;
   persistirInventarioActual();
-  renderInvTopStats();
-  renderInventario();
+  feedbackExito();
   toast(`✔ ${invProductoActual.sku} = ${cant}`);
   const inp = document.getElementById('invBusqueda');
   inp.value = invProductoActual.sku;
   invProductoActual = null;
   document.getElementById('modalConteo').classList.remove('activo');
+  renderInvTopStats();
+  renderInventario();
   inp.focus();
   setTimeout(() => { inp.select(); }, 50);
 }
+
+function quitarConteoActual() {
+  if (!invProductoActual) return;
+  const p = invProductoActual;
+  if (!confirm(`¿Quitar el conteo de este producto?\n\n${p.sku}\n${p.descripcion || ''}`)) return;
+  delete inventarioConteo[p.sku];
+  // Quitar la hora también
+  if (inventariosPorSucursal[sucursalActual] && inventariosPorSucursal[sucursalActual].horaConteoPorSku) {
+    delete inventariosPorSucursal[sucursalActual].horaConteoPorSku[p.sku];
+  }
+  persistirInventarioActual();
+  document.getElementById('modalConteo').classList.remove('activo');
+  invProductoActual = null;
+  feedbackExito();
+  toast('🗑 Conteo quitado');
+  renderInvTopStats();
+  renderInventario();
+  document.getElementById('invBusqueda').focus();
+}
+
 function renderInventario() {
   const tb = document.querySelector('#tablaInventario tbody');
   if (!tb) return;
@@ -2330,7 +2790,9 @@ function renderInventario() {
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   rows.forEach(p => {
     const c = inventarioConteo[p.sku];
-    const d = calcularDif(p.exis, c);
+    const vendido = totalVendidoDeSku(p.sku);
+    const ajustado = p.exis - vendido;
+    const d = calcularDif(ajustado, c);
     if (d > 0) sobrantes++; else if (d < 0) faltantes++; else cuadran++;
     if (p.exis < 0) negEnSistema++;
     totalDifMxn += d * (p.precio || 0);
@@ -2351,12 +2813,14 @@ function renderInventario() {
   const filtro = (document.getElementById('invFiltro').value || '').toLowerCase().trim();
   let visibles = rows.filter(p => !filtro || p.sku.toLowerCase().includes(filtro) || (p.descripcion || '').toLowerCase().includes(filtro));
   if (!visibles.length) {
-    tb.innerHTML = '<tr><td colspan="6" class="small" style="text-align:center; padding:20px;">Sin resultados</td></tr>';
+    tb.innerHTML = '<tr><td colspan="7" class="small" style="text-align:center; padding:20px;">Sin resultados</td></tr>';
     return;
   }
   tb.innerHTML = visibles.map(p => {
     const c = inventarioConteo[p.sku];
-    const d = calcularDif(p.exis, c);
+    const vendido = totalVendidoDeSku(p.sku);
+    const ajustado = p.exis - vendido;
+    const d = calcularDif(ajustado, c);
     const difMxn = d * (p.precio || 0);
     let claseRow = d > 0 ? 'sobrante' : (d < 0 ? 'faltante' : 'ok-row');
     if (p.exis < 0) claseRow = 'negativo';
@@ -2366,99 +2830,170 @@ function renderInventario() {
     return `<tr class="${claseRow}">
       <td style="font-family:monospace;">${p.sku}</td>
       <td class="small">${p.descripcion || ''}</td>
-      <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}</td>
+      <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}${vendido ? ' <span class="chip-venta">-' + vendido + '</span>' : ''}</td>
       <td style="text-align:right; font-family:monospace; font-weight:bold;">${c}</td>
       <td style="text-align:right;" class="${claseDif}">${signo}${d}</td>
       <td style="text-align:right;" class="${claseDif}">${signo}$${difMxn.toFixed(2)}</td>
+      <td><button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="abrirQuitarConteo('${p.sku.replace(/'/g, "\\'")}')">🗑</button></td>
     </tr>`;
   }).join('');
 }
+
+function abrirQuitarConteo(sku) {
+  const p = inventarioBase.find(x => x.sku === sku);
+  if (!p) return;
+  invProductoActual = p;
+  abrirModalConteo(p);
+}
+
 function limpiarConteo() {
   if (!Object.keys(inventarioConteo).length) { alert('No hay conteo.'); return; }
   const s = getSucursalActual();
-  pedirConfirmacionPass('🗑 Borrar conteo',
-    `¿Borrar TODO el conteo de <b>${s.nombre}</b>?<br><br>El Excel cargado se mantiene.<br>Se requiere contraseña para confirmar.`,
-    () => {
-      inventarioConteo = {};
-      if (inventariosPorSucursal[sucursalActual]) {
-        inventariosPorSucursal[sucursalActual].conteo = {};
-        inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
-      }
-      guardarInventarios();
-      renderInvTopStats();
-      renderInventario();
-      renderBaseDatosStats();
-      toast('🗑 Conteo borrado');
-    });
+  if (!confirm(`¿Borrar TODO el conteo de "${s.nombre}"?\n\nEl Excel cargado y las ventas se mantienen.`)) return;
+  inventarioConteo = {};
+  if (inventariosPorSucursal[sucursalActual]) {
+    inventariosPorSucursal[sucursalActual].conteo = {};
+    inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
+  }
+  guardarInventarios();
+  renderInvTopStats();
+  renderInventario();
+  renderBaseDatosStats();
+  toast('🗑 Conteo borrado');
 }
+
+/* ============ EXPORTAR INVENTARIO (3 HOJAS) ============ */
 function exportarInventario() {
   if (!Object.keys(inventarioConteo).length) { alert('No has contado nada.'); return; }
   const s = getSucursalActual();
   const fechaBase = getFechaCargaBase();
   const horas = getHoraConteoPorSku();
-  const aoa = [];
-  aoa.push(['Reporte de Inventario Físico']);
-  aoa.push(['Empresa', nombreEmpresa]);
-  aoa.push(['Sucursal', s.nombre]);
-  aoa.push(['Fecha', new Date().toLocaleString('es-MX')]);
-  aoa.push(['Usuario', usuarioLogueado || '']);
-  if (fechaBase) aoa.push(['Referencia del sistema', fmtFecha(fechaBase)]);
-  aoa.push([]);
-  aoa.push(['Clave', 'Descripción', 'Debe haber', 'Contado', 'Hora conteo', 'Diferencia', 'Precio U.', 'Dif $']);
+  const ventas = getVentasActuales();
+
+  // ============= HOJA 1: RESUMEN =============
+  const aoa1 = [];
+  aoa1.push(['Reporte de Inventario Físico']);
+  aoa1.push(['Empresa', nombreEmpresa]);
+  aoa1.push(['Sucursal', s.nombre]);
+  aoa1.push(['Fecha reporte', new Date().toLocaleString('es-MX')]);
+  aoa1.push(['Usuario', usuarioLogueado || '']);
+  if (fechaBase) aoa1.push(['Referencia del sistema', fmtFecha(fechaBase)]);
+  aoa1.push([]);
+  aoa1.push(['Clave', 'Descripción', 'Esperado', 'Vendido', 'Ajustado', 'Contado', 'Dif', 'Precio U.', 'Dif $']);
   let totalDifMxn = 0, totalDifPz = 0;
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   rows.sort((a, b) => {
-    const da = calcularDif(a.exis, inventarioConteo[a.sku]);
-    const db = calcularDif(b.exis, inventarioConteo[b.sku]);
+    const va = totalVendidoDeSku(a.sku);
+    const vb = totalVendidoDeSku(b.sku);
+    const da = calcularDif(a.exis - va, inventarioConteo[a.sku]);
+    const db = calcularDif(b.exis - vb, inventarioConteo[b.sku]);
     if (a.exis < 0 && b.exis >= 0) return -1;
     if (b.exis < 0 && a.exis >= 0) return 1;
     return da - db;
   });
   rows.forEach(p => {
     const c = inventarioConteo[p.sku];
-    const d = calcularDif(p.exis, c);
+    const vendido = totalVendidoDeSku(p.sku);
+    const ajustado = p.exis - vendido;
+    const d = calcularDif(ajustado, c);
     const difMxn = d * (p.precio || 0);
-    const hora = horas[p.sku] ? new Date(horas[p.sku]).toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'}) : '—';
     totalDifMxn += difMxn;
     totalDifPz += d;
-    aoa.push([p.sku, p.descripcion || '', p.exis, c, hora, d, p.precio || 0, difMxn]);
+    aoa1.push([p.sku, p.descripcion || '', p.exis, vendido, ajustado, c, d, p.precio || 0, difMxn]);
   });
-  aoa.push([]);
-  aoa.push(['', '', '', 'TOTALES', '', totalDifPz, '', totalDifMxn]);
+  aoa1.push([]);
+  aoa1.push(['', '', '', '', '', 'TOTALES', totalDifPz, '', totalDifMxn]);
 
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = [{ wch: 18 }, { wch: 45 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
+  const ws1 = XLSX.utils.aoa_to_sheet(aoa1);
+  ws1['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 12 }];
 
+  // Colorear columnas "Dif" (G) y "Dif $" (I)
   const inicioDatos = fechaBase ? 9 : 8;
   for (let i = 0; i < rows.length; i++) {
     const filaExcel = inicioDatos + i;
     const p = rows[i];
     const c = inventarioConteo[p.sku];
-    const d = calcularDif(p.exis, c);
-    const celdaF = 'F' + filaExcel;
-    const celdaH = 'H' + filaExcel;
+    const vendido = totalVendidoDeSku(p.sku);
+    const ajustado = p.exis - vendido;
+    const d = calcularDif(ajustado, c);
+    const celdaG = 'G' + filaExcel;
+    const celdaI = 'I' + filaExcel;
     if (d > 0) {
-      ws[celdaF] = ws[celdaF] || {};
-      ws[celdaH] = ws[celdaH] || {};
-      ws[celdaF].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
-      ws[celdaH].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
+      ws1[celdaG] = ws1[celdaG] || {};
+      ws1[celdaI] = ws1[celdaI] || {};
+      ws1[celdaG].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
+      ws1[celdaI].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
     } else if (d < 0) {
-      ws[celdaF] = ws[celdaF] || {};
-      ws[celdaH] = ws[celdaH] || {};
-      ws[celdaF].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
-      ws[celdaH].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
+      ws1[celdaG] = ws1[celdaG] || {};
+      ws1[celdaI] = ws1[celdaI] || {};
+      ws1[celdaG].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
+      ws1[celdaI].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
+    }
+    // Columna "Vendido" (D) en naranja si tiene ventas
+    if (vendido > 0) {
+      const celdaD = 'D' + filaExcel;
+      ws1[celdaD] = ws1[celdaD] || {};
+      ws1[celdaD].s = { fill: { fgColor: { rgb: 'FFE0B2' } }, font: { color: { rgb: '7A3D00' }, bold: true } };
     }
   }
 
+  // ============= HOJA 2: DETALLE CONTEO =============
+  const aoa2 = [];
+  aoa2.push(['Detalle de Conteo (hora por producto)']);
+  aoa2.push(['Empresa', nombreEmpresa]);
+  aoa2.push(['Sucursal', s.nombre]);
+  aoa2.push(['Fecha reporte', new Date().toLocaleString('es-MX')]);
+  aoa2.push([]);
+  aoa2.push(['Clave', 'Descripción', 'Hora conteo', 'Contado', 'UM']);
+  // Ordenar por hora
+  const conteosConHora = rows.map(p => ({
+    sku: p.sku,
+    descripcion: p.descripcion || '',
+    hora: horas[p.sku] || null,
+    cantidad: inventarioConteo[p.sku],
+    um: p.um || detectarUM(p.sku)
+  })).sort((a, b) => {
+    if (!a.hora) return 1;
+    if (!b.hora) return -1;
+    return new Date(a.hora) - new Date(b.hora);
+  });
+  conteosConHora.forEach(c => {
+    aoa2.push([c.sku, c.descripcion, c.hora ? fmtFecha(c.hora) + ' ' + fmtHora(c.hora) : '—', c.cantidad, c.um]);
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(aoa2);
+  ws2['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 22 }, { wch: 10 }, { wch: 8 }];
+
+  // ============= HOJA 3: VENTAS =============
+  const aoa3 = [];
+  aoa3.push(['Ventas durante el inventario']);
+  aoa3.push(['Empresa', nombreEmpresa]);
+  aoa3.push(['Sucursal', s.nombre]);
+  aoa3.push(['Fecha reporte', new Date().toLocaleString('es-MX')]);
+  aoa3.push([]);
+  aoa3.push(['SKU', 'Descripción', 'Cantidad vendida', 'Hora', 'Registrado por']);
+  let totalVendido = 0;
+  ventas.forEach(v => {
+    totalVendido += v.cantidad;
+    aoa3.push([v.sku, v.descripcion || '', v.cantidad, fmtHora(v.hora), '@' + (v.usuario || '')]);
+  });
+  aoa3.push([]);
+  aoa3.push(['', 'TOTAL', totalVendido, '', '']);
+  const ws3 = XLSX.utils.aoa_to_sheet(aoa3);
+  ws3['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 16 }, { wch: 12 }, { wch: 15 }];
+
+  // ============= CREAR LIBRO =============
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+  XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Detalle conteo');
+  XLSX.utils.book_append_sheet(wb, ws3, 'Ventas');
+
   const fecha = new Date().toISOString().slice(0,10);
   const sId = s.abrev.replace(/[^A-Z0-9]/gi, '_');
   XLSX.writeFile(wb, `inventario_${sId}_${fecha}.xlsx`);
-  toast('📥 Descargado');
+  toast('📥 Descargado (3 hojas)');
 }
 
-/* ============ CÁMARA (multi-librería, optimizado para iOS) ============ */
+/* ============ CÁMARA ============ */
 const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const tieneBarcodeDetector = 'BarcodeDetector' in window;
 
@@ -2590,7 +3125,11 @@ function onCamaraDetecta(codigo) {
       document.getElementById('inputCodigo').value = c;
       capturarCodigo();
     } else if (camaraOrigen === 'inventario') {
-      procesarCodigoInv(c);
+      if (modoEscanearPz) {
+        escanearPorPieza(c);
+      } else {
+        procesarCodigoInv(c);
+      }
     } else {
       procesarCodigoEnPedido(c);
     }
@@ -2675,7 +3214,10 @@ function elegirProductoDeLista(sku) {
   cerrarModalElegir();
   if (ctx === 'inventario') {
     const p = inventarioBase.find(x => x.sku.toUpperCase() === sku.toUpperCase());
-    if (p) abrirModalConteo(p);
+    if (p) {
+      if (modoEscanearPz) escanearPorPieza(p.sku);
+      else abrirModalConteo(p);
+    }
   } else {
     const p = buscarProductoPorSku(sku);
     if (p) abrirModalCantidad(p);
@@ -2809,6 +3351,7 @@ function confirmarCantidad() {
   const cant = Math.max(1, parseInt(document.getElementById('inputCant').value) || 1);
   const skuActual = productoSeleccionado.sku;
   agregarAlPedido(productoSeleccionado, cant);
+  feedbackExito();
   toast(`✔ ${cant} × ${skuActual}`);
   ultimoProductoAgregado = { ...productoSeleccionado };
   document.getElementById('busqueda').value = skuActual;
@@ -3170,7 +3713,7 @@ function fusionarVinculos(actual, nuevos) {
 }
 function exportarVinculos() {
   if (!Object.keys(vinculos).length) { alert('Sin vínculos.'); return; }
-  const data = { version: 5, exportado: new Date().toISOString(), vinculos };
+  const data = { version: 6, exportado: new Date().toISOString(), vinculos };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -3244,8 +3787,7 @@ function solicitarImportacion(modo) {
     `⚠️ Vas a <b>borrar TODOS los vínculos actuales</b> y reemplazarlos con los del archivo.<br><br>
     • Actuales: <b>${contarVinculos()}</b><br>
     • Del archivo: <b>${contarVinculos(importarVinculosPendiente)}</b><br><br>
-    Se guardará un respaldo automático por si necesitas recuperar.<br><br>
-    <b>Escribe la contraseña para confirmar:</b>`,
+    Se guardará un respaldo automático.`,
     () => {
       try {
         localStorage.setItem('sahagun_vinculos_backup_' + Date.now(), backup);
@@ -3283,8 +3825,10 @@ function cerrarModalImportar() {
 
 /* ============ PEDIDO RENDER ============ */
 function renderPedido() {
-  const tb = document.querySelector('#tablaPedido tbody');
   const pedidoFiltrado = pedido.filter(p => p.sucursal === sucursalActual || !p.sucursal);
+
+  // Tabla (PC)
+  const tb = document.querySelector('#tablaPedido tbody');
   tb.innerHTML = pedidoFiltrado.map((p) => {
     const idxOriginal = pedido.indexOf(p);
     let origenBadge = '';
@@ -3305,6 +3849,43 @@ function renderPedido() {
       <td><button class="rojo" onclick="eliminar(${idxOriginal})" style="padding:6px 10px;">X</button></td>
     </tr>`;
   }).join('');
+
+  // Tarjetas (celular)
+  const cards = document.getElementById('pedidoCards');
+  if (cards) {
+    cards.innerHTML = pedidoFiltrado.map((p) => {
+      const idxOriginal = pedido.indexOf(p);
+      let origenBadge = '';
+      if (p.fuente === 'PDF') origenBadge = '<span class="badge badge-promo">🏷️ PROMO</span>';
+      else if (p.fuente === 'Sistema') origenBadge = '<span class="badge badge-sistema">📦 SISTEMA</span>';
+      else if (p.fuente === 'Manual') origenBadge = '<span class="badge badge-manual">✏️ MANUAL</span>';
+      const exist = getExistencias(p.sku);
+      const existTxt = (exist !== null) ? exist : '—';
+      const totalPz = p.cantidad + (exist !== null ? exist : 0);
+      return `<div class="pedido-card">
+        <div class="pedido-card-top">
+          <div class="pedido-card-sku">${p.sku}</div>
+          <button class="btn-x" onclick="eliminar(${idxOriginal})">X</button>
+        </div>
+        <div class="pedido-card-desc">${p.descripcion} ${origenBadge}</div>
+        <div class="pedido-card-row">
+          <div class="pedido-card-field">
+            <label>Pido</label>
+            <input type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)">
+          </div>
+          <div class="pedido-card-field">
+            <label>Exist.</label>
+            <div class="valor">${existTxt}</div>
+          </div>
+          <div class="pedido-card-field">
+            <label>Total pz (${p.um})</label>
+            <div class="valor" style="background:#e3f2fd; color:#1a3a6b;">${totalPz}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
   const totalPido = pedidoFiltrado.reduce((s, p) => s + p.cantidad, 0);
   const totalExist = pedidoFiltrado.reduce((s, p) => {
     const e = getExistencias(p.sku);
@@ -3323,11 +3904,15 @@ function eliminar(i) { pedido.splice(i, 1); renderPedido(); guardarEstado(); }
 function limpiarPedido() {
   const pedidoFiltrado = pedido.filter(p => p.sucursal === sucursalActual || !p.sucursal);
   if (!pedidoFiltrado.length) return;
-  if (confirm(`¿Borrar el pedido de ${getSucursalActual().abrev}?`)) {
-    pedido = pedido.filter(p => p.sucursal && p.sucursal !== sucursalActual);
-    renderPedido();
-    guardarEstado();
-  }
+  if (!confirm(`¿Borrar el pedido completo de ${getSucursalActual().abrev}?`)) return;
+  pedirConfirmacionPass('🗑 Borrar pedido',
+    `¿Borrar el pedido completo de <b>${getSucursalActual().nombre}</b>?<br><br>Se requiere tu contraseña.`,
+    () => {
+      pedido = pedido.filter(p => p.sucursal && p.sucursal !== sucursalActual);
+      renderPedido();
+      guardarEstado();
+      toast('🗑 Pedido borrado');
+    });
 }
 function exportarExcel() {
   const s = getSucursalActual();
@@ -3376,6 +3961,7 @@ function arrancar() {
     cargarConfig();
     inicializarUsuarios();
     cargarInventarios();
+    cargarVentas();
   } catch(e) { console.error('Init:', e); }
   const sesion = cargarSesion();
   if (sesion && sesion.usuario) {
@@ -3404,6 +3990,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') { e.preventDefault(); verificarOTP(); }
     });
   });
+  // Inicializar audio en el primer toque (iOS requiere interacción)
+  document.body.addEventListener('touchstart', () => { getAudioCtx(); }, { once: true });
+  document.body.addEventListener('click', () => { getAudioCtx(); }, { once: true });
 });
 </script>
 </body>
