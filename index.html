@@ -227,7 +227,6 @@
                               background:#f5f5f5; border-radius:6px; font-family:monospace;}
   .btn-x { background:#c0392b; color:white; border:none; border-radius:50%; width:32px; height:32px;
            cursor:pointer; font-weight:bold; font-size:14px; padding:0; flex-shrink:0;}
-  /* Config sonido */
   .config-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
                 padding:12px; background:#fafafa; border-radius:8px; margin-bottom:8px; border:1px solid #eee;}
   .config-row label { font-size:14px; font-weight:bold; color:#333;}
@@ -534,7 +533,7 @@
     <div class="config-row">
       <div>
         <label>Vibración</label>
-        <div class="subtexto">Vibrar al escanear (si el dispositivo lo soporta)</div>
+        <div class="subtexto">Vibrar al escanear</div>
       </div>
       <label class="toggle-switch">
         <input type="checkbox" id="cfgVibracion" onchange="guardarConfigSonido()">
@@ -616,9 +615,9 @@
 <div class="modal-bg" id="modalNuevoProducto">
   <div class="modal">
     <h3>✏️ Nuevo producto</h3>
-    <div class="ayuda">Se guardará como producto <b>global</b> y quedará registrado quién lo agregó.</div>
+    <div class="ayuda">Se guardará como producto <b>global</b>.</div>
     <label class="small">SKU / Clave *</label>
-    <input type="text" id="npSku" placeholder="Ej. 99765600/REP" style="text-transform:uppercase;">
+    <input type="text" id="npSku" style="text-transform:uppercase;">
     <label class="small" style="display:block; margin-top:10px;">Descripción *</label>
     <input type="text" id="npDesc">
     <label class="small" style="display:block; margin-top:10px;">Unidad de medida</label>
@@ -637,12 +636,11 @@
   </div>
 </div>
 
-<!-- MODAL REGISTRAR VENTA -->
 <div class="modal-bg" id="modalRegistrarVenta">
   <div class="modal">
     <h3>🛒 Registrar venta</h3>
     <div class="ayuda" style="background:#fff3e0; border-left-color:#e67e22;">
-      La venta se descontará del <b>esperado</b>. Si ya se contó, no lo afectará.
+      La venta se descontará del <b>esperado</b>.
     </div>
     <label class="small">Buscar producto</label>
     <input type="text" id="ventaBusqueda" placeholder="SKU o descripción…"
@@ -663,7 +661,6 @@
   </div>
 </div>
 
-<!-- MODAL SUPERA TOTAL -->
 <div class="modal-bg" id="modalSuperaTotal">
   <div class="modal" style="border:3px solid #e67e22;">
     <h3 style="color:#e67e22;">⚠️ Ya contaste el total</h3>
@@ -854,7 +851,6 @@
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-// *** CLAVES FIJAS (no cambian entre versiones) ***
 const KEY_STATE   = 'sahagun_state_v2';
 const KEY_MAP     = 'sahagun_mappings_v3';
 const KEY_USERS   = 'sahagun_users_v3';
@@ -867,8 +863,6 @@ const KEY_SUCURSALES = 'sahagun_sucursales_v2';
 const KEY_EMPRESA = 'sahagun_empresa_v2';
 const KEY_VENTAS  = 'sahagun_ventas_v2';
 const KEY_SONIDO  = 'sahagun_sonido_v1';
-
-// Claves viejas para migrar
 const KEY_STATE_OLD = 'sahagun_state_v16_4';
 const KEY_INV_OLD = 'sahagun_inventario_v16_4';
 const KEY_USERS_OLD = 'sahagun_users_v2';
@@ -929,9 +923,17 @@ let ultimoEscanerPz = null;
 let superaTotalPendiente = null;
 let ventaProductoSel = null;
 let audioCtx = null;
-
-// Config sonido
 let configSonido = { activo: true, volumen: 70, vibrar: true };
+
+// *** HELPER SEGURO: evitar errores de null ***
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val;
+}
 
 document.getElementById('fecha').value = new Date().toLocaleDateString('es-MX');
 
@@ -962,24 +964,15 @@ function vibrar(patron) {
   if (!configSonido.vibrar) return;
   if (navigator.vibrate) { try { navigator.vibrate(patron); } catch(e) {} }
 }
-function feedbackExito() {
-  vibrar(80);
-  beep(1200, 0.1);
-}
+function feedbackExito() { vibrar(80); beep(1200, 0.1); }
 function feedbackAlerta() {
   vibrar([300,100,300,100,300]);
   beep(900, 0.3);
   setTimeout(() => beep(900, 0.3), 400);
   setTimeout(() => beep(900, 0.3), 800);
 }
-function feedbackError() {
-  vibrar([500,200,500]);
-  beep(400, 0.4);
-}
-function probarFeedback() {
-  feedbackAlerta();
-  setTimeout(() => feedbackExito(), 1500);
-}
+function feedbackError() { vibrar([500,200,500]); beep(400, 0.4); }
+function probarFeedback() { feedbackAlerta(); setTimeout(() => feedbackExito(), 1500); }
 function cargarConfigSonido() {
   try {
     const raw = localStorage.getItem(KEY_SONIDO);
@@ -990,26 +983,32 @@ function cargarConfigSonido() {
       configSonido.vibrar = c.vibrar !== false;
     }
   } catch(e) {}
-  document.getElementById('cfgSonido').checked = configSonido.activo;
-  document.getElementById('cfgVolumen').value = configSonido.volumen;
-  document.getElementById('cfgVolumenVal').textContent = configSonido.volumen;
-  document.getElementById('cfgVibracion').checked = configSonido.vibrar;
+  const cs = document.getElementById('cfgSonido');
+  const cv = document.getElementById('cfgVolumen');
+  const cvv = document.getElementById('cfgVolumenVal');
+  const cvib = document.getElementById('cfgVibracion');
+  if (cs) cs.checked = configSonido.activo;
+  if (cv) cv.value = configSonido.volumen;
+  if (cvv) cvv.textContent = configSonido.volumen;
+  if (cvib) cvib.checked = configSonido.vibrar;
   actualizarVolumenUI();
 }
 function guardarConfigSonido() {
-  configSonido.activo = document.getElementById('cfgSonido').checked;
-  configSonido.volumen = parseInt(document.getElementById('cfgVolumen').value) || 0;
-  configSonido.vibrar = document.getElementById('cfgVibracion').checked;
+  const cs = document.getElementById('cfgSonido');
+  const cv = document.getElementById('cfgVolumen');
+  const cvib = document.getElementById('cfgVibracion');
+  if (cs) configSonido.activo = cs.checked;
+  if (cv) configSonido.volumen = parseInt(cv.value) || 0;
+  if (cvib) configSonido.vibrar = cvib.checked;
   try { localStorage.setItem(KEY_SONIDO, JSON.stringify(configSonido)); } catch(e) {}
   actualizarVolumenUI();
   toast('✔ Configuración guardada');
-  // Feedback inmediato
   if (configSonido.activo) feedbackExito();
 }
 function cambiarVolumen(v) {
-  document.getElementById('cfgVolumenVal').textContent = v;
+  const cvv = document.getElementById('cfgVolumenVal');
+  if (cvv) cvv.textContent = v;
   configSonido.volumen = parseInt(v) || 0;
-  // Sonido inmediato de prueba
   if (configSonido.activo) beep(800, 0.05);
 }
 function actualizarVolumenUI() {
@@ -1039,36 +1038,40 @@ function hashPassword(str) {
 /* ============ CONFIRMAR PASS ============ */
 function pedirConfirmacionPassAdmin(titulo, mensaje, callback) {
   _callbackConfirmPass = { tipo: 'admin', callback };
-  document.getElementById('confirmarPassTitulo').textContent = titulo;
-  document.getElementById('confirmarPassMensaje').innerHTML = mensaje;
-  document.getElementById('confirmarPassLabel').textContent = 'Contraseña del administrador:';
-  document.getElementById('confirmarPassInput').value = '';
-  document.getElementById('confirmarPassError').classList.remove('show');
-  document.getElementById('modalConfirmarPass').classList.add('activo');
-  setTimeout(() => document.getElementById('confirmarPassInput').focus(), 100);
+  setText('confirmarPassTitulo', titulo);
+  const msgEl = document.getElementById('confirmarPassMensaje');
+  if (msgEl) msgEl.innerHTML = mensaje;
+  setText('confirmarPassLabel', 'Contraseña del administrador:');
+  setVal('confirmarPassInput', '');
+  const err = document.getElementById('confirmarPassError');
+  if (err) err.classList.remove('show');
+  const m = document.getElementById('modalConfirmarPass');
+  if (m) m.classList.add('activo');
+  setTimeout(() => { const inp = document.getElementById('confirmarPassInput'); if (inp) inp.focus(); }, 100);
 }
 function pedirConfirmacionPassActivo(titulo, mensaje, callback) {
   _callbackConfirmPass = { tipo: 'activo', callback };
-  document.getElementById('confirmarPassTitulo').textContent = titulo;
-  document.getElementById('confirmarPassMensaje').innerHTML = mensaje;
-  document.getElementById('confirmarPassLabel').textContent = `Tu contraseña (@${usuarioLogueado}):`;
-  document.getElementById('confirmarPassInput').value = '';
-  document.getElementById('confirmarPassError').classList.remove('show');
-  document.getElementById('modalConfirmarPass').classList.add('activo');
-  setTimeout(() => document.getElementById('confirmarPassInput').focus(), 100);
+  setText('confirmarPassTitulo', titulo);
+  const msgEl = document.getElementById('confirmarPassMensaje');
+  if (msgEl) msgEl.innerHTML = mensaje;
+  setText('confirmarPassLabel', `Tu contraseña (@${usuarioLogueado}):`);
+  setVal('confirmarPassInput', '');
+  const err = document.getElementById('confirmarPassError');
+  if (err) err.classList.remove('show');
+  const m = document.getElementById('modalConfirmarPass');
+  if (m) m.classList.add('activo');
+  setTimeout(() => { const inp = document.getElementById('confirmarPassInput'); if (inp) inp.focus(); }, 100);
 }
 function cerrarModalConfirmarPass() {
-  document.getElementById('modalConfirmarPass').classList.remove('activo');
+  const m = document.getElementById('modalConfirmarPass');
+  if (m) m.classList.remove('activo');
   _callbackConfirmPass = null;
 }
-function buscarAdmin() {
-  const admins = Object.entries(usuarios).filter(([k,v]) => v.permisos.ajustes);
-  return admins[0] ? { user: admins[0][0], ...admins[0][1] } : null;
-}
 function confirmarPassEjecutar() {
-  const pass = document.getElementById('confirmarPassInput').value;
+  const inp = document.getElementById('confirmarPassInput');
   const err = document.getElementById('confirmarPassError');
-  if (!pass) { err.textContent = 'Escribe la contraseña.'; err.classList.add('show'); return; }
+  const pass = inp ? inp.value : '';
+  if (!pass) { if (err) { err.textContent = 'Escribe la contraseña.'; err.classList.add('show'); } return; }
   const pend = _callbackConfirmPass;
   if (!pend) return;
   let ok = false;
@@ -1076,13 +1079,11 @@ function confirmarPassEjecutar() {
     const u = usuarios[usuarioLogueado];
     ok = u && hashPassword(pass) === u.hash;
   } else {
-    // admin: validar contra cualquier admin
     const admins = Object.entries(usuarios).filter(([k,v]) => v.permisos.ajustes);
     ok = admins.some(([k,v]) => hashPassword(pass) === v.hash);
   }
   if (!ok) {
-    err.textContent = 'Contraseña incorrecta.';
-    err.classList.add('show');
+    if (err) { err.textContent = 'Contraseña incorrecta.'; err.classList.add('show'); }
     feedbackError();
     return;
   }
@@ -1090,20 +1091,14 @@ function confirmarPassEjecutar() {
   if (pend.callback) setTimeout(pend.callback, 100);
 }
 
-/* ============ MIGRACIÓN DE CLAVES VIEJAS ============ */
+/* ============ MIGRACIÓN ============ */
 function migrarClavesAntiguas() {
-  // Estado
-  if (!localStorage.getItem(KEY_STATE) && localStorage.getItem(KEY_STATE_OLD)) {
+  if (!localStorage.getItem(KEY_STATE) && localStorage.getItem(KEY_STATE_OLD))
     localStorage.setItem(KEY_STATE, localStorage.getItem(KEY_STATE_OLD));
-  }
-  // Inventario
-  if (!localStorage.getItem(KEY_INV) && localStorage.getItem(KEY_INV_OLD)) {
+  if (!localStorage.getItem(KEY_INV) && localStorage.getItem(KEY_INV_OLD))
     localStorage.setItem(KEY_INV, localStorage.getItem(KEY_INV_OLD));
-  }
-  // Usuarios
-  if (!localStorage.getItem(KEY_USERS) && localStorage.getItem(KEY_USERS_OLD)) {
+  if (!localStorage.getItem(KEY_USERS) && localStorage.getItem(KEY_USERS_OLD))
     localStorage.setItem(KEY_USERS, localStorage.getItem(KEY_USERS_OLD));
-  }
 }
 
 /* ============ SUCURSALES ============ */
@@ -1120,76 +1115,57 @@ function cargarSucursales() {
     guardarSucursales();
   }
 }
-function guardarSucursales() {
-  try { localStorage.setItem(KEY_SUCURSALES, JSON.stringify(sucursales)); } catch(e) {}
-}
+function guardarSucursales() { try { localStorage.setItem(KEY_SUCURSALES, JSON.stringify(sucursales)); } catch(e) {} }
 function getSucursal(id) { return sucursales.find(s => s.id === id) || null; }
 function getSucursalActual() { return getSucursal(sucursalActual) || sucursales[0]; }
 function cargarNombreEmpresa() {
-  try {
-    const n = localStorage.getItem(KEY_EMPRESA);
-    if (n) nombreEmpresa = n;
-  } catch(e) {}
-  document.getElementById('headerEmpresa').textContent = nombreEmpresa;
-  document.getElementById('loginTituloEmpresa').textContent = nombreEmpresa;
+  try { const n = localStorage.getItem(KEY_EMPRESA); if (n) nombreEmpresa = n; } catch(e) {}
+  setText('headerEmpresa', nombreEmpresa);
+  setText('loginTituloEmpresa', nombreEmpresa);
   document.title = nombreEmpresa + ' — Pedidos · Inventario · Vínculos';
 }
 function guardarNombreEmpresa() {
-  const n = document.getElementById('cfgEmpresaNombre').value.trim();
+  const inp = document.getElementById('cfgEmpresaNombre');
+  const n = inp ? inp.value.trim() : '';
   if (!n) { alert('Pon un nombre.'); return; }
   nombreEmpresa = n;
   try { localStorage.setItem(KEY_EMPRESA, n); } catch(e) {}
-  document.getElementById('headerEmpresa').textContent = n;
-  document.getElementById('loginTituloEmpresa').textContent = n;
+  setText('headerEmpresa', n);
+  setText('loginTituloEmpresa', n);
   document.title = n + ' — Pedidos · Inventario · Vínculos';
   toast('✔ Nombre actualizado');
 }
 
 /* ============ INVENTARIOS ============ */
 function guardarInventarios() {
-  try {
-    localStorage.setItem(KEY_INV, JSON.stringify(inventariosPorSucursal));
-  } catch(e) {
-    console.error('Error guardando inventarios:', e);
-    alert('⚠️ No se pudo guardar el inventario. Puede que el almacenamiento esté lleno.');
-  }
+  try { localStorage.setItem(KEY_INV, JSON.stringify(inventariosPorSucursal)); }
+  catch(e) { console.error('Error guardando inventarios:', e); }
 }
 function cargarInventarios() {
   try {
     const raw = localStorage.getItem(KEY_INV);
     if (raw) {
       const data = JSON.parse(raw);
-      if (data && typeof data === 'object' && !Array.isArray(data)) {
-        inventariosPorSucursal = data;
-      } else if (Array.isArray(data)) {
-        inventariosPorSucursal = { 'sahagun': { base: data, conteo: {} } };
-      }
+      if (data && typeof data === 'object' && !Array.isArray(data)) inventariosPorSucursal = data;
+      else if (Array.isArray(data)) inventariosPorSucursal = { 'sahagun': { base: data, conteo: {} } };
     }
   } catch(e) { console.error('Error cargando inventarios:', e); }
   sucursales.forEach(s => {
-    if (!inventariosPorSucursal[s.id]) {
-      inventariosPorSucursal[s.id] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
-    } else {
+    if (!inventariosPorSucursal[s.id]) inventariosPorSucursal[s.id] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
+    else {
       if (typeof inventariosPorSucursal[s.id].fechaCargaBase === 'undefined') inventariosPorSucursal[s.id].fechaCargaBase = null;
       if (typeof inventariosPorSucursal[s.id].horaConteoPorSku === 'undefined') inventariosPorSucursal[s.id].horaConteoPorSku = {};
     }
   });
   actualizarInventarioActual();
 }
-function guardarVentas() {
-  try { localStorage.setItem(KEY_VENTAS, JSON.stringify(ventasPorSucursal)); } catch(e) {}
-}
+function guardarVentas() { try { localStorage.setItem(KEY_VENTAS, JSON.stringify(ventasPorSucursal)); } catch(e) {} }
 function cargarVentas() {
   try {
     const raw = localStorage.getItem(KEY_VENTAS);
-    if (raw) {
-      const data = JSON.parse(raw);
-      if (data && typeof data === 'object') ventasPorSucursal = data;
-    }
+    if (raw) { const data = JSON.parse(raw); if (data && typeof data === 'object') ventasPorSucursal = data; }
   } catch(e) {}
-  sucursales.forEach(s => {
-    if (!ventasPorSucursal[s.id]) ventasPorSucursal[s.id] = [];
-  });
+  sucursales.forEach(s => { if (!ventasPorSucursal[s.id]) ventasPorSucursal[s.id] = []; });
 }
 function getVentasActuales() {
   if (!ventasPorSucursal[sucursalActual]) ventasPorSucursal[sucursalActual] = [];
@@ -1200,44 +1176,25 @@ function totalVendidoDeSku(sku) {
 }
 function actualizarInventarioActual() {
   const slot = inventariosPorSucursal[sucursalActual];
-  if (slot) {
-    inventarioBase = slot.base || [];
-    inventarioConteo = slot.conteo || {};
-  } else {
-    inventarioBase = [];
-    inventarioConteo = {};
-  }
+  if (slot) { inventarioBase = slot.base || []; inventarioConteo = slot.conteo || {}; }
+  else { inventarioBase = []; inventarioConteo = {}; }
 }
 function persistirInventarioActual() {
-  if (!inventariosPorSucursal[sucursalActual]) {
-    inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
-  }
+  if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
   inventariosPorSucursal[sucursalActual].base = inventarioBase;
   inventariosPorSucursal[sucursalActual].conteo = inventarioConteo;
   guardarInventarios();
 }
-function getFechaCargaBase() {
-  const slot = inventariosPorSucursal[sucursalActual];
-  return slot ? slot.fechaCargaBase : null;
-}
+function getFechaCargaBase() { const slot = inventariosPorSucursal[sucursalActual]; return slot ? slot.fechaCargaBase : null; }
 function setFechaCargaBase(iso) {
-  if (!inventariosPorSucursal[sucursalActual]) {
-    inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
-  }
+  if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
   inventariosPorSucursal[sucursalActual].fechaCargaBase = iso;
   guardarInventarios();
 }
-function getHoraConteoPorSku() {
-  const slot = inventariosPorSucursal[sucursalActual];
-  return (slot && slot.horaConteoPorSku) || {};
-}
+function getHoraConteoPorSku() { const slot = inventariosPorSucursal[sucursalActual]; return (slot && slot.horaConteoPorSku) || {}; }
 function setHoraConteoPorSku(sku, iso) {
-  if (!inventariosPorSucursal[sucursalActual]) {
-    inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
-  }
-  if (!inventariosPorSucursal[sucursalActual].horaConteoPorSku) {
-    inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
-  }
+  if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
+  if (!inventariosPorSucursal[sucursalActual].horaConteoPorSku) inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
   inventariosPorSucursal[sucursalActual].horaConteoPorSku[sku] = iso;
   guardarInventarios();
 }
@@ -1272,9 +1229,7 @@ function actualizarEstadoEmailJS() {
   }
 }
 async function probarEmailJS() {
-  if (!configEmailJS.publicKey || !configEmailJS.serviceId || !configEmailJS.templateId) {
-    alert('Primero guarda los 3 datos.'); return;
-  }
+  if (!configEmailJS.publicKey || !configEmailJS.serviceId || !configEmailJS.templateId) { alert('Primero guarda los 3 datos.'); return; }
   const correo = prompt('Correo de prueba:'); if (!correo) return;
   aplicarEmailJSInit();
   try {
@@ -1290,62 +1245,25 @@ async function probarEmailJS() {
 function inicializarUsuarios() {
   const raw = localStorage.getItem(KEY_USERS);
   if (raw) { try { usuarios = JSON.parse(raw); } catch(e) { usuarios = {}; } }
-  Object.keys(usuarios).forEach(u => {
-    if (!usuarios[u].permisos) usuarios[u].permisos = {};
-    if (typeof usuarios[u].permisos.baseDatos === 'undefined') {
-      usuarios[u].permisos.baseDatos = usuarios[u].permisos.ajustes === true;
-    }
-    if (!Array.isArray(usuarios[u].sucursalesPermitidas)) {
-      usuarios[u].sucursalesPermitidas = sucursales.map(s => s.id);
-    }
-  });
-  // Crear usuarios por defecto si la lista está vacía
   const todos = sucursales.map(s => s.id);
   const permTodo = { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true };
+  Object.keys(usuarios).forEach(u => {
+    if (!usuarios[u].permisos) usuarios[u].permisos = {};
+    if (typeof usuarios[u].permisos.baseDatos === 'undefined') usuarios[u].permisos.baseDatos = usuarios[u].permisos.ajustes === true;
+    if (!Array.isArray(usuarios[u].sucursalesPermitidas)) usuarios[u].sucursalesPermitidas = todos;
+  });
   if (!usuarios || Object.keys(usuarios).length === 0) {
     usuarios = {};
-    usuarios['admin'] = {
-      nombre: 'Administrador', email: '', hash: hashPassword('admin123'),
-      permisos: { ...permTodo }, sucursalesPermitidas: todos,
-      creado: new Date().toISOString(), primerLogin: true
-    };
-    usuarios['diego'] = {
-      nombre: 'Diego', email: '', hash: hashPassword('24680'),
-      permisos: { ...permTodo }, sucursalesPermitidas: todos,
-      creado: new Date().toISOString(), primerLogin: false
-    };
-    usuarios['liz'] = {
-      nombre: 'Liz', email: '', hash: hashPassword('24680'),
-      permisos: { ...permTodo }, sucursalesPermitidas: todos,
-      creado: new Date().toISOString(), primerLogin: false
-    };
-    usuarios['jovany'] = {
-      nombre: 'Jovany', email: '', hash: hashPassword('24680'),
-      permisos: { ...permTodo }, sucursalesPermitidas: todos,
-      creado: new Date().toISOString(), primerLogin: false
-    };
+    usuarios['admin'] = { nombre: 'Administrador', email: '', hash: hashPassword('admin123'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: true };
+    usuarios['diego'] = { nombre: 'Diego', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };
+    usuarios['liz'] = { nombre: 'Liz', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };
+    usuarios['jovany'] = { nombre: 'Jovany', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };
     guardarUsuarios();
   } else {
-    // Si ya hay usuarios, agregar los nuevos si no existen
     let cambios = false;
-    if (!usuarios['diego']) {
-      usuarios['diego'] = { nombre: 'Diego', email: '', hash: hashPassword('24680'),
-        permisos: { ...permTodo }, sucursalesPermitidas: todos,
-        creado: new Date().toISOString(), primerLogin: false };
-      cambios = true;
-    }
-    if (!usuarios['liz']) {
-      usuarios['liz'] = { nombre: 'Liz', email: '', hash: hashPassword('24680'),
-        permisos: { ...permTodo }, sucursalesPermitidas: todos,
-        creado: new Date().toISOString(), primerLogin: false };
-      cambios = true;
-    }
-    if (!usuarios['jovany']) {
-      usuarios['jovany'] = { nombre: 'Jovany', email: '', hash: hashPassword('24680'),
-        permisos: { ...permTodo }, sucursalesPermitidas: todos,
-        creado: new Date().toISOString(), primerLogin: false };
-      cambios = true;
-    }
+    if (!usuarios['diego']) { usuarios['diego'] = { nombre: 'Diego', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false }; cambios = true; }
+    if (!usuarios['liz']) { usuarios['liz'] = { nombre: 'Liz', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false }; cambios = true; }
+    if (!usuarios['jovany']) { usuarios['jovany'] = { nombre: 'Jovany', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false }; cambios = true; }
     if (cambios) guardarUsuarios();
   }
 }
@@ -1354,24 +1272,15 @@ function reiniciarUsuarios() {
   if (!usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔'); return; }
   if (!confirm('⚠️ Borrar TODOS los usuarios y volver a los de fábrica?')) return;
   pedirConfirmacionPassAdmin('🔄 Reiniciar usuarios',
-    'Vas a borrar todos los usuarios y volver a los predeterminados:<br><br>' +
-    '• admin / admin123<br>• diego / 24680<br>• liz / 24680<br>• jovany / 24680',
+    'Vas a borrar todos los usuarios y volver a los predeterminados.',
     () => {
       const todos = sucursales.map(s => s.id);
       const permTodo = { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true };
       usuarios = {
-        admin: { nombre: 'Administrador', email: '', hash: hashPassword('admin123'),
-          permisos: { ...permTodo }, sucursalesPermitidas: todos,
-          creado: new Date().toISOString(), primerLogin: true },
-        diego: { nombre: 'Diego', email: '', hash: hashPassword('24680'),
-          permisos: { ...permTodo }, sucursalesPermitidas: todos,
-          creado: new Date().toISOString(), primerLogin: false },
-        liz: { nombre: 'Liz', email: '', hash: hashPassword('24680'),
-          permisos: { ...permTodo }, sucursalesPermitidas: todos,
-          creado: new Date().toISOString(), primerLogin: false },
-        jovany: { nombre: 'Jovany', email: '', hash: hashPassword('24680'),
-          permisos: { ...permTodo }, sucursalesPermitidas: todos,
-          creado: new Date().toISOString(), primerLogin: false }
+        admin: { nombre: 'Administrador', email: '', hash: hashPassword('admin123'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: true },
+        diego: { nombre: 'Diego', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false },
+        liz: { nombre: 'Liz', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false },
+        jovany: { nombre: 'Jovany', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false }
       };
       guardarUsuarios();
       localStorage.removeItem(KEY_SESSION);
@@ -1382,18 +1291,14 @@ function reiniciarUsuarios() {
 /* ============ SESIÓN ============ */
 function guardarSesion(u) {
   const expira = Date.now() + SESION_DIAS * 24 * 60 * 60 * 1000;
-  try {
-    localStorage.setItem(KEY_SESSION, JSON.stringify({ usuario: u, expira, sucursalActual }));
-  } catch(e) {}
+  try { localStorage.setItem(KEY_SESSION, JSON.stringify({ usuario: u, expira, sucursalActual })); } catch(e) {}
 }
 function cargarSesion() {
   try {
     const raw = localStorage.getItem(KEY_SESSION);
     if (!raw) return null;
     const obj = JSON.parse(raw);
-    if (obj.expira && obj.expira > Date.now() && usuarios[obj.usuario]) {
-      return { usuario: obj.usuario, sucursalActual: obj.sucursalActual };
-    }
+    if (obj.expira && obj.expira > Date.now() && usuarios[obj.usuario]) return { usuario: obj.usuario, sucursalActual: obj.sucursalActual };
     localStorage.removeItem(KEY_SESSION);
     return null;
   } catch(e) { return null; }
@@ -1401,18 +1306,21 @@ function cargarSesion() {
 function borrarSesion() { try { localStorage.removeItem(KEY_SESSION); } catch(e) {} }
 
 function intentarLogin() {
-  const u = document.getElementById('loginUsuario').value.trim().toLowerCase();
-  const p = document.getElementById('loginPassword').value;
+  const uInp = document.getElementById('loginUsuario');
+  const pInp = document.getElementById('loginPassword');
+  const u = uInp ? uInp.value.trim().toLowerCase() : '';
+  const p = pInp ? pInp.value : '';
   const err = document.getElementById('loginError');
-  err.classList.remove('show');
-  if (!u || !p) { err.textContent = 'Ingresa usuario y contraseña'; err.classList.add('show'); return; }
+  if (err) err.classList.remove('show');
+  if (!u || !p) { if (err) { err.textContent = 'Ingresa usuario y contraseña'; err.classList.add('show'); } return; }
   const usuario = usuarios[u];
   if (!usuario || hashPassword(p) !== usuario.hash) {
-    err.textContent = 'Usuario o contraseña incorrectos'; err.classList.add('show'); return;
+    if (err) { err.textContent = 'Usuario o contraseña incorrectos'; err.classList.add('show'); }
+    return;
   }
   usuarioLogueado = u;
   const permitidas = usuario.sucursalesPermitidas || [];
-  if (!permitidas.length) { err.textContent = 'Sin sucursales asignadas.'; err.classList.add('show'); usuarioLogueado = null; return; }
+  if (!permitidas.length) { if (err) { err.textContent = 'Sin sucursales asignadas.'; err.classList.add('show'); } usuarioLogueado = null; return; }
   if (permitidas.includes('sahagun')) sucursalActual = 'sahagun';
   else sucursalActual = permitidas[0];
   actualizarInventarioActual();
@@ -1430,8 +1338,8 @@ function cerrarSesion() {
   document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('activo'));
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginBg').style.display = 'flex';
-  document.getElementById('loginUsuario').value = '';
-  document.getElementById('loginPassword').value = '';
+  setVal('loginUsuario', '');
+  setVal('loginPassword', '');
 }
 function cambiarDeCuenta() {
   cerrarMenuUsuario();
@@ -1441,9 +1349,10 @@ function cambiarDeCuenta() {
   document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginBg').style.display = 'flex';
-  document.getElementById('loginUsuario').value = '';
-  document.getElementById('loginPassword').value = '';
-  document.getElementById('loginUsuario').focus();
+  setVal('loginUsuario', '');
+  setVal('loginPassword', '');
+  const inp = document.getElementById('loginUsuario');
+  if (inp) inp.focus();
 }
 
 /* ============ MENÚS ============ */
@@ -1452,6 +1361,7 @@ function abrirMenuSucursal() {
   if (!u) return;
   const permitidas = u.sucursalesPermitidas || [];
   const cont = document.getElementById('listaMenuSucursales');
+  if (!cont) return;
   cont.innerHTML = permitidas.map(id => {
     const s = getSucursal(id);
     if (!s) return '';
@@ -1464,9 +1374,10 @@ function abrirMenuSucursal() {
       ${activa ? '<span class="check">✓</span>' : ''}
     </div>`;
   }).join('');
-  document.getElementById('menuSucursal').classList.add('activo');
+  const m = document.getElementById('menuSucursal');
+  if (m) m.classList.add('activo');
 }
-function cerrarMenuSucursal() { document.getElementById('menuSucursal').classList.remove('activo'); }
+function cerrarMenuSucursal() { const m = document.getElementById('menuSucursal'); if (m) m.classList.remove('activo'); }
 function cambiarSucursal(id) {
   cerrarMenuSucursal();
   if (id === sucursalActual) return;
@@ -1486,20 +1397,22 @@ function cambiarSucursal(id) {
 function abrirMenuUsuario() {
   const u = usuarios[usuarioLogueado];
   if (!u) return;
-  document.getElementById('dropdownUserHeader').innerHTML = `
+  const el = document.getElementById('dropdownUserHeader');
+  if (el) el.innerHTML = `
     <div class="nombre">${u.nombre || usuarioLogueado}</div>
     <div class="usuario">@${usuarioLogueado}</div>
-    ${u.email ? '<div class="correo">📧 ' + u.email + '</div>' : ''}
-  `;
-  document.getElementById('menuUsuario').classList.add('activo');
+    ${u.email ? '<div class="correo">📧 ' + u.email + '</div>' : ''}`;
+  const m = document.getElementById('menuUsuario');
+  if (m) m.classList.add('activo');
 }
-function cerrarMenuUsuario() { document.getElementById('menuUsuario').classList.remove('activo'); }
+function cerrarMenuUsuario() { const m = document.getElementById('menuUsuario'); if (m) m.classList.remove('activo'); }
 
 function abrirMiCuenta() {
   cerrarMenuUsuario();
   const u = usuarios[usuarioLogueado];
   const s = getSucursalActual();
-  document.getElementById('miCuentaInfo').innerHTML = `
+  const el = document.getElementById('miCuentaInfo');
+  if (el) el.innerHTML = `
     <div class="ayuda">
       <b>Nombre:</b> ${u.nombre || usuarioLogueado}<br>
       <b>Usuario:</b> @${usuarioLogueado}<br>
@@ -1507,12 +1420,9 @@ function abrirMiCuenta() {
       <b>Sucursal actual:</b> ${s ? s.nombre : '—'}<br>
       <b>Sucursales permitidas:</b> ${(u.sucursalesPermitidas || []).map(id => getSucursal(id)?.abrev || id).join(', ')}
     </div>`;
-  document.getElementById('mcPassActual').value = '';
-  document.getElementById('mcPassNueva').value = '';
-  document.getElementById('mcPassConfirmar').value = '';
-  document.getElementById('mcCorreoPass').value = '';
-  document.getElementById('mcCorreoNuevo').value = '';
-  document.getElementById('modalMiCuenta').classList.add('activo');
+  ['mcPassActual','mcPassNueva','mcPassConfirmar','mcCorreoPass','mcCorreoNuevo'].forEach(id => setVal(id, ''));
+  const m = document.getElementById('modalMiCuenta');
+  if (m) m.classList.add('activo');
 }
 function cambiarMiContraseña() {
   const actual = document.getElementById('mcPassActual').value;
@@ -1520,13 +1430,11 @@ function cambiarMiContraseña() {
   const confirmar = document.getElementById('mcPassConfirmar').value;
   const u = usuarios[usuarioLogueado];
   if (hashPassword(actual) !== u.hash) { alert('Contraseña actual incorrecta.'); return; }
-  if (nueva.length < 4) { alert('La nueva contraseña debe tener al menos 4 caracteres.'); return; }
+  if (nueva.length < 4) { alert('Mínimo 4 caracteres.'); return; }
   if (nueva !== confirmar) { alert('Las contraseñas nuevas no coinciden.'); return; }
   u.hash = hashPassword(nueva); u.primerLogin = false;
   guardarUsuarios();
-  document.getElementById('mcPassActual').value = '';
-  document.getElementById('mcPassNueva').value = '';
-  document.getElementById('mcPassConfirmar').value = '';
+  ['mcPassActual','mcPassNueva','mcPassConfirmar'].forEach(id => setVal(id, ''));
   toast('✔ Contraseña cambiada');
 }
 function cambiarMiCorreo() {
@@ -1537,23 +1445,20 @@ function cambiarMiCorreo() {
   if (nuevo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevo)) { alert('Correo inválido.'); return; }
   u.email = nuevo;
   guardarUsuarios();
-  document.getElementById('mcCorreoPass').value = '';
-  document.getElementById('mcCorreoNuevo').value = '';
+  setVal('mcCorreoPass', ''); setVal('mcCorreoNuevo', '');
   toast('✔ Correo actualizado');
 }
 
 function actualizarHeaderSucursal() {
   const s = getSucursalActual();
   if (!s) return;
-  document.getElementById('headerSucursal').textContent = s.abrev || s.nombre;
-  document.getElementById('tienda').value = s.nombre;
+  setText('headerSucursal', s.abrev || s.nombre);
+  setVal('tienda', s.nombre);
 }
 function actualizarSucursalNombreEnVistas() {
   const s = getSucursalActual();
-  const el = document.getElementById('invSucursalNombre');
-  if (el && s) el.textContent = s.nombre;
-  const t = document.getElementById('tienda');
-  if (t) t.value = s.nombre;
+  setText('invSucursalNombre', s ? s.nombre : '');
+  setVal('tienda', s ? s.nombre : '');
   actualizarInfoSnapshot();
 }
 function actualizarInfoSnapshot() {
@@ -1570,31 +1475,29 @@ function actualizarInfoSnapshot() {
 
 /* ============ OTP ============ */
 function abrirRecuperar() {
-  document.getElementById('emailRecuperar').value = '';
-  document.getElementById('nuevaPassOTP').value = '';
-  document.getElementById('nuevaPassOTP2').value = '';
+  setVal('emailRecuperar', ''); setVal('nuevaPassOTP', ''); setVal('nuevaPassOTP2', '');
   document.querySelectorAll('#otpInputs input').forEach(i => i.value = '');
   volverRecPaso1();
-  document.getElementById('modalRecuperar').classList.add('activo');
+  const m = document.getElementById('modalRecuperar');
+  if (m) m.classList.add('activo');
 }
-function cerrarRecuperar() { document.getElementById('modalRecuperar').classList.remove('activo'); detenerTimerOTP(); }
+function cerrarRecuperar() { const m = document.getElementById('modalRecuperar'); if (m) m.classList.remove('activo'); detenerTimerOTP(); }
 function volverRecPaso1() {
-  document.getElementById('recPaso1').style.display = 'block';
-  document.getElementById('recPaso2').style.display = 'none';
+  const p1 = document.getElementById('recPaso1'); if (p1) p1.style.display = 'block';
+  const p2 = document.getElementById('recPaso2'); if (p2) p2.style.display = 'none';
   detenerTimerOTP();
 }
 function generarCodigoOTP() { return String(Math.floor(100000 + Math.random() * 900000)); }
 function enviarCodigoOTP() {
-  const email = document.getElementById('emailRecuperar').value.trim().toLowerCase();
+  const inp = document.getElementById('emailRecuperar');
+  const email = inp ? inp.value.trim().toLowerCase() : '';
   if (!email) { alert('Escribe tu correo.'); return; }
-  if (!configEmailJS.publicKey || !configEmailJS.serviceId || !configEmailJS.templateId) {
-    alert('⚠️ EmailJS no configurado.'); return;
-  }
+  if (!configEmailJS.publicKey || !configEmailJS.serviceId || !configEmailJS.templateId) { alert('⚠️ EmailJS no configurado.'); return; }
   const encontrado = Object.entries(usuarios).find(([_, u]) => (u.email || '').toLowerCase() === email);
   if (!encontrado) {
-    document.getElementById('emailMostrado').textContent = email;
-    document.getElementById('recPaso1').style.display = 'none';
-    document.getElementById('recPaso2').style.display = 'block';
+    setText('emailMostrado', email);
+    const p1 = document.getElementById('recPaso1'); if (p1) p1.style.display = 'none';
+    const p2 = document.getElementById('recPaso2'); if (p2) p2.style.display = 'block';
     document.querySelectorAll('#otpInputs input').forEach(i => i.value = '');
     otpActual = null; iniciarTimerOTP();
     alert('Si el correo está registrado, recibirás un código.');
@@ -1605,11 +1508,11 @@ function enviarCodigoOTP() {
   const expira = Date.now() + OTP_MINUTOS * 60 * 1000;
   otpActual = { codigo, usuario: username, expira, email };
   try { localStorage.setItem(KEY_OTP, JSON.stringify(otpActual)); } catch(e) {}
-  document.getElementById('emailMostrado').textContent = email;
-  document.getElementById('recPaso1').style.display = 'none';
-  document.getElementById('recPaso2').style.display = 'block';
+  setText('emailMostrado', email);
+  const p1 = document.getElementById('recPaso1'); if (p1) p1.style.display = 'none';
+  const p2 = document.getElementById('recPaso2'); if (p2) p2.style.display = 'block';
   document.querySelectorAll('#otpInputs input').forEach(i => i.value = '');
-  setTimeout(() => document.querySelector('#otpInputs input')?.focus(), 100);
+  setTimeout(() => { const i = document.querySelector('#otpInputs input'); if (i) i.focus(); }, 100);
   iniciarTimerOTP();
   aplicarEmailJSInit();
   emailjs.send(configEmailJS.serviceId, configEmailJS.templateId, {
@@ -1657,39 +1560,45 @@ function verificarOTP() {
 
 /* ============ ENTRAR ============ */
 function entrarApp() {
-  document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
-  document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('activo'));
-  document.getElementById('loginBg').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  const u = usuarios[usuarioLogueado];
-  document.getElementById('usuarioActualHeader').textContent = u.nombre || usuarioLogueado;
-  document.getElementById('cfgPublicKey').value = configEmailJS.publicKey || '';
-  document.getElementById('cfgServiceId').value = configEmailJS.serviceId || '';
-  document.getElementById('cfgTemplateId').value = configEmailJS.templateId || '';
-  document.getElementById('cfgEmpresaNombre').value = nombreEmpresa;
-  actualizarEstadoEmailJS();
-  actualizarHeaderSucursal();
-  actualizarSucursalNombreEnVistas();
-  aplicarPermisos();
-  if (productos.length === 0 && productosManuales.length === 0) cargarEstado();
-  else { renderPedido(); renderVinculos(); }
-  renderInvTopStats();
-  renderInventario();
-  renderManuales();
-  renderBaseDatosStats();
-  renderSucursales();
-  renderUsuarios();
-  const disp = ['pedido','inventario','vincular','baseDatos','ajustes'].filter(t => u.permisos[t]);
-  cambiarPestana(disp[0] || 'pedido');
+  try {
+    document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
+    document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('activo'));
+    const lb = document.getElementById('loginBg'); if (lb) lb.style.display = 'none';
+    const app = document.getElementById('app'); if (app) app.style.display = 'block';
+    const u = usuarios[usuarioLogueado];
+    if (!u) { console.error('Usuario no encontrado en entrarApp'); return; }
+    setText('usuarioActualHeader', u.nombre || usuarioLogueado);
+    setVal('cfgPublicKey', configEmailJS.publicKey || '');
+    setVal('cfgServiceId', configEmailJS.serviceId || '');
+    setVal('cfgTemplateId', configEmailJS.templateId || '');
+    setVal('cfgEmpresaNombre', nombreEmpresa);
+    actualizarEstadoEmailJS();
+    actualizarHeaderSucursal();
+    actualizarSucursalNombreEnVistas();
+    aplicarPermisos();
+    if (productos.length === 0 && productosManuales.length === 0) cargarEstado();
+    else { renderPedido(); renderVinculos(); }
+    renderInvTopStats();
+    renderInventario();
+    renderManuales();
+    renderBaseDatosStats();
+    renderSucursales();
+    renderUsuarios();
+    const disp = ['pedido','inventario','vincular','baseDatos','ajustes'].filter(t => u.permisos[t]);
+    cambiarPestana(disp[0] || 'pedido');
+  } catch(e) {
+    console.error('Error en entrarApp:', e);
+    alert('Error al iniciar la app: ' + e.message);
+  }
 }
 function aplicarPermisos() {
   const u = usuarios[usuarioLogueado];
   if (!u) return;
-  document.getElementById('tabPedido').style.display     = u.permisos.pedido     ? 'inline-block' : 'none';
-  document.getElementById('tabInventario').style.display = u.permisos.inventario ? 'inline-block' : 'none';
-  document.getElementById('tabVincular').style.display   = u.permisos.vincular   ? 'inline-block' : 'none';
-  document.getElementById('tabBaseDatos').style.display  = u.permisos.baseDatos  ? 'inline-block' : 'none';
-  document.getElementById('tabAjustes').style.display    = u.permisos.ajustes    ? 'inline-block' : 'none';
+  const tabP = document.getElementById('tabPedido'); if (tabP) tabP.style.display = u.permisos.pedido ? 'inline-block' : 'none';
+  const tabI = document.getElementById('tabInventario'); if (tabI) tabI.style.display = u.permisos.inventario ? 'inline-block' : 'none';
+  const tabV = document.getElementById('tabVincular'); if (tabV) tabV.style.display = u.permisos.vincular ? 'inline-block' : 'none';
+  const tabB = document.getElementById('tabBaseDatos'); if (tabB) tabB.style.display = u.permisos.baseDatos ? 'inline-block' : 'none';
+  const tabA = document.getElementById('tabAjustes'); if (tabA) tabA.style.display = u.permisos.ajustes ? 'inline-block' : 'none';
   if (!u.permisos[tabActual]) {
     const disp = ['pedido','inventario','vincular','baseDatos','ajustes'].filter(t => u.permisos[t]);
     cambiarPestana(disp[0] || 'pedido');
@@ -1706,7 +1615,7 @@ function cambiarPestana(t) {
     const p = document.getElementById('pestana' + x.charAt(0).toUpperCase() + x.slice(1));
     if (p) p.style.display = (x === t) ? 'block' : 'none';
   });
-  if (t === 'vincular') setTimeout(() => document.getElementById('inputCodigo').focus(), 100);
+  if (t === 'vincular') setTimeout(() => { const i = document.getElementById('inputCodigo'); if (i) i.focus(); }, 100);
   if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); }
   if (t === 'inventario') { renderInvTopStats(); renderInventario(); actualizarSucursalNombreEnVistas(); }
   if (t === 'baseDatos') { renderManuales(); renderBaseDatosStats(); }
@@ -1716,6 +1625,7 @@ function cambiarPestana(t) {
 /* ============ USUARIOS UI ============ */
 function renderUsuarios() {
   const cont = document.getElementById('listaUsuarios');
+  if (!cont) return;
   const lista = Object.entries(usuarios);
   if (!lista.length) { cont.innerHTML = '<p class="small">Sin usuarios.</p>'; return; }
   const np = { pedido: '🛒', inventario: '📦', vincular: '🔗', baseDatos: '🗄️', ajustes: '⚙️' };
@@ -1742,6 +1652,7 @@ function renderUsuarios() {
 }
 function renderSucursalesUsuario(seleccionadas) {
   const cont = document.getElementById('listaSucursalesUsuario');
+  if (!cont) return;
   cont.innerHTML = sucursales.map(s => {
     const checked = seleccionadas.includes(s.id) ? 'checked' : '';
     return `<div class="sucursal-check">
@@ -1766,7 +1677,7 @@ function abrirModalUsuario(username) {
   };
   if (username) {
     const u = usuarios[username];
-    document.getElementById('modalUsuarioTitulo').textContent = '✏️ Editar';
+    setText('modalUsuarioTitulo', '✏️ Editar');
     inpU.value = username; inpU.disabled = true;
     inpN.value = u.nombre || ''; inpE.value = u.email || ''; inpP.value = '';
     lblP.textContent = 'Nueva contraseña (vacío = no cambiar)';
@@ -1777,7 +1688,7 @@ function abrirModalUsuario(username) {
     perm.ajustes.checked = !!u.permisos.ajustes;
     renderSucursalesUsuario(u.sucursalesPermitidas || []);
   } else {
-    document.getElementById('modalUsuarioTitulo').textContent = '➕ Agregar';
+    setText('modalUsuarioTitulo', '➕ Agregar');
     inpU.value = ''; inpU.disabled = false;
     inpN.value = ''; inpE.value = ''; inpP.value = '';
     lblP.textContent = 'Contraseña';
@@ -1785,10 +1696,11 @@ function abrirModalUsuario(username) {
     perm.vincular.checked = false; perm.baseDatos.checked = false; perm.ajustes.checked = false;
     renderSucursalesUsuario([]);
   }
-  document.getElementById('modalUsuario').classList.add('activo');
+  const m = document.getElementById('modalUsuario');
+  if (m) m.classList.add('activo');
 }
 function cerrarModalUsuario() {
-  document.getElementById('modalUsuario').classList.remove('activo');
+  const m = document.getElementById('modalUsuario'); if (m) m.classList.remove('activo');
   modoEdicionUsuario = null;
 }
 function guardarUsuario() {
@@ -1803,10 +1715,7 @@ function guardarUsuario() {
     baseDatos: document.getElementById('permBaseDatos').checked,
     ajustes: document.getElementById('permAjustes').checked
   };
-  const sucursalesPermitidas = sucursales.filter(s => {
-    const cb = document.getElementById('suc_' + s.id);
-    return cb && cb.checked;
-  }).map(s => s.id);
+  const sucursalesPermitidas = sucursales.filter(s => { const cb = document.getElementById('suc_' + s.id); return cb && cb.checked; }).map(s => s.id);
   if (!nombre) { alert('Pon nombre.'); return; }
   if (!username || !/^[a-z0-9._-]{3,20}$/.test(username)) { alert('Usuario inválido.'); return; }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Correo inválido.'); return; }
@@ -1816,8 +1725,7 @@ function guardarUsuario() {
   if (!esEd) {
     if (usuarios[username]) { alert('Ya existe.'); return; }
     if (password.length < 4) { alert('Mínimo 4.'); return; }
-    usuarios[username] = { nombre, email, hash: hashPassword(password), permisos, sucursalesPermitidas,
-      creado: new Date().toISOString(), primerLogin: false };
+    usuarios[username] = { nombre, email, hash: hashPassword(password), permisos, sucursalesPermitidas, creado: new Date().toISOString(), primerLogin: false };
   } else {
     const u = usuarios[modoEdicionUsuario];
     u.nombre = nombre; u.email = email; u.permisos = permisos; u.sucursalesPermitidas = sucursalesPermitidas;
@@ -1832,8 +1740,7 @@ function guardarUsuario() {
 function eliminarUsuario(username) {
   if (username === usuarioLogueado) { alert('No puedes eliminarte.'); return; }
   if (!usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔ Solo el admin.'); return; }
-  pedirConfirmacionPassAdmin('🗑 Eliminar usuario',
-    `¿Eliminar a <b>${usuarios[username].nombre || username}</b>?`,
+  pedirConfirmacionPassAdmin('🗑 Eliminar usuario', `¿Eliminar a <b>${usuarios[username].nombre || username}</b>?`,
     () => {
       delete usuarios[username];
       guardarUsuarios();
@@ -1842,10 +1749,8 @@ function eliminarUsuario(username) {
     });
 }
 function abrirModalCambiarMiPassword() {
-  document.getElementById('mpActual').value = '';
-  document.getElementById('mpNueva').value = '';
-  document.getElementById('mpConfirmar').value = '';
-  document.getElementById('modalMiPassword').classList.add('activo');
+  setVal('mpActual', ''); setVal('mpNueva', ''); setVal('mpConfirmar', '');
+  const m = document.getElementById('modalMiPassword'); if (m) m.classList.add('activo');
 }
 function cambiarMiPassword() {
   const actual = document.getElementById('mpActual').value;
@@ -1857,24 +1762,20 @@ function cambiarMiPassword() {
   if (nueva !== confirmar) { alert('No coinciden.'); return; }
   u.hash = hashPassword(nueva); u.primerLogin = false;
   guardarUsuarios();
-  document.getElementById('modalMiPassword').classList.remove('activo');
+  const m = document.getElementById('modalMiPassword'); if (m) m.classList.remove('activo');
   toast('✔');
 }
 
 /* ============ SUCURSALES UI ============ */
 function renderSucursales() {
   const cont = document.getElementById('listaSucursales');
+  if (!cont) return;
   const u = usuarios[usuarioLogueado];
-  if (!u || !u.permisos.ajustes) {
-    cont.innerHTML = '<p class="small">Solo el administrador puede ver esta sección.</p>';
-    return;
-  }
+  if (!u || !u.permisos.ajustes) { cont.innerHTML = '<p class="small">Solo el admin.</p>'; return; }
   cont.innerHTML = sucursales.map(s => `
     <div class="sucursal-row">
-      <div class="info">
-        <div class="nombre">${s.nombre}</div>
-        <div class="abrev">Abrev: ${s.abrev}</div>
-      </div>
+      <div class="info"><div class="nombre">${s.nombre}</div>
+        <div class="abrev">Abrev: ${s.abrev}</div></div>
       <div class="acciones">
         <button onclick="abrirModalSucursal('${s.id}')">✏️</button>
         <button class="rojo" onclick="eliminarSucursal('${s.id}')">🗑</button>
@@ -1885,18 +1786,16 @@ function abrirModalSucursal(id) {
   modoEdicionSucursal = id || null;
   if (id) {
     const s = getSucursal(id);
-    document.getElementById('modalSucursalTitulo').textContent = '✏️ Editar sucursal';
-    document.getElementById('sucNombre').value = s.nombre;
-    document.getElementById('sucAbrev').value = s.abrev;
+    setText('modalSucursalTitulo', '✏️ Editar sucursal');
+    setVal('sucNombre', s.nombre); setVal('sucAbrev', s.abrev);
   } else {
-    document.getElementById('modalSucursalTitulo').textContent = '➕ Agregar sucursal';
-    document.getElementById('sucNombre').value = '';
-    document.getElementById('sucAbrev').value = '';
+    setText('modalSucursalTitulo', '➕ Agregar sucursal');
+    setVal('sucNombre', ''); setVal('sucAbrev', '');
   }
-  document.getElementById('modalSucursal').classList.add('activo');
+  const m = document.getElementById('modalSucursal'); if (m) m.classList.add('activo');
 }
 function cerrarModalSucursal() {
-  document.getElementById('modalSucursal').classList.remove('activo');
+  const m = document.getElementById('modalSucursal'); if (m) m.classList.remove('activo');
   modoEdicionSucursal = null;
 }
 function guardarSucursal() {
@@ -1914,12 +1813,9 @@ function guardarSucursal() {
     ventasPorSucursal[id] = [];
     toast('✔ Sucursal agregada');
   }
-  guardarSucursales();
-  guardarInventarios();
-  guardarVentas();
+  guardarSucursales(); guardarInventarios(); guardarVentas();
   cerrarModalSucursal();
-  renderSucursales();
-  renderUsuarios();
+  renderSucursales(); renderUsuarios();
   actualizarHeaderSucursal();
 }
 function eliminarSucursal(id) {
@@ -1927,19 +1823,12 @@ function eliminarSucursal(id) {
   if (!usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔ Solo el admin.'); return; }
   const s = getSucursal(id);
   pedirConfirmacionPassAdmin('🗑 Eliminar sucursal',
-    `¿Eliminar la sucursal <b>${s.nombre}</b>?<br>Se eliminará su inventario y ventas.`,
+    `¿Eliminar la sucursal <b>${s.nombre}</b>?`,
     () => {
       sucursales = sucursales.filter(x => x.id !== id);
-      delete inventariosPorSucursal[id];
-      delete ventasPorSucursal[id];
-      Object.keys(usuarios).forEach(u => {
-        usuarios[u].sucursalesPermitidas = (usuarios[u].sucursalesPermitidas || []).filter(x => x !== id);
-      });
-      if (sucursalActual === id && sucursales.length) {
-        sucursalActual = sucursales[0].id;
-        actualizarInventarioActual();
-        actualizarHeaderSucursal();
-      }
+      delete inventariosPorSucursal[id]; delete ventasPorSucursal[id];
+      Object.keys(usuarios).forEach(u => { usuarios[u].sucursalesPermitidas = (usuarios[u].sucursalesPermitidas || []).filter(x => x !== id); });
+      if (sucursalActual === id && sucursales.length) { sucursalActual = sucursales[0].id; actualizarInventarioActual(); actualizarHeaderSucursal(); }
       guardarSucursales(); guardarInventarios(); guardarVentas(); guardarUsuarios();
       renderSucursales(); renderUsuarios();
       toast('🗑 Sucursal eliminada');
@@ -1948,7 +1837,7 @@ function eliminarSucursal(id) {
 
 /* ============ RESPALDO ============ */
 function exportarRespaldo() {
-  const data = { version: 15, exportado: new Date().toISOString(),
+  const data = { version: 16, exportado: new Date().toISOString(),
     productos, productosManuales, pedido, vinculos, usuarios, configEmailJS,
     inventariosPorSucursal, ventasPorSucursal, sucursales, nombreEmpresa, sucursalActual, configSonido };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2023,6 +1912,7 @@ function esSKU(str) {
 }
 function toast(msg, tipo) {
   const t = document.getElementById('toast');
+  if (!t) return;
   t.textContent = msg;
   t.className = 'toast';
   if (tipo === 'error') t.classList.add('error');
@@ -2032,23 +1922,16 @@ function toast(msg, tipo) {
   clearTimeout(window._toastT);
   window._toastT = setTimeout(() => t.classList.remove('show'), 2500);
 }
-function calcularDif(system, contado) {
-  if (system < 0) return system + contado;
-  return contado - system;
-}
+function calcularDif(system, contado) { if (system < 0) return system + contado; return contado - system; }
 function migrarVinculos() {
   Object.keys(vinculos).forEach(cod => {
     const v = vinculos[cod];
-    if (typeof v === 'string') {
-      vinculos[cod] = [{ sku: v, creadoPor: '—', fecha: null, sucursal: '—' }];
-    } else if (v && typeof v === 'object' && !Array.isArray(v) && v.sku) {
-      vinculos[cod] = [{ sku: v.sku, creadoPor: v.creadoPor || '—', fecha: v.fecha || null, sucursal: v.sucursal || '—' }];
-    } else if (Array.isArray(v)) {
-      vinculos[cod] = v.map(item => {
-        if (typeof item === 'string') return { sku: item, creadoPor: '—', fecha: null, sucursal: '—' };
-        return { sku: item.sku, creadoPor: item.creadoPor || '—', fecha: item.fecha || null, sucursal: item.sucursal || '—' };
-      });
-    }
+    if (typeof v === 'string') vinculos[cod] = [{ sku: v, creadoPor: '—', fecha: null, sucursal: '—' }];
+    else if (v && typeof v === 'object' && !Array.isArray(v) && v.sku) vinculos[cod] = [{ sku: v.sku, creadoPor: v.creadoPor || '—', fecha: v.fecha || null, sucursal: v.sucursal || '—' }];
+    else if (Array.isArray(v)) vinculos[cod] = v.map(item => {
+      if (typeof item === 'string') return { sku: item, creadoPor: '—', fecha: null, sucursal: '—' };
+      return { sku: item.sku, creadoPor: item.creadoPor || '—', fecha: item.fecha || null, sucursal: item.sucursal || '—' };
+    });
   });
 }
 function skusDeCodigo(codigo) {
@@ -2092,9 +1975,7 @@ function badgeFuente(fuente) {
 /* ============ PERSISTENCIA ============ */
 function guardarEstado() {
   try {
-    localStorage.setItem(KEY_STATE, JSON.stringify({
-      productos, productosManuales, pedido, vinculos, fecha: new Date().toISOString()
-    }));
+    localStorage.setItem(KEY_STATE, JSON.stringify({ productos, productosManuales, pedido, vinculos, fecha: new Date().toISOString() }));
     localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
     localStorage.setItem(KEY_MANUAL, JSON.stringify(productosManuales));
   } catch(e) {}
@@ -2108,9 +1989,10 @@ function cargarEstado() {
         productos = obj.productos;
         if (productos.length) {
           const f = obj.fecha ? new Date(obj.fecha).toLocaleString('es-MX') : '';
-          document.getElementById('infoCat').innerHTML = `✔ <b>${productos.length}</b> productos <span class="small">(${f})</span>`;
-          document.getElementById('avisoGuardado').style.display = 'block';
-          document.getElementById('btnOlvidarWrap').style.display = 'block';
+          const infoCat = document.getElementById('infoCat');
+          if (infoCat) infoCat.innerHTML = `✔ <b>${productos.length}</b> productos <span class="small">(${f})</span>`;
+          const ag = document.getElementById('avisoGuardado'); if (ag) ag.style.display = 'block';
+          const bow = document.getElementById('btnOlvidarWrap'); if (bow) bow.style.display = 'block';
         }
       }
       if (Array.isArray(obj.productosManuales)) productosManuales = obj.productosManuales;
@@ -2129,10 +2011,9 @@ function cargarEstado() {
 function olvidarCatalogo() {
   if (!confirm('¿Olvidar catálogo?')) return;
   productos = [];
-  document.getElementById('infoCat').textContent = '';
-  document.getElementById('diag').textContent = '';
-  document.getElementById('avisoGuardado').style.display = 'none';
-  document.getElementById('btnOlvidarWrap').style.display = 'none';
+  setText('infoCat', ''); setText('diag', '');
+  const ag = document.getElementById('avisoGuardado'); if (ag) ag.style.display = 'none';
+  const bow = document.getElementById('btnOlvidarWrap'); if (bow) bow.style.display = 'none';
   guardarEstado();
   renderInvTopStats();
   renderBaseDatosStats();
@@ -2146,11 +2027,12 @@ async function procesarPDF(event) {
   const info = document.getElementById('infoCat');
   const diag = document.getElementById('diag');
   const bdInfoPdf = document.getElementById('bdInfoPdf');
-  loader.style.display = 'block';
-  info.textContent = ''; diag.textContent = '';
+  if (loader) loader.style.display = 'block';
+  if (info) info.textContent = '';
+  if (diag) diag.textContent = '';
   if (bdInfoPdf) bdInfoPdf.textContent = '';
-  document.getElementById('avisoGuardado').style.display = 'none';
-  document.getElementById('btnOlvidarWrap').style.display = 'none';
+  const ag = document.getElementById('avisoGuardado'); if (ag) ag.style.display = 'none';
+  const bow = document.getElementById('btnOlvidarWrap'); if (bow) bow.style.display = 'none';
   productos = [];
   let linTot = 0, linSinSKU = 0, linSinPrecio = 0, pagErr = 0;
   try {
@@ -2158,7 +2040,7 @@ async function procesarPDF(event) {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     const totalPag = pdf.numPages;
     for (let p = 1; p <= totalPag; p++) {
-      loader.textContent = `⏳ Página ${p} / ${totalPag} · ${productos.length} productos…`;
+      if (loader) loader.textContent = `⏳ Página ${p} / ${totalPag} · ${productos.length} productos…`;
       try {
         const page = await pdf.getPage(p);
         const content = await page.getTextContent();
@@ -2182,20 +2064,20 @@ async function procesarPDF(event) {
       } catch (errP) { pagErr++; }
       await new Promise(r => setTimeout(r, 0));
     }
-    loader.style.display = 'none';
-    info.innerHTML = `✔ <b>${productos.length}</b> productos · ${totalPag} páginas`;
-    diag.textContent = `${linTot} líneas · ${linSinSKU} sin SKU · ${linSinPrecio} sin precio · ${pagErr} errores`;
+    if (loader) loader.style.display = 'none';
+    if (info) info.innerHTML = `✔ <b>${productos.length}</b> productos · ${totalPag} páginas`;
+    if (diag) diag.textContent = `${linTot} líneas · ${linSinSKU} sin SKU · ${linSinPrecio} sin precio · ${pagErr} errores`;
     if (bdInfoPdf) bdInfoPdf.innerHTML = `✔ <b>${productos.length}</b> productos cargados`;
     if (!productos.length) alert('No se detectaron productos.');
     else {
       guardarEstado();
-      document.getElementById('avisoGuardado').style.display = 'block';
-      document.getElementById('btnOlvidarWrap').style.display = 'block';
+      if (ag) ag.style.display = 'block';
+      if (bow) bow.style.display = 'block';
       renderInvTopStats();
       renderBaseDatosStats();
     }
   } catch (err) {
-    loader.style.display = 'none';
+    if (loader) loader.style.display = 'none';
     alert('Error: ' + err.message);
   }
 }
@@ -2203,8 +2085,7 @@ function parsearLinea(texto) {
   const limpio = texto.replace(/\s+/g, ' ').trim();
   if (!limpio) return 'vacio';
   const partes = limpio.split(' ');
-  let skuIndex = -1;
-  let skuCompleto = null;
+  let skuIndex = -1, skuCompleto = null;
   for (let i = 0; i < Math.min(partes.length, 3); i++) {
     if (i + 1 < partes.length) {
       const juntos = partes[i] + ' ' + partes[i+1];
@@ -2217,8 +2098,7 @@ function parsearLinea(texto) {
   const consumo = skuCompleto ? 2 : 1;
   const resto = partes.slice(skuIndex + consumo).join(' ');
   if (/^DESCRIPCI/i.test(resto)) return 'header';
-  const precios = [...resto.matchAll(/\$?\s*([0-9]{1,3}(?:,[0-9]{3})*\.[0-9]{2})/g)]
-    .map(m => parseFloat(m[1].replace(/,/g, ''))).filter(n => !isNaN(n));
+  const precios = [...resto.matchAll(/\$?\s*([0-9]{1,3}(?:,[0-9]{3})*\.[0-9]{2})/g)].map(m => parseFloat(m[1].replace(/,/g, ''))).filter(n => !isNaN(n));
   if (!precios.length) return 'sinPrecio';
   const precio = precios[precios.length - 1];
   const descripcion = resto
@@ -2238,12 +2118,12 @@ function olvidarInventario() {
   const tieneConteo = Object.keys(inventarioConteo).length > 0;
   const tieneVentas = getVentasActuales().length > 0;
   if (!tieneBase && !tieneConteo && !tieneVentas) { toast('No hay nada que borrar'); return; }
-  let mensaje = `Vas a borrar de <b>${s.nombre}</b>:<br><br>`;
-  if (tieneBase) mensaje += `• El Excel del sistema (${inventarioBase.length} productos)<br>`;
-  if (tieneConteo) mensaje += `• El conteo capturado (${Object.keys(inventarioConteo).length} productos)<br>`;
-  if (tieneVentas) mensaje += `• Las ventas registradas (${getVentasActuales().length} ventas)<br>`;
-  mensaje += `<br>¿Confirmas?`;
-  if (!confirm(mensaje.replace(/<br>/g, '\n').replace(/<b>|<\/b>/g, ''))) return;
+  let mensaje = `Vas a borrar de "${s.nombre}":\n\n`;
+  if (tieneBase) mensaje += `• El Excel del sistema (${inventarioBase.length} productos)\n`;
+  if (tieneConteo) mensaje += `• El conteo capturado (${Object.keys(inventarioConteo).length} productos)\n`;
+  if (tieneVentas) mensaje += `• Las ventas registradas (${getVentasActuales().length} ventas)\n`;
+  mensaje += `\n¿Confirmas?`;
+  if (!confirm(mensaje)) return;
   inventarioBase = [];
   inventarioConteo = {};
   ventasPorSucursal[sucursalActual] = [];
@@ -2254,13 +2134,13 @@ function olvidarInventario() {
     inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
   }
   guardarInventarios(); guardarVentas();
-  document.getElementById('invInfo').textContent = '';
-  document.getElementById('invBtnOlvidarWrap').style.display = 'none';
-  document.getElementById('invPanelContar').style.display = 'none';
-  document.getElementById('invPanelResumen').style.display = 'none';
-  document.getElementById('invAcciones').style.display = 'none';
-  document.getElementById('invResultados').innerHTML = '';
-  document.getElementById('invBusqueda').value = '';
+  setText('invInfo', '');
+  const bow = document.getElementById('invBtnOlvidarWrap'); if (bow) bow.style.display = 'none';
+  const ipc = document.getElementById('invPanelContar'); if (ipc) ipc.style.display = 'none';
+  const ipr = document.getElementById('invPanelResumen'); if (ipr) ipr.style.display = 'none';
+  const ia = document.getElementById('invAcciones'); if (ia) ia.style.display = 'none';
+  const ir = document.getElementById('invResultados'); if (ir) ir.innerHTML = '';
+  setVal('invBusqueda', '');
   actualizarInfoSnapshot();
   renderBaseDatosStats();
   toast('🗑 Inventario borrado');
@@ -2286,31 +2166,20 @@ async function procesarInventario(event) {
 }
 function preguntarReemplazoExcel(contadosCount, fechaAnterior) {
   return new Promise(resolve => {
-    const msg = `
-      <b>Ya tienes un inventario en proceso.</b><br><br>
+    const msg = `<b>Ya tienes un inventario en proceso.</b><br><br>
       📸 Referencia actual: <b>${fmtFecha(fechaAnterior)}</b><br>
-      ✅ Productos contados: <b>${contadosCount}</b><br><br>
-      <b>🔄 Solo actualizar los NO contados:</b><br>
-      Los ${contadosCount} ya contados se quedan igual.<br><br>
-      <b>📸 Reemplazar TODA la referencia:</b><br>
-      Se actualiza toda la referencia.
-    `;
+      ✅ Productos contados: <b>${contadosCount}</b>`;
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;padding:15px;';
-    modal.innerHTML = `
-      <div style="background:white;border-radius:12px;padding:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;">
+    modal.innerHTML = `<div style="background:white;border-radius:12px;padding:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;">
         <h3 style="margin-top:0;color:#1a3a6b;">📊 Nuevo Excel detectado</h3>
         <div style="background:#e3f2fd;padding:12px;border-radius:8px;font-size:13px;line-height:1.6;border-left:4px solid #1a5fbf;">${msg}</div>
         <button class="verde" style="width:100%;text-align:left;padding:14px;margin-top:14px;margin-bottom:8px;" id="btnSoloNoContados">
-          <div style="font-size:15px;font-weight:bold;margin-bottom:4px;">🔄 Solo actualizar los NO contados</div>
-        </button>
+          <div style="font-size:15px;font-weight:bold;">🔄 Solo actualizar los NO contados</div></button>
         <button class="amarillo" style="width:100%;text-align:left;padding:14px;margin-bottom:8px;" id="btnTodo">
-          <div style="font-size:15px;font-weight:bold;margin-bottom:4px;">📸 Reemplazar TODA la referencia</div>
-        </button>
+          <div style="font-size:15px;font-weight:bold;">📸 Reemplazar TODA la referencia</div></button>
         <button class="gris" style="width:100%;text-align:left;padding:14px;" id="btnCancelar">
-          <div style="font-size:15px;font-weight:bold;">❌ Cancelar</div>
-        </button>
-      </div>`;
+          <div style="font-size:15px;font-weight:bold;">❌ Cancelar</div></button></div>`;
     document.body.appendChild(modal);
     modal.querySelector('#btnSoloNoContados').onclick = () => { modal.remove(); resolve('noContados'); };
     modal.querySelector('#btnTodo').onclick = () => { modal.remove(); resolve('todo'); };
@@ -2337,17 +2206,11 @@ async function cargarExcelInventario(file, modoCarga) {
     }
     if (headerIdx < 0) { alert('No se encontraron encabezados.'); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; return; }
     const header = rows[headerIdx].map(x => String(x || '').toUpperCase().trim());
-    const findCol = (...keys) => {
-      for (let i = 0; i < header.length; i++) {
-        const h = header[i];
-        if (keys.some(k => h.includes(k))) return i;
-      }
-      return -1;
-    };
-    const idxSku = findCol('CLAVE', 'SKU', 'CODIGO', 'CÓDIGO', 'REX');
+    const findCol = (...keys) => { for (let i = 0; i < header.length; i++) { const h = header[i]; if (keys.some(k => h.includes(k))) return i; } return -1; };
+    const idxSku = findCol('CLAVE','SKU','CODIGO','CÓDIGO','REX');
     const idxDesc = findCol('DESCRIPCI');
     const idxPrecio = findCol('PRECIO');
-    const idxExis = findCol('EXIS', 'EXIST', 'CANTIDAD', 'INV ACTUAL');
+    const idxExis = findCol('EXIS','EXIST','CANTIDAD','INV ACTUAL');
     if (idxSku < 0 || idxExis < 0) { alert('Falta Clave o Exis.'); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; return; }
     const nuevos = [];
     const skusVistos = new Set();
@@ -2364,34 +2227,23 @@ async function cargarExcelInventario(file, modoCarga) {
       const precio = parseFloat(String(precioRaw).replace(/[^0-9.\-]/g, '')) || 0;
       const exisRaw = r[idxExis];
       const exis = parseFloat(String(exisRaw).replace(/[^0-9.\-]/g, '')) || 0;
-      if (skusVistos.has(sku)) {
-        const prev = nuevos.find(p => p.sku === sku);
-        if (prev) prev.exis += exis;
-        continue;
-      }
+      if (skusVistos.has(sku)) { const prev = nuevos.find(p => p.sku === sku); if (prev) prev.exis += exis; continue; }
       skusVistos.add(sku);
       nuevos.push({ sku, descripcion, precio, exis });
     }
     if (modoCarga === 'noContados') {
       const nuevosMap = new Map();
       nuevos.forEach(p => nuevosMap.set(p.sku, p));
-      inventarioBase = inventarioBase.map(p => {
-        if (inventarioConteo[p.sku] !== undefined) return p;
-        return nuevosMap.get(p.sku) || p;
-      });
-      nuevos.forEach(p => {
-        if (!inventarioBase.some(x => x.sku === p.sku)) inventarioBase.push(p);
-      });
-    } else {
-      inventarioBase = nuevos;
-    }
+      inventarioBase = inventarioBase.map(p => { if (inventarioConteo[p.sku] !== undefined) return p; return nuevosMap.get(p.sku) || p; });
+      nuevos.forEach(p => { if (!inventarioBase.some(x => x.sku === p.sku)) inventarioBase.push(p); });
+    } else { inventarioBase = nuevos; }
     setFechaCargaBase(new Date().toISOString());
     persistirInventarioActual();
     const msg = `✔ <b>${inventarioBase.length}</b> productos (${s.nombre})`;
     if (info) info.innerHTML = msg;
     if (infoBD) infoBD.innerHTML = msg;
-    document.getElementById('invBtnOlvidarWrap').style.display = 'block';
-    document.getElementById('invPanelContar').style.display = 'block';
+    const bow = document.getElementById('invBtnOlvidarWrap'); if (bow) bow.style.display = 'block';
+    const ipc = document.getElementById('invPanelContar'); if (ipc) ipc.style.display = 'block';
     renderInvTopStats();
     renderInventario();
     renderBaseDatosStats();
@@ -2406,34 +2258,27 @@ function toggleModoPz() {
   const btn = document.getElementById('btnModoPz');
   const info = document.getElementById('modoPzInfo');
   if (modoEscanearPz) {
-    btn.textContent = '⚡ Modo PZ: ACTIVO';
-    btn.className = 'modo-activo';
-    info.style.display = 'block';
+    if (btn) { btn.textContent = '⚡ Modo PZ: ACTIVO'; btn.className = 'modo-activo'; }
+    if (info) info.style.display = 'block';
     toast('⚡ Modo escaneo por pieza ACTIVADO', 'warn');
     feedbackExito();
   } else {
-    btn.textContent = '⚡ Modo PZ: Desactivado';
-    btn.className = 'gris';
-    info.style.display = 'none';
+    if (btn) { btn.textContent = '⚡ Modo PZ: Desactivado'; btn.className = 'gris'; }
+    if (info) info.style.display = 'none';
     toast('Modo normal');
   }
 }
 function escanearPorPieza(codigo) {
   const items = skusDeCodigo(codigo);
   let p = null;
-  if (items.length === 1) {
-    p = inventarioBase.find(x => x.sku.toUpperCase() === items[0].sku.toUpperCase());
-  } else if (items.length > 1) {
+  if (items.length === 1) p = inventarioBase.find(x => x.sku.toUpperCase() === items[0].sku.toUpperCase());
+  else if (items.length > 1) {
     const candidatos = items.map(it => inventarioBase.find(x => x.sku.toUpperCase() === it.sku.toUpperCase())).filter(Boolean);
     if (candidatos.length === 1) p = candidatos[0];
     else if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, 'inventario'); return; }
   }
   if (!p) p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
-  if (!p) {
-    feedbackError();
-    toast('❌ No encontrado: ' + codigo, 'error');
-    return;
-  }
+  if (!p) { feedbackError(); toast('❌ No encontrado: ' + codigo, 'error'); return; }
   const actual = inventarioConteo[p.sku] || 0;
   const nuevo = actual + 1;
   const esperado = p.exis;
@@ -2442,11 +2287,9 @@ function escanearPorPieza(codigo) {
   if (nuevo > ajustado) {
     feedbackAlerta();
     superaTotalPendiente = { producto: p, cantidadNueva: nuevo, ajustado, cantidadAnterior: actual };
-    document.getElementById('superaTotalInfo').innerHTML = `
-      <b>${p.sku}</b><br>${p.descripcion}<br><br>
-      Ya tienes <b>${actual}</b> contado(s) de un total esperado de <b>${ajustado}</b>.<br>
-      Estás intentando guardar <b>${nuevo}</b>.<br><br>¿Es correcto?`;
-    document.getElementById('modalSuperaTotal').classList.add('activo');
+    const el = document.getElementById('superaTotalInfo');
+    if (el) el.innerHTML = `<b>${p.sku}</b><br>${p.descripcion}<br><br>Ya tienes <b>${actual}</b> contado(s) de un total esperado de <b>${ajustado}</b>.<br>Estás intentando guardar <b>${nuevo}</b>.<br><br>¿Es correcto?`;
+    const m = document.getElementById('modalSuperaTotal'); if (m) m.classList.add('activo');
     return;
   }
   inventarioConteo[p.sku] = nuevo;
@@ -2460,12 +2303,12 @@ function escanearPorPieza(codigo) {
 }
 function confirmarSuperaTotal() {
   if (!superaTotalPendiente) return;
-  const { producto, cantidadNueva, ajustado, cantidadAnterior } = superaTotalPendiente;
+  const { producto, cantidadNueva, cantidadAnterior } = superaTotalPendiente;
   inventarioConteo[producto.sku] = cantidadNueva;
   setHoraConteoPorSku(producto.sku, new Date().toISOString());
   ultimoEscanerPz = { sku: producto.sku, cantidadAnterior };
   persistirInventarioActual();
-  document.getElementById('modalSuperaTotal').classList.remove('activo');
+  const m = document.getElementById('modalSuperaTotal'); if (m) m.classList.remove('activo');
   superaTotalPendiente = null;
   feedbackExito();
   toast(`⚠️ ${producto.sku} = ${cantidadNueva} (supera el esperado)`, 'warn');
@@ -2473,7 +2316,7 @@ function confirmarSuperaTotal() {
   renderInventario();
 }
 function deshacerUltimoEscaner() {
-  document.getElementById('modalSuperaTotal').classList.remove('activo');
+  const m = document.getElementById('modalSuperaTotal'); if (m) m.classList.remove('activo');
   superaTotalPendiente = null;
   feedbackExito();
   toast('↩ Escaneo cancelado');
@@ -2482,38 +2325,38 @@ function deshacerUltimoEscaner() {
 /* ============ VENTAS ============ */
 function abrirRegistrarVenta() {
   ventaProductoSel = null;
-  document.getElementById('ventaBusqueda').value = '';
-  document.getElementById('ventaResultados').innerHTML = '';
-  document.getElementById('ventaProductoSel').style.display = 'none';
-  document.getElementById('btnConfirmarVenta').disabled = true;
+  setVal('ventaBusqueda', '');
+  const vr = document.getElementById('ventaResultados'); if (vr) vr.innerHTML = '';
+  const vps = document.getElementById('ventaProductoSel'); if (vps) vps.style.display = 'none';
+  const bcv = document.getElementById('btnConfirmarVenta'); if (bcv) bcv.disabled = true;
   renderVentasHoy();
-  document.getElementById('modalRegistrarVenta').classList.add('activo');
-  setTimeout(() => document.getElementById('ventaBusqueda').focus(), 100);
+  const m = document.getElementById('modalRegistrarVenta'); if (m) m.classList.add('activo');
+  setTimeout(() => { const i = document.getElementById('ventaBusqueda'); if (i) i.focus(); }, 100);
 }
 function cerrarModalRegistrarVenta() {
-  document.getElementById('modalRegistrarVenta').classList.remove('activo');
+  const m = document.getElementById('modalRegistrarVenta'); if (m) m.classList.remove('activo');
   ventaProductoSel = null;
 }
 function buscarProductoParaVenta() {
-  const q = document.getElementById('ventaBusqueda').value.toLowerCase().trim();
+  const inp = document.getElementById('ventaBusqueda');
+  const q = inp ? inp.value.toLowerCase().trim() : '';
   const cont = document.getElementById('ventaResultados');
+  if (!cont) return;
   if (!q) { cont.innerHTML = ''; return; }
   if (!inventarioBase.length) { cont.innerHTML = '<p class="small">Carga el Excel primero.</p>'; return; }
-  const res = inventarioBase.filter(p =>
-    p.sku.toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q)
-  ).slice(0, 20);
+  const res = inventarioBase.filter(p => p.sku.toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q)).slice(0, 20);
   if (!res.length) { cont.innerHTML = '<p class="small">Sin resultados.</p>'; return; }
   cont.innerHTML = '<table><thead><tr><th>SKU</th><th>Descripción</th><th>Exis</th><th></th></tr></thead><tbody>' +
     res.map(p => `<tr class="resultado" onclick="seleccionarParaVenta('${p.sku.replace(/'/g, "\\'")}')">
       <td>${p.sku}</td><td>${p.descripcion || ''}</td>
       <td style="text-align:right; font-family:monospace;">${p.exis}</td>
-      <td style="text-align:center;">→</td>
-    </tr>`).join('') + '</tbody></table>';
+      <td style="text-align:center;">→</td></tr>`).join('') + '</tbody></table>';
 }
 function teclaVenta(e) {
   if (e.key === 'Enter') {
     e.preventDefault();
-    const q = document.getElementById('ventaBusqueda').value.trim().toUpperCase();
+    const inp = document.getElementById('ventaBusqueda');
+    const q = inp ? inp.value.trim().toUpperCase() : '';
     if (!q) return;
     const items = skusDeCodigo(q);
     let p = null;
@@ -2530,26 +2373,24 @@ function seleccionarParaVenta(sku) {
   ventaProductoSel = p;
   const yaContado = inventarioConteo[p.sku] !== undefined;
   const vendido = totalVendidoDeSku(p.sku);
-  document.getElementById('ventaInfo').innerHTML = `
+  const vi = document.getElementById('ventaInfo');
+  if (vi) vi.innerHTML = `
     <div style="font-weight:bold; color:#1a3a6b; font-size:15px;">${p.sku}</div>
     <div class="small" style="margin-top:4px;">${p.descripcion || ''}</div>
     <div class="small" style="margin-top:6px;">Exis: <b>${p.exis}</b> · Vendido hoy: <b>${vendido}</b></div>
     ${yaContado ? '<div class="small" style="margin-top:6px; color:#1e8449;">✅ Ya contado</div>' : '<div class="small" style="margin-top:6px; color:#e67e22;">⚠️ Aún no contado</div>'}`;
-  document.getElementById('ventaProductoSel').style.display = 'block';
-  document.getElementById('btnConfirmarVenta').disabled = false;
-  document.getElementById('ventaCantidad').value = 1;
-  document.getElementById('ventaCantidad').focus();
-  document.getElementById('ventaCantidad').select();
+  const vps = document.getElementById('ventaProductoSel'); if (vps) vps.style.display = 'block';
+  const bcv = document.getElementById('btnConfirmarVenta'); if (bcv) bcv.disabled = false;
+  const vc = document.getElementById('ventaCantidad');
+  if (vc) { vc.value = 1; vc.focus(); vc.select(); }
 }
 function confirmarVenta() {
   if (!ventaProductoSel) return;
-  const cant = Math.max(1, parseInt(document.getElementById('ventaCantidad').value) || 1);
+  const vc = document.getElementById('ventaCantidad');
+  const cant = Math.max(1, parseInt(vc ? vc.value : 1) || 1);
   const p = ventaProductoSel;
   if (!ventasPorSucursal[sucursalActual]) ventasPorSucursal[sucursalActual] = [];
-  ventasPorSucursal[sucursalActual].push({
-    sku: p.sku, descripcion: p.descripcion || '', cantidad: cant,
-    hora: new Date().toISOString(), usuario: usuarioLogueado
-  });
+  ventasPorSucursal[sucursalActual].push({ sku: p.sku, descripcion: p.descripcion || '', cantidad: cant, hora: new Date().toISOString(), usuario: usuarioLogueado });
   guardarVentas();
   feedbackExito();
   toast(`🛒 Venta registrada: ${cant} × ${p.sku}`, 'warn');
@@ -2558,16 +2399,17 @@ function confirmarVenta() {
   renderInventario();
   actualizarInfoSnapshot();
   ventaProductoSel = null;
-  document.getElementById('ventaBusqueda').value = '';
-  document.getElementById('ventaResultados').innerHTML = '';
-  document.getElementById('ventaProductoSel').style.display = 'none';
-  document.getElementById('btnConfirmarVenta').disabled = true;
-  document.getElementById('ventaBusqueda').focus();
+  setVal('ventaBusqueda', '');
+  const vr = document.getElementById('ventaResultados'); if (vr) vr.innerHTML = '';
+  const vps = document.getElementById('ventaProductoSel'); if (vps) vps.style.display = 'none';
+  const bcv = document.getElementById('btnConfirmarVenta'); if (bcv) bcv.disabled = true;
+  const vbi = document.getElementById('ventaBusqueda'); if (vbi) vbi.focus();
 }
 function renderVentasHoy() {
   const ventas = getVentasActuales();
-  document.getElementById('contVentas').textContent = ventas.length;
+  setText('contVentas', ventas.length);
   const cont = document.getElementById('listaVentasHoy');
+  if (!cont) return;
   if (!ventas.length) { cont.innerHTML = '<p class="small">Sin ventas registradas</p>'; return; }
   const ordenadas = ventas.map((v, i) => ({ ...v, idx: i })).reverse().slice(0, 30);
   cont.innerHTML = ordenadas.map(v => `
@@ -2579,19 +2421,14 @@ function renderVentasHoy() {
       </div>
       <div style="font-weight:bold; color:#7a3d00; font-size:16px;">${v.cantidad}</div>
       <button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="eliminarVenta(${v.idx})">🗑</button>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 function eliminarVenta(idx) {
   const ventas = getVentasActuales();
   if (idx < 0 || idx >= ventas.length) return;
   const v = ventas[idx];
   pedirConfirmacionPassAdmin('🗑 Eliminar venta',
-    `¿Eliminar la venta?<br><br>
-    <b>${v.sku}</b><br>${v.descripcion || ''}<br>
-    Cantidad: <b>${v.cantidad}</b><br>
-    Hora: ${fmtHora(v.hora)}<br>
-    Registrada por: @${v.usuario}`,
+    `¿Eliminar la venta?<br><br><b>${v.sku}</b><br>${v.descripcion || ''}<br>Cantidad: <b>${v.cantidad}</b><br>Hora: ${fmtHora(v.hora)}`,
     () => {
       ventas.splice(idx, 1);
       guardarVentas();
@@ -2643,17 +2480,12 @@ function renderManuales() {
   const cont = document.getElementById('bdContManuales');
   if (cont) cont.textContent = productosManuales.length;
   if (!tb) return;
-  const filtro = (document.getElementById('bdFiltroManuales')?.value || '').toLowerCase().trim();
-  const lista = productosManuales.filter(p =>
-    !filtro || p.sku.toLowerCase().includes(filtro) || (p.descripcion || '').toLowerCase().includes(filtro)
-  );
-  if (!lista.length) {
-    tb.innerHTML = '<tr><td colspan="6" class="small" style="text-align:center; padding:20px;">Sin productos manuales</td></tr>';
-    return;
-  }
+  const inp = document.getElementById('bdFiltroManuales');
+  const filtro = (inp ? inp.value : '').toLowerCase().trim();
+  const lista = productosManuales.filter(p => !filtro || p.sku.toLowerCase().includes(filtro) || (p.descripcion || '').toLowerCase().includes(filtro));
+  if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" class="small" style="text-align:center; padding:20px;">Sin productos manuales</td></tr>'; return; }
   tb.innerHTML = lista.map(p => `
-    <tr>
-      <td style="font-family:monospace;">${p.sku}</td>
+    <tr><td style="font-family:monospace;">${p.sku}</td>
       <td class="small">${p.descripcion || ''}</td>
       <td class="small">@${p.creadoPor || '—'}</td>
       <td class="small">${p.sucursal ? (getSucursal(p.sucursal)?.abrev || p.sucursal) : '—'}</td>
@@ -2672,14 +2504,14 @@ function eliminarManual(sku) {
   toast('🗑 Producto eliminado');
 }
 function invBuscar() {
-  const q = document.getElementById('invBusqueda').value.toLowerCase().trim();
+  const inp = document.getElementById('invBusqueda');
+  const q = inp ? inp.value.toLowerCase().trim() : '';
   const cont = document.getElementById('invResultados');
+  if (!cont) return;
   invIndiceSel = -1;
   if (!q) { cont.innerHTML = ''; invResultados = []; return; }
   if (!inventarioBase.length) { cont.innerHTML = '<p class="small">Primero sube el Reporte de Inventario.</p>'; return; }
-  invResultados = inventarioBase.filter(p =>
-    p.sku.toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q)
-  ).slice(0, 30);
+  invResultados = inventarioBase.filter(p => p.sku.toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q)).slice(0, 30);
   if (!invResultados.length) { cont.innerHTML = '<p class="small">Sin resultados.</p>'; return; }
   const horas = getHoraConteoPorSku();
   cont.innerHTML = '<table><thead><tr><th>SKU</th><th>Descripción</th><th>Exis</th><th></th></tr></thead><tbody>' +
@@ -2690,11 +2522,9 @@ function invBuscar() {
       const chipHora = hora ? `<span class="chip-time">${fmtHora(hora)}</span>` : '';
       const claseExis = p.exis < 0 ? 'neg-num' : '';
       return `<tr class="resultado" data-idx="${i}" onclick="invSeleccionar(${i})">
-        <td>${p.sku}${chip}${chipHora}</td>
-        <td>${p.descripcion || ''}</td>
+        <td>${p.sku}${chip}${chipHora}</td><td>${p.descripcion || ''}</td>
         <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}</td>
-        <td style="text-align:center;">→</td>
-      </tr>`;
+        <td style="text-align:center;">→</td></tr>`;
     }).join('') + '</tbody></table>';
   invIndiceSel = 0;
   invPintarSeleccion();
@@ -2710,20 +2540,12 @@ function invTeclaBusqueda(e) {
   if (e.key === 'Enter') {
     e.preventDefault();
     const inp = document.getElementById('invBusqueda');
-    const q = inp.value.trim();
+    const q = inp ? inp.value.trim() : '';
     if (!q) {
-      if (invUltimoSku) {
-        const p = inventarioBase.find(x => x.sku === invUltimoSku);
-        if (p) { abrirModalConteo(p); return; }
-      }
+      if (invUltimoSku) { const p = inventarioBase.find(x => x.sku === invUltimoSku); if (p) { abrirModalConteo(p); return; } }
       return;
     }
-    if (modoEscanearPz) {
-      inp.value = '';
-      inp.focus();
-      escanearPorPieza(q.toUpperCase());
-      return;
-    }
+    if (modoEscanearPz) { inp.value = ''; inp.focus(); escanearPorPieza(q.toUpperCase()); return; }
     const c = q.toUpperCase();
     const items = skusDeCodigo(c);
     if (items.length === 1) {
@@ -2731,23 +2553,16 @@ function invTeclaBusqueda(e) {
       if (p) { inp.value = ''; abrirModalConteo(p); return; }
     } else if (items.length > 1) {
       const candidatos = [];
-      items.forEach(it => {
-        const p = inventarioBase.find(x => x.sku.toUpperCase() === it.sku.toUpperCase());
-        if (p) candidatos.push(p);
-      });
+      items.forEach(it => { const p = inventarioBase.find(x => x.sku.toUpperCase() === it.sku.toUpperCase()); if (p) candidatos.push(p); });
       if (candidatos.length === 1) { inp.value = ''; abrirModalConteo(candidatos[0]); return; }
       if (candidatos.length > 1) { inp.value = ''; mostrarElegirProducto(c, candidatos, 'inventario'); return; }
     }
     let p = inventarioBase.find(x => x.sku.toUpperCase() === c);
     if (p) { inp.value = ''; abrirModalConteo(p); return; }
     if (invResultados.length && invIndiceSel >= 0) { invSeleccionar(invIndiceSel); return; }
-    // *** NO ENCONTRADO: ofrecer agregar como producto nuevo ***
     feedbackError();
-    const codigoNoEnc = c;
     inp.value = '';
-    if (confirm(`❌ No se encontró el código: ${codigoNoEnc}\n\n¿Quieres agregarlo como producto nuevo?`)) {
-      abrirModalNuevoProductoDesdeInventario(codigoNoEnc);
-    }
+    if (confirm(`❌ No se encontró el código: ${c}\n\n¿Quieres agregarlo como producto nuevo?`)) abrirModalNuevoProductoDesdeInventario(c);
     return;
   }
   if (!invResultados.length) return;
@@ -2755,83 +2570,76 @@ function invTeclaBusqueda(e) {
   else if (e.key === 'ArrowUp') { e.preventDefault(); invIndiceSel = Math.max(invIndiceSel - 1, 0); invPintarSeleccion(); }
 }
 function abrirModalNuevoProductoDesdeInventario(codigo) {
-  document.getElementById('npSku').value = (codigo || '').toUpperCase();
-  document.getElementById('npDesc').value = '';
-  document.getElementById('npUm').value = 'PIEZA';
-  document.getElementById('npPrecio').value = '';
-  document.getElementById('modalNuevoProducto').classList.add('activo');
-  setTimeout(() => document.getElementById('npDesc').focus(), 100);
+  setVal('npSku', (codigo || '').toUpperCase());
+  setVal('npDesc', ''); setVal('npUm', 'PIEZA'); setVal('npPrecio', '');
+  const m = document.getElementById('modalNuevoProducto'); if (m) m.classList.add('activo');
+  setTimeout(() => { const i = document.getElementById('npDesc'); if (i) i.focus(); }, 100);
 }
-function invSeleccionar(i) {
-  const p = invResultados[i];
-  if (!p) return;
-  abrirModalConteo(p);
-}
+function invSeleccionar(i) { const p = invResultados[i]; if (p) abrirModalConteo(p); }
 function abrirModalConteo(p) {
   invProductoActual = p;
   const contado = inventarioConteo[p.sku];
   const fechaBase = getFechaCargaBase();
   const vendido = totalVendidoDeSku(p.sku);
   const ajustado = p.exis - vendido;
-  document.getElementById('conteoInfoProducto').innerHTML = `
+  const cip = document.getElementById('conteoInfoProducto');
+  if (cip) cip.innerHTML = `
     <div style="font-weight:bold; font-size:15px; color:#1a3a6b;">${p.sku}</div>
     <div class="small" style="margin-top:4px;">${p.descripcion || ''}</div>
     ${fechaBase ? '<div class="small" style="margin-top:4px; color:#8e24aa;">📸 Referencia: ' + fmtFecha(fechaBase) + '</div>' : ''}
     ${vendido > 0 ? '<div class="small" style="margin-top:4px; color:#e67e22;">🛒 Vendido hoy: ' + vendido + '</div>' : ''}`;
   const claseExis = p.exis < 0 ? 'color:#c0392b;' : 'color:#1a3a6b;';
-  document.getElementById('conteoSistema').innerHTML = `
+  const cs = document.getElementById('conteoSistema');
+  if (cs) cs.innerHTML = `
     <div class="small" style="color:#666;">SISTEMA DICE QUE HAY</div>
     <div style="font-size:32px; font-weight:bold; ${claseExis}">${p.exis}</div>
     ${vendido > 0 ? '<div class="small" style="color:#e67e22; margin-top:4px;">Ajustado por ventas: <b>' + ajustado + '</b></div>' : ''}
-    ${p.exis < 0 ? '<div class="small" style="color:#c0392b; font-weight:bold;">⚠️ NEGATIVO - Revisar</div>' : ''}
+    ${p.exis < 0 ? '<div class="small" style="color:#c0392b; font-weight:bold;">⚠️ NEGATIVO</div>' : ''}
     ${contado !== undefined ? '<div class="small" style="margin-top:6px; color:#1e8449;">Contado antes: <b>' + contado + '</b></div>' : ''}`;
   const inp = document.getElementById('inputConteo');
-  inp.value = contado !== undefined ? contado : '';
-  document.getElementById('btnQuitarConteoWrap').style.display = contado !== undefined ? 'block' : 'none';
-  document.getElementById('modalConteo').classList.add('activo');
-  setTimeout(() => { inp.focus(); inp.select(); }, 100);
+  if (inp) inp.value = contado !== undefined ? contado : '';
+  const bqcw = document.getElementById('btnQuitarConteoWrap'); if (bqcw) bqcw.style.display = contado !== undefined ? 'block' : 'none';
+  const m = document.getElementById('modalConteo'); if (m) m.classList.add('activo');
+  setTimeout(() => { if (inp) { inp.focus(); inp.select(); } }, 100);
 }
 function cerrarModalConteo() {
-  document.getElementById('modalConteo').classList.remove('activo');
+  const m = document.getElementById('modalConteo'); if (m) m.classList.remove('activo');
   invProductoActual = null;
   const inp = document.getElementById('invBusqueda');
-  inp.focus();
-  setTimeout(() => { if (inp.value) inp.select(); }, 50);
+  if (inp) { inp.focus(); setTimeout(() => { if (inp.value) inp.select(); }, 50); }
 }
 function confirmarConteo() {
   if (!invProductoActual) return;
-  const cant = Math.max(0, parseInt(document.getElementById('inputConteo').value) || 0);
+  const inp = document.getElementById('inputConteo');
+  const cant = Math.max(0, parseInt(inp ? inp.value : 0) || 0);
   inventarioConteo[invProductoActual.sku] = cant;
   setHoraConteoPorSku(invProductoActual.sku, new Date().toISOString());
   invUltimoSku = invProductoActual.sku;
   persistirInventarioActual();
   feedbackExito();
   toast(`✔ ${invProductoActual.sku} = ${cant}`);
-  const inp = document.getElementById('invBusqueda');
-  inp.value = invProductoActual.sku;
+  const bi = document.getElementById('invBusqueda');
+  if (bi) bi.value = invProductoActual.sku;
   invProductoActual = null;
-  document.getElementById('modalConteo').classList.remove('activo');
+  const m = document.getElementById('modalConteo'); if (m) m.classList.remove('activo');
   renderInvTopStats();
   renderInventario();
-  inp.focus();
-  setTimeout(() => { inp.select(); }, 50);
+  if (bi) { bi.focus(); setTimeout(() => bi.select(), 50); }
 }
 function quitarConteoActual() {
   if (!invProductoActual) return;
   const p = invProductoActual;
   if (!confirm(`¿Quitar el conteo de este producto?\n\n${p.sku}\n${p.descripcion || ''}`)) return;
   delete inventarioConteo[p.sku];
-  if (inventariosPorSucursal[sucursalActual] && inventariosPorSucursal[sucursalActual].horaConteoPorSku) {
-    delete inventariosPorSucursal[sucursalActual].horaConteoPorSku[p.sku];
-  }
+  if (inventariosPorSucursal[sucursalActual] && inventariosPorSucursal[sucursalActual].horaConteoPorSku) delete inventariosPorSucursal[sucursalActual].horaConteoPorSku[p.sku];
   persistirInventarioActual();
-  document.getElementById('modalConteo').classList.remove('activo');
+  const m = document.getElementById('modalConteo'); if (m) m.classList.remove('activo');
   invProductoActual = null;
   feedbackExito();
   toast('🗑 Conteo quitado');
   renderInvTopStats();
   renderInventario();
-  document.getElementById('invBusqueda').focus();
+  const bi = document.getElementById('invBusqueda'); if (bi) bi.focus();
 }
 function renderInventario() {
   const tb = document.querySelector('#tablaInventario tbody');
@@ -2860,23 +2668,19 @@ function renderInventario() {
     totalDifPiezas += d;
   });
   const statsEl = document.getElementById('invStats');
-  statsEl.innerHTML = `
+  if (statsEl) statsEl.innerHTML = `
     <div class="inv-stat ok"><div class="num">${cuadran}</div><div class="lbl">Cuadran</div></div>
     <div class="inv-stat ${sobrantes ? 'ok' : ''}"><div class="num">${sobrantes}</div><div class="lbl">Sobrantes</div></div>
     <div class="inv-stat ${faltantes ? 'err' : ''}"><div class="num">${faltantes}</div><div class="lbl">Faltantes</div></div>
     <div class="inv-stat ${negEnSistema ? 'err' : ''}"><div class="num">${negEnSistema}</div><div class="lbl">Neg. sistema</div></div>
     <div class="inv-stat ${totalDifMxn > 0 ? 'ok' : (totalDifMxn < 0 ? 'err' : '')}">
-      <div class="num">$${totalDifMxn.toFixed(2)}</div><div class="lbl">Dif $</div>
-    </div>
+      <div class="num">$${totalDifMxn.toFixed(2)}</div><div class="lbl">Dif $</div></div>
     <div class="inv-stat ${totalDifPiezas > 0 ? 'ok' : (totalDifPiezas < 0 ? 'err' : '')}">
-      <div class="num">${totalDifPiezas > 0 ? '+' : ''}${totalDifPiezas}</div><div class="lbl">Dif piezas</div>
-    </div>`;
-  const filtro = (document.getElementById('invFiltro').value || '').toLowerCase().trim();
+      <div class="num">${totalDifPiezas > 0 ? '+' : ''}${totalDifPiezas}</div><div class="lbl">Dif piezas</div></div>`;
+  const inp = document.getElementById('invFiltro');
+  const filtro = (inp ? inp.value : '').toLowerCase().trim();
   let visibles = rows.filter(p => !filtro || p.sku.toLowerCase().includes(filtro) || (p.descripcion || '').toLowerCase().includes(filtro));
-  if (!visibles.length) {
-    tb.innerHTML = '<tr><td colspan="7" class="small" style="text-align:center; padding:20px;">Sin resultados</td></tr>';
-    return;
-  }
+  if (!visibles.length) { tb.innerHTML = '<tr><td colspan="7" class="small" style="text-align:center; padding:20px;">Sin resultados</td></tr>'; return; }
   tb.innerHTML = visibles.map(p => {
     const c = inventarioConteo[p.sku];
     const vendido = totalVendidoDeSku(p.sku);
@@ -2901,19 +2705,14 @@ function renderInventario() {
 }
 function abrirQuitarConteo(sku) {
   const p = inventarioBase.find(x => x.sku === sku);
-  if (!p) return;
-  invProductoActual = p;
-  abrirModalConteo(p);
+  if (p) { invProductoActual = p; abrirModalConteo(p); }
 }
 function limpiarConteo() {
   if (!Object.keys(inventarioConteo).length) { alert('No hay conteo.'); return; }
   const s = getSucursalActual();
   if (!confirm(`¿Borrar TODO el conteo de "${s.nombre}"?\n\nEl Excel cargado y las ventas se mantienen.`)) return;
   inventarioConteo = {};
-  if (inventariosPorSucursal[sucursalActual]) {
-    inventariosPorSucursal[sucursalActual].conteo = {};
-    inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
-  }
+  if (inventariosPorSucursal[sucursalActual]) { inventariosPorSucursal[sucursalActual].conteo = {}; inventariosPorSucursal[sucursalActual].horaConteoPorSku = {}; }
   guardarInventarios();
   renderInvTopStats();
   renderInventario();
@@ -2921,15 +2720,13 @@ function limpiarConteo() {
   toast('🗑 Conteo borrado');
 }
 
-/* ============ EXPORTAR INVENTARIO CON FORMATO ============ */
+/* ============ EXPORTAR INVENTARIO ============ */
 function exportarInventario() {
   if (!Object.keys(inventarioConteo).length) { alert('No has contado nada.'); return; }
   const s = getSucursalActual();
   const fechaBase = getFechaCargaBase();
   const horas = getHoraConteoPorSku();
   const ventas = getVentasActuales();
-
-  // HOJA 1: RESUMEN con formato
   const aoa1 = [];
   aoa1.push(['Reporte de Inventario Físico', '', '', '', '', '', '', '', '']);
   aoa1.push(['Empresa', nombreEmpresa, '', '', '', '', '', '', '']);
@@ -2942,8 +2739,7 @@ function exportarInventario() {
   let totalDifMxn = 0, totalDifPz = 0;
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   rows.sort((a, b) => {
-    const va = totalVendidoDeSku(a.sku);
-    const vb = totalVendidoDeSku(b.sku);
+    const va = totalVendidoDeSku(a.sku), vb = totalVendidoDeSku(b.sku);
     const da = calcularDif(a.exis - va, inventarioConteo[a.sku]);
     const db = calcularDif(b.exis - vb, inventarioConteo[b.sku]);
     if (a.exis < 0 && b.exis >= 0) return -1;
@@ -2956,28 +2752,18 @@ function exportarInventario() {
     const ajustado = p.exis - vendido;
     const d = calcularDif(ajustado, c);
     const difMxn = d * (p.precio || 0);
-    totalDifMxn += difMxn;
-    totalDifPz += d;
+    totalDifMxn += difMxn; totalDifPz += d;
     aoa1.push([p.sku, p.descripcion || '', p.exis, vendido, ajustado, c, d, p.precio || 0, difMxn]);
   });
   aoa1.push(['', '', '', '', '', 'TOTALES', totalDifPz, '', totalDifMxn]);
-
   const ws1 = XLSX.utils.aoa_to_sheet(aoa1);
   ws1['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 12 }];
-
-  // Estilos encabezado
   const headerRow = fechaBase ? 8 : 7;
   ['A','B','C','D','E','F','G','H','I'].forEach(col => {
     const cell = col + (headerRow + 1);
-    if (ws1[cell]) {
-      ws1[cell].s = { fill: { fgColor: { rgb: '1A5FBF' } }, font: { color: { rgb: 'FFFFFF' }, bold: true },
-                      alignment: { horizontal: 'center', vertical: 'center' } };
-    }
+    if (ws1[cell]) ws1[cell].s = { fill: { fgColor: { rgb: '1A5FBF' } }, font: { color: { rgb: 'FFFFFF' }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' } };
   });
-  // Título grande
   if (ws1['A1']) ws1['A1'].s = { font: { bold: true, sz: 14, color: { rgb: '1A3A6B' } } };
-
-  // Colores por fila
   const inicioDatos = headerRow + 2;
   for (let i = 0; i < rows.length; i++) {
     const filaExcel = inicioDatos + i;
@@ -2986,28 +2772,22 @@ function exportarInventario() {
     const vendido = totalVendidoDeSku(p.sku);
     const ajustado = p.exis - vendido;
     const d = calcularDif(ajustado, c);
-    // Dif y Dif $ con color
-    const celdaG = 'G' + filaExcel;
-    const celdaI = 'I' + filaExcel;
+    const celdaG = 'G' + filaExcel, celdaI = 'I' + filaExcel;
     if (d > 0) {
-      if (!ws1[celdaG]) ws1[celdaG] = {};
-      if (!ws1[celdaI]) ws1[celdaI] = {};
+      if (!ws1[celdaG]) ws1[celdaG] = {}; if (!ws1[celdaI]) ws1[celdaI] = {};
       ws1[celdaG].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
       ws1[celdaI].s = { fill: { fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '006100' }, bold: true } };
     } else if (d < 0) {
-      if (!ws1[celdaG]) ws1[celdaG] = {};
-      if (!ws1[celdaI]) ws1[celdaI] = {};
+      if (!ws1[celdaG]) ws1[celdaG] = {}; if (!ws1[celdaI]) ws1[celdaI] = {};
       ws1[celdaG].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
       ws1[celdaI].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
     }
-    // Vendido en naranja si tiene
     if (vendido > 0) {
-      const celdaD = 'D' + filaExcel;
-      if (!ws1[celdaD]) ws1[celdaD] = {};
-      ws1[celdaD].s = { fill: { fgColor: { rgb: 'FFE0B2' } }, font: { color: { rgb: '7A3D00' }, bold: true } };
+      const cd = 'D' + filaExcel;
+      if (!ws1[cd]) ws1[cd] = {};
+      ws1[cd].s = { fill: { fgColor: { rgb: 'FFE0B2' } }, font: { color: { rgb: '7A3D00' }, bold: true } };
     }
   }
-  // Totales en negrita
   const filaTotal = inicioDatos + rows.length;
   ['A','B','C','D','E','F','G','H','I'].forEach(col => {
     const cell = col + filaTotal;
@@ -3015,7 +2795,6 @@ function exportarInventario() {
     ws1[cell].s = { font: { bold: true }, fill: { fgColor: { rgb: 'E3F2FD' } } };
   });
 
-  // HOJA 2: DETALLE CONTEO
   const aoa2 = [];
   aoa2.push(['Detalle de Conteo (hora por producto)']);
   aoa2.push(['Empresa', nombreEmpresa]);
@@ -3023,27 +2802,14 @@ function exportarInventario() {
   aoa2.push(['Fecha reporte', new Date().toLocaleString('es-MX')]);
   aoa2.push([]);
   aoa2.push(['Clave', 'Descripción', 'Hora conteo', 'Contado', 'UM']);
-  const conteosConHora = rows.map(p => ({
-    sku: p.sku, descripcion: p.descripcion || '',
-    hora: horas[p.sku] || null, cantidad: inventarioConteo[p.sku],
-    um: p.um || detectarUM(p.sku)
-  })).sort((a, b) => {
-    if (!a.hora) return 1;
-    if (!b.hora) return -1;
-    return new Date(a.hora) - new Date(b.hora);
-  });
-  conteosConHora.forEach(c => {
-    aoa2.push([c.sku, c.descripcion, c.hora ? fmtFecha(c.hora) + ' ' + fmtHora(c.hora) : '—', c.cantidad, c.um]);
-  });
+  const conteosConHora = rows.map(p => ({ sku: p.sku, descripcion: p.descripcion || '', hora: horas[p.sku] || null, cantidad: inventarioConteo[p.sku], um: p.um || detectarUM(p.sku) }))
+    .sort((a, b) => { if (!a.hora) return 1; if (!b.hora) return -1; return new Date(a.hora) - new Date(b.hora); });
+  conteosConHora.forEach(c => { aoa2.push([c.sku, c.descripcion, c.hora ? fmtFecha(c.hora) + ' ' + fmtHora(c.hora) : '—', c.cantidad, c.um]); });
   const ws2 = XLSX.utils.aoa_to_sheet(aoa2);
   ws2['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 22 }, { wch: 10 }, { wch: 8 }];
   if (ws2['A1']) ws2['A1'].s = { font: { bold: true, sz: 14, color: { rgb: '1A3A6B' } } };
-  ['A','B','C','D','E'].forEach(col => {
-    const cell = col + '6';
-    if (ws2[cell]) ws2[cell].s = { fill: { fgColor: { rgb: '1A5FBF' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } };
-  });
+  ['A','B','C','D','E'].forEach(col => { const cell = col + '6'; if (ws2[cell]) ws2[cell].s = { fill: { fgColor: { rgb: '1A5FBF' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } }; });
 
-  // HOJA 3: VENTAS
   const aoa3 = [];
   aoa3.push(['Ventas durante el inventario']);
   aoa3.push(['Empresa', nombreEmpresa]);
@@ -3052,25 +2818,18 @@ function exportarInventario() {
   aoa3.push([]);
   aoa3.push(['SKU', 'Descripción', 'Cantidad vendida', 'Hora', 'Registrado por']);
   let totalVendido = 0;
-  ventas.forEach(v => {
-    totalVendido += v.cantidad;
-    aoa3.push([v.sku, v.descripcion || '', v.cantidad, fmtHora(v.hora), '@' + (v.usuario || '')]);
-  });
+  ventas.forEach(v => { totalVendido += v.cantidad; aoa3.push([v.sku, v.descripcion || '', v.cantidad, fmtHora(v.hora), '@' + (v.usuario || '')]); });
   aoa3.push([]);
   aoa3.push(['', 'TOTAL', totalVendido, '', '']);
   const ws3 = XLSX.utils.aoa_to_sheet(aoa3);
   ws3['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 16 }, { wch: 12 }, { wch: 15 }];
   if (ws3['A1']) ws3['A1'].s = { font: { bold: true, sz: 14, color: { rgb: '7A3D00' } } };
-  ['A','B','C','D','E'].forEach(col => {
-    const cell = col + '6';
-    if (ws3[cell]) ws3[cell].s = { fill: { fgColor: { rgb: 'E67E22' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } };
-  });
+  ['A','B','C','D','E'].forEach(col => { const cell = col + '6'; if (ws3[cell]) ws3[cell].s = { fill: { fgColor: { rgb: 'E67E22' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } }; });
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
   XLSX.utils.book_append_sheet(wb, ws2, 'Detalle conteo');
   XLSX.utils.book_append_sheet(wb, ws3, 'Ventas');
-
   const fecha = new Date().toISOString().slice(0,10);
   const sId = s.abrev.replace(/[^A-Z0-9]/gi, '_');
   XLSX.writeFile(wb, `inventario_${sId}_${fecha}.xlsx`);
@@ -3083,8 +2842,9 @@ const tieneBarcodeDetector = 'BarcodeDetector' in window;
 
 async function abrirCamara(origen) {
   camaraOrigen = origen;
-  document.getElementById('modalCamara').classList.add('activo');
+  const m = document.getElementById('modalCamara'); if (m) m.classList.add('activo');
   const cont = document.getElementById('reader');
+  if (!cont) return;
   cont.innerHTML = '';
   const video = document.createElement('video');
   video.setAttribute('playsinline', 'true');
@@ -3098,10 +2858,7 @@ async function abrirCamara(origen) {
   status.textContent = '⏳ Iniciando cámara…';
   cont.appendChild(status);
   try {
-    camaraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false
-    });
+    camaraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
     video.srcObject = camaraStream;
     await video.play();
     status.textContent = '🔍 Apunta al código…';
@@ -3116,47 +2873,33 @@ async function abrirCamara(origen) {
 }
 function iniciarBarcodeDetector(video, status) {
   try {
-    const detector = new BarcodeDetector({
-      formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'codabar', 'itf', 'qr_code']
-    });
+    const detector = new BarcodeDetector({ formats: ['code_128','code_39','ean_13','ean_8','upc_a','upc_e','codabar','itf','qr_code'] });
     let detectando = false;
     camaraLoop = setInterval(async () => {
       if (detectando || !video.videoWidth) return;
       detectando = true;
-      try {
-        const codigos = await detector.detect(video);
-        if (codigos && codigos.length > 0) onCamaraDetecta(codigos[0].rawValue);
-      } catch (e) {}
+      try { const codigos = await detector.detect(video); if (codigos && codigos.length > 0) onCamaraDetecta(codigos[0].rawValue); } catch (e) {}
       detectando = false;
     }, 150);
-  } catch (e) {
-    if (typeof ZXing !== 'undefined') iniciarZXing(video, status);
-  }
+  } catch (e) { if (typeof ZXing !== 'undefined') iniciarZXing(video, status); }
 }
 function iniciarZXing(video, status) {
   try {
     const hints = new Map();
-    const formats = [ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13,
-      ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E,
-      ZXing.BarcodeFormat.CODABAR, ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.QR_CODE];
+    const formats = [ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E, ZXing.BarcodeFormat.CODABAR, ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.QR_CODE];
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
     hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
     const reader = new ZXing.BrowserMultiFormatReader(hints);
     zxingReader = reader;
-    reader.decodeFromVideoElement(video, (result, err) => {
-      if (result) onCamaraDetecta(result.getText());
-    });
-  } catch (e) {
-    status.textContent = '⚠️ Error al iniciar el lector';
-  }
+    reader.decodeFromVideoElement(video, (result, err) => { if (result) onCamaraDetecta(result.getText()); });
+  } catch (e) { status.textContent = '⚠️ Error al iniciar el lector'; }
 }
 function cerrarCamara() {
   if (camaraLoop) { clearInterval(camaraLoop); camaraLoop = null; }
   if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
   if (camaraStream) { camaraStream.getTracks().forEach(t => t.stop()); camaraStream = null; }
-  document.getElementById('modalCamara').classList.remove('activo');
-  const cont = document.getElementById('reader');
-  if (cont) cont.innerHTML = '';
+  const m = document.getElementById('modalCamara'); if (m) m.classList.remove('activo');
+  const cont = document.getElementById('reader'); if (cont) cont.innerHTML = '';
 }
 function onCamaraDetecta(codigo) {
   const c = String(codigo).toUpperCase().trim();
@@ -3164,15 +2907,9 @@ function onCamaraDetecta(codigo) {
   vibrar(80);
   cerrarCamara();
   setTimeout(() => {
-    if (camaraOrigen === 'vincular') {
-      document.getElementById('inputCodigo').value = c;
-      capturarCodigo();
-    } else if (camaraOrigen === 'inventario') {
-      if (modoEscanearPz) escanearPorPieza(c);
-      else procesarCodigoInv(c);
-    } else {
-      procesarCodigoEnPedido(c);
-    }
+    if (camaraOrigen === 'vincular') { setVal('inputCodigo', c); capturarCodigo(); }
+    else if (camaraOrigen === 'inventario') { if (modoEscanearPz) escanearPorPieza(c); else procesarCodigoInv(c); }
+    else { procesarCodigoEnPedido(c); }
   }, 200);
 }
 function procesarCodigoInv(codigo) {
@@ -3184,21 +2921,15 @@ function procesarCodigoInv(codigo) {
   }
   if (items.length > 1) {
     const candidatos = [];
-    items.forEach(it => {
-      const p = inventarioBase.find(x => x.sku.toUpperCase() === it.sku.toUpperCase());
-      if (p) candidatos.push(p);
-    });
+    items.forEach(it => { const p = inventarioBase.find(x => x.sku.toUpperCase() === it.sku.toUpperCase()); if (p) candidatos.push(p); });
     if (candidatos.length === 1) { abrirModalConteo(candidatos[0]); return; }
     if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, 'inventario'); return; }
-    toast('⚠️ Ninguno de los SKUs vinculados está en inventario', 'error'); return;
+    toast('⚠️ Ninguno de los SKUs está en inventario', 'error'); return;
   }
   const p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
   if (p) { abrirModalConteo(p); return; }
-  // NO ENCONTRADO
   feedbackError();
-  if (confirm(`❌ No se encontró el código: ${codigo}\n\n¿Quieres agregarlo como producto nuevo?`)) {
-    abrirModalNuevoProductoDesdeInventario(codigo);
-  }
+  if (confirm(`❌ No se encontró el código: ${codigo}\n\n¿Quieres agregarlo como producto nuevo?`)) abrirModalNuevoProductoDesdeInventario(codigo);
 }
 
 /* ============ PROCESAR CÓDIGO EN PEDIDO ============ */
@@ -3208,48 +2939,45 @@ function procesarCodigoEnPedido(codigo) {
   const items = skusDeCodigo(c);
   if (items.length === 1) {
     const p = buscarProductoPorSku(items[0].sku);
-    if (p) { document.getElementById('busqueda').value = ''; abrirModalCantidad(p); return; }
+    if (p) { setVal('busqueda', ''); abrirModalCantidad(p); return; }
     toast('⚠️ El SKU vinculado no existe: ' + items[0].sku, 'error');
     return;
   }
   if (items.length > 1) {
     const candidatos = [];
-    items.forEach(it => {
-      const p = buscarProductoPorSku(it.sku);
-      if (p) candidatos.push(p);
-    });
-    if (candidatos.length === 1) { document.getElementById('busqueda').value = ''; abrirModalCantidad(candidatos[0]); return; }
-    if (candidatos.length > 1) { document.getElementById('busqueda').value = ''; mostrarElegirProducto(c, candidatos, 'pedido'); return; }
+    items.forEach(it => { const p = buscarProductoPorSku(it.sku); if (p) candidatos.push(p); });
+    if (candidatos.length === 1) { setVal('busqueda', ''); abrirModalCantidad(candidatos[0]); return; }
+    if (candidatos.length > 1) { setVal('busqueda', ''); mostrarElegirProducto(c, candidatos, 'pedido'); return; }
     toast('⚠️ Ninguno de los SKUs vinculados existe', 'error');
     return;
   }
   const p = buscarProductoPorSku(c);
-  if (p) { document.getElementById('busqueda').value = ''; abrirModalCantidad(p); return; }
-  document.getElementById('busqueda').value = '';
-  document.getElementById('resultados').innerHTML = '';
+  if (p) { setVal('busqueda', ''); abrirModalCantidad(p); return; }
+  setVal('busqueda', '');
+  const res = document.getElementById('resultados'); if (res) res.innerHTML = '';
   resultadosActuales = []; indiceSel = -1;
-  document.getElementById('noEncontradoWrap').style.display = 'block';
-  document.getElementById('busqueda').value = c;
+  const newWrap = document.getElementById('noEncontradoWrap'); if (newWrap) newWrap.style.display = 'block';
+  setVal('busqueda', c);
   toast('❌ No encontrado: ' + c, 'error');
 }
 function mostrarElegirProducto(codigo, productosArr, contexto) {
   elegirContexto = contexto;
-  document.getElementById('elegirCodigo').textContent = codigo;
-  document.getElementById('elegirCount').textContent = productosArr.length;
+  setText('elegirCodigo', codigo);
+  setText('elegirCount', productosArr.length);
   const cont = document.getElementById('elegirOpciones');
+  if (!cont) return;
   cont.innerHTML = productosArr.map(p => {
     const exist = getExistencias(p.sku);
     const existTxt = (exist !== null) ? `Exist: ${exist}` : 'Sin datos';
     return `<div class="opcion-producto" onclick="elegirProductoDeLista('${p.sku.replace(/'/g, "\\'")}')">
-      <div class="sku">📦 ${p.sku}</div>
-      <div class="desc">${p.descripcion || ''}</div>
+      <div class="sku">📦 ${p.sku}</div><div class="desc">${p.descripcion || ''}</div>
       <div class="meta">${badgeFuente(p.fuente || 'Sistema')} · ${existTxt} · $${(p.precio || 0).toFixed(2)}</div>
     </div>`;
   }).join('');
-  document.getElementById('modalElegirProducto').classList.add('activo');
+  const m = document.getElementById('modalElegirProducto'); if (m) m.classList.add('activo');
 }
 function cerrarModalElegir() {
-  document.getElementById('modalElegirProducto').classList.remove('activo');
+  const m = document.getElementById('modalElegirProducto'); if (m) m.classList.remove('activo');
   elegirContexto = null;
 }
 function elegirProductoDeLista(sku) {
@@ -3266,21 +2994,20 @@ function elegirProductoDeLista(sku) {
 
 /* ============ BUSCAR PEDIDO ============ */
 function buscar() {
-  const q = document.getElementById('busqueda').value.toLowerCase().trim();
+  const inp = document.getElementById('busqueda');
+  const q = inp ? inp.value.toLowerCase().trim() : '';
   const cont = document.getElementById('resultados');
   const noEnc = document.getElementById('noEncontradoWrap');
+  if (!cont) return;
   indiceSel = -1;
-  noEnc.style.display = 'none';
+  if (noEnc) noEnc.style.display = 'none';
   if (!q) { cont.innerHTML = ''; resultadosActuales = []; return; }
   if (!productos.length && !inventarioBase.length && !productosManuales.length) {
-    cont.innerHTML = '<p class="small">Sube el PDF o el Excel del sistema primero.</p>';
+    cont.innerHTML = '<p class="small">Sube el PDF o el Excel primero.</p>';
     return;
   }
   const encontrados = new Map();
-  productos.forEach(p => {
-    if (p.sku.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q))
-      encontrados.set(p.sku.toUpperCase(), { ...p, fuente: 'PDF' });
-  });
+  productos.forEach(p => { if (p.sku.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q)) encontrados.set(p.sku.toUpperCase(), { ...p, fuente: 'PDF' }); });
   inventarioBase.forEach(p => {
     const key = p.sku.toUpperCase();
     if (encontrados.has(key)) return;
@@ -3290,13 +3017,12 @@ function buscar() {
   productosManuales.forEach(p => {
     const key = p.sku.toUpperCase();
     if (encontrados.has(key)) return;
-    if (p.sku.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q))
-      encontrados.set(key, { ...p, fuente: 'Manual' });
+    if (p.sku.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q)) encontrados.set(key, { ...p, fuente: 'Manual' });
   });
   resultadosActuales = Array.from(encontrados.values()).slice(0, 30);
   if (!resultadosActuales.length) {
     cont.innerHTML = '<p class="small">Sin resultados.</p>';
-    noEnc.style.display = 'block';
+    if (noEnc) noEnc.style.display = 'block';
     return;
   }
   cont.innerHTML = '<table><thead><tr><th>SKU</th><th>Descripción</th><th>Precio</th><th>Origen</th></tr></thead><tbody>' +
@@ -3305,8 +3031,7 @@ function buscar() {
       const exisTxt = (exist !== null) ? `<div class="small" style="color:#1e8449;">Exist: ${exist}</div>` : '';
       return `<tr class="resultado" data-idx="${i}" onclick="seleccionar(${i})">
         <td>${p.sku}${exisTxt}</td><td>${p.descripcion}</td>
-        <td>$${(p.precio || 0).toFixed(2)}</td><td>${badgeFuente(p.fuente)}</td>
-      </tr>`;
+        <td>$${(p.precio || 0).toFixed(2)}</td><td>${badgeFuente(p.fuente)}</td></tr>`;
     }).join('') + '</tbody></table>';
   indiceSel = 0;
   pintarSeleccion();
@@ -3321,7 +3046,8 @@ function pintarSeleccion() {
 function teclaBusqueda(e) {
   if (e.key === 'Enter') {
     e.preventDefault();
-    const q = document.getElementById('busqueda').value.trim();
+    const inp = document.getElementById('busqueda');
+    const q = inp ? inp.value.trim() : '';
     if (!q) { if (ultimoProductoAgregado) abrirModalCantidad(ultimoProductoAgregado); return; }
     procesarCodigoEnPedido(q);
     return;
@@ -3335,72 +3061,64 @@ function abrirModalCantidad(p) {
   productoSeleccionado = p;
   const exist = getExistencias(p.sku);
   const fuente = p.fuente || 'PDF';
-  const existHTML = (exist !== null)
-    ? `<span class="pill pill-existencias">📦 En existencia: ${exist}</span>`
-    : `<span class="pill pill-sin-datos">⚠️ Existencias: no hay datos</span>`;
-  const fuenteHTML =
-    fuente === 'PDF' ? `<span class="pill pill-promo">🏷️ EN PROMOCIÓN</span>` :
-    fuente === 'Sistema' ? `<span class="pill pill-sistema">📦 SISTEMA</span>` :
-    `<span class="pill pill-manual">✏️ MANUAL</span>`;
-  document.getElementById('infoProducto').innerHTML = `
+  const existHTML = (exist !== null) ? `<span class="pill pill-existencias">📦 En existencia: ${exist}</span>` : `<span class="pill pill-sin-datos">⚠️ Existencias: no hay datos</span>`;
+  const fuenteHTML = fuente === 'PDF' ? `<span class="pill pill-promo">🏷️ EN PROMOCIÓN</span>` : fuente === 'Sistema' ? `<span class="pill pill-sistema">📦 SISTEMA</span>` : `<span class="pill pill-manual">✏️ MANUAL</span>`;
+  const ip = document.getElementById('infoProducto');
+  if (ip) ip.innerHTML = `
     <div class="modal-cant-header">
       <div class="modal-cant-sku">${p.sku}</div>
       <div class="modal-cant-desc">${p.descripcion}</div>
       <div><span class="badge ${claseUM(p.um)}">${p.um}</span>
-        <span style="color:#1a5fbf; font-weight:bold; margin-left:8px;">$${(p.precio || 0).toFixed(2)}</span>
-      </div>
+        <span style="color:#1a5fbf; font-weight:bold; margin-left:8px;">$${(p.precio || 0).toFixed(2)}</span></div>
     </div>
     <div class="modal-cant-info">${fuenteHTML} ${existHTML}</div>`;
   const inp = document.getElementById('inputCant');
-  inp.value = 1;
-  document.getElementById('modalCantidad').classList.add('activo');
-  setTimeout(() => { inp.focus(); inp.select(); }, 100);
+  if (inp) inp.value = 1;
+  const m = document.getElementById('modalCantidad'); if (m) m.classList.add('activo');
+  setTimeout(() => { if (inp) { inp.focus(); inp.select(); } }, 100);
 }
 function cerrarModalCantidad(keepSelection) {
-  document.getElementById('modalCantidad').classList.remove('activo');
+  const m = document.getElementById('modalCantidad'); if (m) m.classList.remove('activo');
   if (!keepSelection) {
     productoSeleccionado = null; ultimoProductoAgregado = null;
-    document.getElementById('busqueda').value = '';
-    document.getElementById('resultados').innerHTML = '';
-    document.getElementById('noEncontradoWrap').style.display = 'none';
-    document.getElementById('hintScan').style.display = 'none';
+    setVal('busqueda', '');
+    const r = document.getElementById('resultados'); if (r) r.innerHTML = '';
+    const n = document.getElementById('noEncontradoWrap'); if (n) n.style.display = 'none';
+    const h = document.getElementById('hintScan'); if (h) h.style.display = 'none';
     resultadosActuales = []; indiceSel = -1;
   }
   const inp = document.getElementById('busqueda');
-  inp.focus();
-  setTimeout(() => { if (inp.value && document.activeElement === inp) inp.select(); }, 50);
+  if (inp) { inp.focus(); setTimeout(() => { if (inp.value && document.activeElement === inp) inp.select(); }, 50); }
 }
 function confirmarCantidad() {
   if (!productoSeleccionado) return;
-  const cant = Math.max(1, parseInt(document.getElementById('inputCant').value) || 1);
+  const inp = document.getElementById('inputCant');
+  const cant = Math.max(1, parseInt(inp ? inp.value : 1) || 1);
   const skuActual = productoSeleccionado.sku;
   agregarAlPedido(productoSeleccionado, cant);
   feedbackExito();
   toast(`✔ ${cant} × ${skuActual}`);
   ultimoProductoAgregado = { ...productoSeleccionado };
-  document.getElementById('busqueda').value = skuActual;
+  setVal('busqueda', skuActual);
   cerrarModalCantidad(true);
-  document.getElementById('hintScan').style.display = 'block';
+  const h = document.getElementById('hintScan'); if (h) h.style.display = 'block';
   buscar();
 }
 function agregarAlPedido(p, cant) {
   const ex = pedido.find(x => x.sku === p.sku && x.sucursal === sucursalActual);
   if (ex) ex.cantidad += cant;
-  else pedido.push({ sku: p.sku, descripcion: p.descripcion, precio: p.precio || 0, um: p.um, cantidad: cant,
-    fuente: p.fuente || 'PDF', agregadoPor: usuarioLogueado, sucursal: sucursalActual, fecha: new Date().toISOString() });
+  else pedido.push({ sku: p.sku, descripcion: p.descripcion, precio: p.precio || 0, um: p.um, cantidad: cant, fuente: p.fuente || 'PDF', agregadoPor: usuarioLogueado, sucursal: sucursalActual, fecha: new Date().toISOString() });
   renderPedido();
   guardarEstado();
 }
 
-/* ============ NUEVO PRODUCTO MANUAL ============ */
+/* ============ NUEVO PRODUCTO ============ */
 function abrirModalNuevoProducto() {
-  const q = document.getElementById('busqueda').value.trim();
-  document.getElementById('npSku').value = q.toUpperCase();
-  document.getElementById('npDesc').value = '';
-  document.getElementById('npUm').value = 'PIEZA';
-  document.getElementById('npPrecio').value = '';
-  document.getElementById('modalNuevoProducto').classList.add('activo');
-  setTimeout(() => document.getElementById('npDesc').focus(), 100);
+  const inp = document.getElementById('busqueda');
+  setVal('npSku', inp ? inp.value.trim().toUpperCase() : '');
+  setVal('npDesc', ''); setVal('npUm', 'PIEZA'); setVal('npPrecio', '');
+  const m = document.getElementById('modalNuevoProducto'); if (m) m.classList.add('activo');
+  setTimeout(() => { const i = document.getElementById('npDesc'); if (i) i.focus(); }, 100);
 }
 function guardarNuevoProducto() {
   const sku = document.getElementById('npSku').value.trim().toUpperCase();
@@ -3410,16 +3128,13 @@ function guardarNuevoProducto() {
   if (!sku) { alert('Pon el SKU.'); return; }
   if (!desc) { alert('Pon la descripción.'); return; }
   if (precio < 0) { alert('Precio inválido.'); return; }
-  if (productosManuales.some(p => p.sku === sku) || productos.some(p => p.sku === sku) || inventarioBase.some(p => p.sku === sku)) {
-    alert('Ya existe un producto con ese SKU.'); return;
-  }
-  const nuevo = { sku, descripcion: desc, um, precio, fuente: 'Manual',
-                  creadoPor: usuarioLogueado, sucursal: sucursalActual, fecha: new Date().toISOString() };
+  if (productosManuales.some(p => p.sku === sku) || productos.some(p => p.sku === sku) || inventarioBase.some(p => p.sku === sku)) { alert('Ya existe un producto con ese SKU.'); return; }
+  const nuevo = { sku, descripcion: desc, um, precio, fuente: 'Manual', creadoPor: usuarioLogueado, sucursal: sucursalActual, fecha: new Date().toISOString() };
   productosManuales.push(nuevo);
   guardarEstado();
-  document.getElementById('modalNuevoProducto').classList.remove('activo');
-  document.getElementById('noEncontradoWrap').style.display = 'none';
-  document.getElementById('busqueda').value = '';
+  const m = document.getElementById('modalNuevoProducto'); if (m) m.classList.remove('activo');
+  const n = document.getElementById('noEncontradoWrap'); if (n) n.style.display = 'none';
+  setVal('busqueda', '');
   abrirModalCantidad(nuevo);
   renderManuales();
   renderBaseDatosStats();
@@ -3430,30 +3145,26 @@ function guardarNuevoProducto() {
 function abrirVincularRapido(codigo) {
   if (!codigo) return;
   codigoRapidoPendiente = String(codigo).toUpperCase().trim();
-  document.getElementById('codigoRapido').textContent = codigoRapidoPendiente;
-  document.getElementById('busquedaRapida').value = '';
-  document.getElementById('resultadosRapido').innerHTML = '';
-  document.getElementById('modalVincularRapido').classList.add('activo');
+  setText('codigoRapido', codigoRapidoPendiente);
+  setVal('busquedaRapida', '');
+  const rr = document.getElementById('resultadosRapido'); if (rr) rr.innerHTML = '';
+  const m = document.getElementById('modalVincularRapido'); if (m) m.classList.add('activo');
   buscarVincularRapido();
-  setTimeout(() => document.getElementById('busquedaRapida').focus(), 100);
+  setTimeout(() => { const i = document.getElementById('busquedaRapida'); if (i) i.focus(); }, 100);
 }
 function cerrarVincularRapido() {
-  document.getElementById('modalVincularRapido').classList.remove('activo');
+  const m = document.getElementById('modalVincularRapido'); if (m) m.classList.remove('activo');
   codigoRapidoPendiente = null;
 }
 function buscarVincularRapido() {
-  const q = document.getElementById('busquedaRapida').value.toLowerCase().trim();
+  const inp = document.getElementById('busquedaRapida');
+  const q = inp ? inp.value.toLowerCase().trim() : '';
   const cont = document.getElementById('resultadosRapido');
+  if (!cont) return;
   const todos = new Map();
   productos.forEach(p => todos.set(p.sku.toUpperCase(), { ...p, _fuente: 'PDF' }));
-  inventarioBase.forEach(p => {
-    const k = p.sku.toUpperCase();
-    if (!todos.has(k)) todos.set(k, { sku: p.sku, descripcion: p.descripcion || '', precio: p.precio || 0, um: detectarUM(p.sku), _fuente: 'Sistema' });
-  });
-  productosManuales.forEach(p => {
-    const k = p.sku.toUpperCase();
-    if (!todos.has(k)) todos.set(k, { ...p, _fuente: 'Manual' });
-  });
+  inventarioBase.forEach(p => { const k = p.sku.toUpperCase(); if (!todos.has(k)) todos.set(k, { sku: p.sku, descripcion: p.descripcion || '', precio: p.precio || 0, um: detectarUM(p.sku), _fuente: 'Sistema' }); });
+  productosManuales.forEach(p => { const k = p.sku.toUpperCase(); if (!todos.has(k)) todos.set(k, { ...p, _fuente: 'Manual' }); });
   const arr = Array.from(todos.values());
   const res = q ? arr.filter(p => p.sku.toLowerCase().includes(q) || (p.descripcion||'').toLowerCase().includes(q)).slice(0, 30) : arr.slice(0, 30);
   if (!res.length) { cont.innerHTML = '<p class="small">Sin resultados.</p>'; return; }
@@ -3477,12 +3188,13 @@ function asignarVincularRapido(sku) {
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   guardarEstado();
   renderVinculos();
-  document.getElementById('modalVincularRapido').classList.remove('activo');
+  const m = document.getElementById('modalVincularRapido'); if (m) m.classList.remove('activo');
   const prod = buscarProductoPorSku(sku);
-  document.getElementById('exitoFullscreenDetalle').innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${codigo}</div><div style="opacity:.8; font-size:13px;">AGREGADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9; margin-top:6px;">' + prod.descripcion + '</div>' : ''}`;
-  document.getElementById('exitoFullscreen').classList.add('show');
+  const ed = document.getElementById('exitoFullscreenDetalle');
+  if (ed) ed.innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${codigo}</div><div style="opacity:.8; font-size:13px;">AGREGADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9; margin-top:6px;">' + prod.descripcion + '</div>' : ''}`;
+  const ef = document.getElementById('exitoFullscreen'); if (ef) ef.classList.add('show');
   setTimeout(() => {
-    document.getElementById('exitoFullscreen').classList.remove('show');
+    const ef2 = document.getElementById('exitoFullscreen'); if (ef2) ef2.classList.remove('show');
     codigoRapidoPendiente = null;
     if (prod) setTimeout(() => abrirModalCantidad(prod), 150);
   }, 1400);
@@ -3491,10 +3203,10 @@ function asignarVincularRapido(sku) {
 /* ============ VINCULAR ============ */
 function capturarCodigo() {
   const inp = document.getElementById('inputCodigo');
-  const codigo = inp.value.trim().toUpperCase();
+  const codigo = inp ? inp.value.trim().toUpperCase() : '';
   if (!codigo) return;
-  document.getElementById('bannerCodigoYaVinculado').classList.remove('show');
-  document.getElementById('bannerCodigoNuevo').classList.remove('show');
+  const b1 = document.getElementById('bannerCodigoYaVinculado'); if (b1) b1.classList.remove('show');
+  const b2 = document.getElementById('bannerCodigoNuevo'); if (b2) b2.classList.remove('show');
   const items = skusDeCodigo(codigo);
   if (items.length > 0) {
     const listaHTML = items.map(it => {
@@ -3505,38 +3217,38 @@ function capturarCodigo() {
           ${prod ? '<div style="font-size:11px; color:#666;">' + prod.descripcion + '</div>' : ''}
           <div style="font-size:10px; color:#888;">@${it.creadoPor || '—'} · ${it.sucursal || '—'} · ${fmtFecha(it.fecha)}</div>
         </div>
-        <button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="quitarSkuDeCodigo('${codigo.replace(/'/g, "\\'")}', '${it.sku.replace(/'/g, "\\'")}')">🗑</button>
-      </div>`;
+        <button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="quitarSkuDeCodigo('${codigo.replace(/'/g, "\\'")}', '${it.sku.replace(/'/g, "\\'")}')">🗑</button></div>`;
     }).join('');
-    document.getElementById('bannerCodigoYaVinculadoTexto').innerHTML = `
+    const txt = document.getElementById('bannerCodigoYaVinculadoTexto');
+    if (txt) txt.innerHTML = `
       <div>El código <b style="font-family:monospace;">${codigo}</b> está asignado a <b>${items.length}</b> producto(s):</div>
       <div style="margin-top:6px;">${listaHTML}</div>
       <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="verde" style="font-size:13px; padding:8px 14px;" onclick="agregarSkuACodigo('${codigo.replace(/'/g, "\\'")}')">➕ Agregar otro SKU</button>
         <button class="gris" style="font-size:13px; padding:8px 14px;" onclick="limpiarInputCodigo()">Listo</button>
       </div>`;
-    document.getElementById('bannerCodigoYaVinculado').classList.add('show');
-    document.getElementById('paso2Wrap').style.display = 'none';
+    const b = document.getElementById('bannerCodigoYaVinculado'); if (b) b.classList.add('show');
+    const p2 = document.getElementById('paso2Wrap'); if (p2) p2.style.display = 'none';
     codigoPendiente = null;
     return;
   }
-  document.getElementById('bannerCodigoNuevo').classList.add('show');
+  const b2 = document.getElementById('bannerCodigoNuevo'); if (b2) b2.classList.add('show');
   codigoPendiente = codigo;
-  document.getElementById('codigoCapturado').textContent = codigo;
-  document.getElementById('paso2Wrap').style.display = 'block';
-  document.getElementById('busquedaSku').value = '';
+  setText('codigoCapturado', codigo);
+  const p2 = document.getElementById('paso2Wrap'); if (p2) p2.style.display = 'block';
+  setVal('busquedaSku', '');
   buscarParaVincular();
-  document.getElementById('busquedaSku').focus();
+  setTimeout(() => { const i = document.getElementById('busquedaSku'); if (i) i.focus(); }, 100);
 }
 function agregarSkuACodigo(codigo) {
-  document.getElementById('bannerCodigoYaVinculado').classList.remove('show');
-  document.getElementById('bannerCodigoNuevo').classList.add('show');
+  const b1 = document.getElementById('bannerCodigoYaVinculado'); if (b1) b1.classList.remove('show');
+  const b2 = document.getElementById('bannerCodigoNuevo'); if (b2) b2.classList.add('show');
   codigoPendiente = codigo;
-  document.getElementById('codigoCapturado').textContent = codigo + ' (agregando otro SKU)';
-  document.getElementById('paso2Wrap').style.display = 'block';
-  document.getElementById('busquedaSku').value = '';
+  setText('codigoCapturado', codigo + ' (agregando otro SKU)');
+  const p2 = document.getElementById('paso2Wrap'); if (p2) p2.style.display = 'block';
+  setVal('busquedaSku', '');
   buscarParaVincular();
-  document.getElementById('busquedaSku').focus();
+  setTimeout(() => { const i = document.getElementById('busquedaSku'); if (i) i.focus(); }, 100);
 }
 function quitarSkuDeCodigo(codigo, sku) {
   if (!confirm(`¿Quitar "${sku}" de este código?`)) return;
@@ -3547,32 +3259,28 @@ function quitarSkuDeCodigo(codigo, sku) {
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   guardarEstado();
   renderVinculos();
-  document.getElementById('inputCodigo').value = codigo;
+  setVal('inputCodigo', codigo);
   capturarCodigo();
   toast('🗑 Quitado');
 }
 function limpiarInputCodigo() {
-  document.getElementById('inputCodigo').value = '';
-  document.getElementById('paso2Wrap').style.display = 'none';
-  document.getElementById('bannerCodigoYaVinculado').classList.remove('show');
-  document.getElementById('bannerCodigoNuevo').classList.remove('show');
+  setVal('inputCodigo', '');
+  const p2 = document.getElementById('paso2Wrap'); if (p2) p2.style.display = 'none';
+  const b1 = document.getElementById('bannerCodigoYaVinculado'); if (b1) b1.classList.remove('show');
+  const b2 = document.getElementById('bannerCodigoNuevo'); if (b2) b2.classList.remove('show');
   codigoPendiente = null;
-  document.getElementById('inputCodigo').focus();
+  const i = document.getElementById('inputCodigo'); if (i) i.focus();
 }
 function buscarParaVincular() {
-  const q = document.getElementById('busquedaSku').value.toLowerCase().trim();
+  const inp = document.getElementById('busquedaSku');
+  const q = inp ? inp.value.toLowerCase().trim() : '';
   const cont = document.getElementById('resultadosSku');
+  if (!cont) return;
   if (!productos.length && !inventarioBase.length) { cont.innerHTML = '<p class="small">Sin catálogo.</p>'; return; }
   const todos = new Map();
   productos.forEach(p => todos.set(p.sku.toUpperCase(), p));
-  inventarioBase.forEach(p => {
-    const k = p.sku.toUpperCase();
-    if (!todos.has(k)) todos.set(k, { sku: p.sku, descripcion: p.descripcion || '', precio: p.precio || 0, um: detectarUM(p.sku) });
-  });
-  productosManuales.forEach(p => {
-    const k = p.sku.toUpperCase();
-    if (!todos.has(k)) todos.set(k, p);
-  });
+  inventarioBase.forEach(p => { const k = p.sku.toUpperCase(); if (!todos.has(k)) todos.set(k, { sku: p.sku, descripcion: p.descripcion || '', precio: p.precio || 0, um: detectarUM(p.sku) }); });
+  productosManuales.forEach(p => { const k = p.sku.toUpperCase(); if (!todos.has(k)) todos.set(k, p); });
   const arr = Array.from(todos.values());
   const res = q ? arr.filter(p => p.sku.toLowerCase().includes(q) || (p.descripcion||'').toLowerCase().includes(q)).slice(0, 30) : arr.slice(0, 30);
   if (!res.length) { cont.innerHTML = '<p class="small">Sin resultados.</p>'; return; }
@@ -3597,23 +3305,24 @@ function guardarVinculo(sku) {
   guardarEstado();
   renderVinculos();
   const prod = buscarProductoPorSku(sku);
-  document.getElementById('exitoFullscreenDetalle').innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${codigo}</div><div style="opacity:.8; font-size:13px;">AGREGADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9;">' + prod.descripcion + '</div>' : ''}<div style="font-size:11px; opacity:.9; margin-top:8px;">@${usuarioLogueado} · ${getSucursalActual().abrev}</div>`;
-  document.getElementById('exitoFullscreen').classList.add('show');
+  const ed = document.getElementById('exitoFullscreenDetalle');
+  if (ed) ed.innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${codigo}</div><div style="opacity:.8; font-size:13px;">AGREGADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9;">' + prod.descripcion + '</div>' : ''}<div style="font-size:11px; opacity:.9; margin-top:8px;">@${usuarioLogueado}</div>`;
+  const ef = document.getElementById('exitoFullscreen'); if (ef) ef.classList.add('show');
   setTimeout(() => {
-    document.getElementById('exitoFullscreen').classList.remove('show');
+    const ef2 = document.getElementById('exitoFullscreen'); if (ef2) ef2.classList.remove('show');
     const inp = document.getElementById('inputCodigo');
-    inp.value = codigo;
-    document.getElementById('bannerCodigoNuevo').classList.remove('show');
-    document.getElementById('bannerCodigoYaVinculado').classList.remove('show');
-    document.getElementById('paso2Wrap').style.display = 'none';
+    if (inp) { inp.value = codigo; inp.focus(); setTimeout(() => inp.select(), 50); }
+    const b1 = document.getElementById('bannerCodigoNuevo'); if (b1) b1.classList.remove('show');
+    const b2 = document.getElementById('bannerCodigoYaVinculado'); if (b2) b2.classList.remove('show');
+    const p2 = document.getElementById('paso2Wrap'); if (p2) p2.style.display = 'none';
     codigoPendiente = null;
-    inp.focus();
-    setTimeout(() => inp.select(), 50);
   }, 1400);
 }
 function renderVinculos() {
   const tb = document.querySelector('#tablaVinculos tbody');
-  const filtro = (document.getElementById('filtroVinculos').value || '').toLowerCase().trim();
+  if (!tb) return;
+  const inp = document.getElementById('filtroVinculos');
+  const filtro = (inp ? inp.value : '').toLowerCase().trim();
   const filas = [];
   Object.entries(vinculos).forEach(([cod, arr]) => {
     const lista = Array.isArray(arr) ? arr : (typeof arr === 'string' ? [{ sku: arr }] : [arr]);
@@ -3630,11 +3339,8 @@ function renderVinculos() {
     const desc = prod ? (prod.descripcion || '').toLowerCase() : '';
     return f.cod.toLowerCase().includes(filtro) || f.sku.toLowerCase().includes(filtro) || desc.includes(filtro);
   });
-  document.getElementById('contadorVinculos').textContent = filas.length;
-  if (!filtradas.length) {
-    tb.innerHTML = '<tr><td colspan="6" class="small" style="text-align:center; padding:20px;">Sin vínculos</td></tr>';
-    return;
-  }
+  setText('contadorVinculos', filas.length);
+  if (!filtradas.length) { tb.innerHTML = '<tr><td colspan="6" class="small" style="text-align:center; padding:20px;">Sin vínculos</td></tr>'; return; }
   tb.innerHTML = filtradas.map(f => {
     const prod = buscarProductoPorSku(f.sku);
     const desc = prod ? prod.descripcion : '⚠️';
@@ -3689,14 +3395,12 @@ function fusionarVinculos(actual, nuevos) {
 }
 function exportarVinculos() {
   if (!Object.keys(vinculos).length) { alert('Sin vínculos.'); return; }
-  const data = { version: 7, exportado: new Date().toISOString(), vinculos };
+  const data = { version: 8, exportado: new Date().toISOString(), vinculos };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
+  const a = document.createElement('a'); a.href = url;
   a.download = `vinculos_${nombreEmpresa.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  a.click(); URL.revokeObjectURL(url);
   toast('📤');
 }
 function exportarVinculosExcel() {
@@ -3742,11 +3446,11 @@ function importarVinculos(event) {
       const totalActual = contarVinculos();
       const totalArchivo = contarVinculos(nuevosNorm);
       const fusionado = fusionarVinculos(vinculos, nuevosNorm);
-      document.getElementById('impTotalActual').textContent = totalActual;
-      document.getElementById('impTotalArchivo').textContent = totalArchivo;
-      document.getElementById('impResultFusionar').textContent = contarVinculos(fusionado);
-      document.getElementById('impResultReemplazar').textContent = totalArchivo;
-      document.getElementById('modalImportarVinculos').classList.add('activo');
+      setText('impTotalActual', totalActual);
+      setText('impTotalArchivo', totalArchivo);
+      setText('impResultFusionar', contarVinculos(fusionado));
+      setText('impResultReemplazar', totalArchivo);
+      const m = document.getElementById('modalImportarVinculos'); if (m) m.classList.add('activo');
     } catch (err) { alert('Error: ' + err.message); }
   };
   reader.readAsText(file);
@@ -3754,10 +3458,9 @@ function importarVinculos(event) {
 function solicitarImportacion(modo) {
   if (modo === 'fusionar') { ejecutarImportacion('fusionar'); return; }
   const backup = JSON.stringify(vinculos);
-  document.getElementById('modalImportarVinculos').classList.remove('activo');
+  const m = document.getElementById('modalImportarVinculos'); if (m) m.classList.remove('activo');
   pedirConfirmacionPassAdmin('🔄 Reemplazar vínculos',
-    `⚠️ Vas a <b>borrar TODOS los vínculos actuales</b> y reemplazarlos con los del archivo.<br><br>
-    • Actuales: <b>${contarVinculos()}</b><br>• Del archivo: <b>${contarVinculos(importarVinculosPendiente)}</b>`,
+    `⚠️ Vas a <b>borrar TODOS los vínculos actuales</b>.<br><br>• Actuales: <b>${contarVinculos()}</b><br>• Del archivo: <b>${contarVinculos(importarVinculosPendiente)}</b>`,
     () => {
       try {
         localStorage.setItem('sahagun_vinculos_backup_' + Date.now(), backup);
@@ -3771,11 +3474,7 @@ function ejecutarImportacion(modo) {
   if (!importarVinculosPendiente) return;
   const nuevos = importarVinculosPendiente;
   if (modo === 'fusionar') { vinculos = fusionarVinculos(vinculos, nuevos); toast('✔ Vínculos fusionados'); }
-  else if (modo === 'reemplazar') {
-    vinculos = {};
-    Object.entries(nuevos).forEach(([cod, arr]) => { vinculos[cod] = arr.map(item => ({ ...item })); });
-    toast('✔ Vínculos reemplazados');
-  }
+  else if (modo === 'reemplazar') { vinculos = {}; Object.entries(nuevos).forEach(([cod, arr]) => { vinculos[cod] = arr.map(item => ({ ...item })); }); toast('✔ Vínculos reemplazados'); }
   importarVinculosPendiente = null;
   cerrarModalImportar();
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
@@ -3783,7 +3482,7 @@ function ejecutarImportacion(modo) {
   renderVinculos();
 }
 function cerrarModalImportar() {
-  document.getElementById('modalImportarVinculos').classList.remove('activo');
+  const m = document.getElementById('modalImportarVinculos'); if (m) m.classList.remove('activo');
   importarVinculosPendiente = null;
 }
 
@@ -3791,37 +3490,39 @@ function cerrarModalImportar() {
 function renderPedido() {
   const pedidoFiltrado = pedido.filter(p => p.sucursal === sucursalActual || !p.sucursal);
   const tb = document.querySelector('#tablaPedido tbody');
-  tb.innerHTML = pedidoFiltrado.map((p) => {
-    const idxOriginal = pedido.indexOf(p);
-    let origenBadge = '';
-    if (p.fuente === 'PDF') origenBadge = '<span class="badge badge-promo">🏷️</span>';
-    else if (p.fuente === 'Sistema') origenBadge = '<span class="badge badge-sistema">📦</span>';
-    else if (p.fuente === 'Manual') origenBadge = '<span class="badge badge-manual">✏️</span>';
-    const exist = getExistencias(p.sku);
-    const existTxt = (exist !== null) ? exist : '—';
-    const totalPz = p.cantidad + (exist !== null ? exist : 0);
-    return `<tr><td>${p.sku}</td><td>${p.descripcion} ${origenBadge}</td>
-      <td><input class="cant" type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)"></td>
-      <td style="text-align:center; font-family:monospace;">${existTxt}</td>
-      <td style="text-align:center; font-family:monospace; font-weight:bold; color:#1a3a6b;">${totalPz}</td>
-      <td><span class="badge ${claseUM(p.um)}">${p.um}</span></td>
-      <td><button class="rojo" onclick="eliminar(${idxOriginal})" style="padding:6px 10px;">X</button></td></tr>`;
-  }).join('');
+  if (tb) {
+    tb.innerHTML = pedidoFiltrado.map((p) => {
+      const idxOriginal = pedido.indexOf(p);
+      let ob = '';
+      if (p.fuente === 'PDF') ob = '<span class="badge badge-promo">🏷️</span>';
+      else if (p.fuente === 'Sistema') ob = '<span class="badge badge-sistema">📦</span>';
+      else if (p.fuente === 'Manual') ob = '<span class="badge badge-manual">✏️</span>';
+      const exist = getExistencias(p.sku);
+      const existTxt = (exist !== null) ? exist : '—';
+      const totalPz = p.cantidad + (exist !== null ? exist : 0);
+      return `<tr><td>${p.sku}</td><td>${p.descripcion} ${ob}</td>
+        <td><input class="cant" type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)"></td>
+        <td style="text-align:center; font-family:monospace;">${existTxt}</td>
+        <td style="text-align:center; font-family:monospace; font-weight:bold; color:#1a3a6b;">${totalPz}</td>
+        <td><span class="badge ${claseUM(p.um)}">${p.um}</span></td>
+        <td><button class="rojo" onclick="eliminar(${idxOriginal})" style="padding:6px 10px;">X</button></td></tr>`;
+    }).join('');
+  }
   const cards = document.getElementById('pedidoCards');
   if (cards) {
     cards.innerHTML = pedidoFiltrado.map((p) => {
       const idxOriginal = pedido.indexOf(p);
-      let origenBadge = '';
-      if (p.fuente === 'PDF') origenBadge = '<span class="badge badge-promo">🏷️ PROMO</span>';
-      else if (p.fuente === 'Sistema') origenBadge = '<span class="badge badge-sistema">📦 SISTEMA</span>';
-      else if (p.fuente === 'Manual') origenBadge = '<span class="badge badge-manual">✏️ MANUAL</span>';
+      let ob = '';
+      if (p.fuente === 'PDF') ob = '<span class="badge badge-promo">🏷️ PROMO</span>';
+      else if (p.fuente === 'Sistema') ob = '<span class="badge badge-sistema">📦 SISTEMA</span>';
+      else if (p.fuente === 'Manual') ob = '<span class="badge badge-manual">✏️ MANUAL</span>';
       const exist = getExistencias(p.sku);
       const existTxt = (exist !== null) ? exist : '—';
       const totalPz = p.cantidad + (exist !== null ? exist : 0);
       return `<div class="pedido-card">
         <div class="pedido-card-top"><div class="pedido-card-sku">${p.sku}</div>
           <button class="btn-x" onclick="eliminar(${idxOriginal})">X</button></div>
-        <div class="pedido-card-desc">${p.descripcion} ${origenBadge}</div>
+        <div class="pedido-card-desc">${p.descripcion} ${ob}</div>
         <div class="pedido-card-row">
           <div class="pedido-card-field"><label>Pido</label>
             <input type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)"></div>
@@ -3829,19 +3530,18 @@ function renderPedido() {
             <div class="valor">${existTxt}</div></div>
           <div class="pedido-card-field"><label>Total pz (${p.um})</label>
             <div class="valor" style="background:#e3f2fd; color:#1a3a6b;">${totalPz}</div></div>
-        </div>
-      </div>`;
+        </div></div>`;
     }).join('');
   }
   const totalPido = pedidoFiltrado.reduce((s, p) => s + p.cantidad, 0);
   const totalExist = pedidoFiltrado.reduce((s, p) => { const e = getExistencias(p.sku); return s + (e !== null ? e : 0); }, 0);
   const totalPz = totalPido + totalExist;
   const ti = pedidoFiltrado.reduce((s, p) => s + p.precio * p.cantidad, 0);
-  document.getElementById('totalPido').textContent = totalPido;
-  document.getElementById('totalExist').textContent = totalExist;
-  document.getElementById('totalPz').textContent = totalPz;
-  document.getElementById('totalImp').textContent = '$' + ti.toFixed(2);
-  document.getElementById('contador').textContent = pedidoFiltrado.length;
+  setText('totalPido', totalPido);
+  setText('totalExist', totalExist);
+  setText('totalPz', totalPz);
+  setText('totalImp', '$' + ti.toFixed(2));
+  setText('contador', pedidoFiltrado.length);
 }
 function cambiarCant(i, v) { pedido[i].cantidad = Math.max(1, parseInt(v) || 1); renderPedido(); guardarEstado(); }
 function eliminar(i) { pedido.splice(i, 1); renderPedido(); guardarEstado(); }
@@ -3849,8 +3549,7 @@ function limpiarPedido() {
   const pedidoFiltrado = pedido.filter(p => p.sucursal === sucursalActual || !p.sucursal);
   if (!pedidoFiltrado.length) return;
   if (!confirm(`¿Borrar el pedido completo de ${getSucursalActual().abrev}?`)) return;
-  pedirConfirmacionPassActivo('🗑 Borrar pedido',
-    `¿Borrar el pedido completo de <b>${getSucursalActual().nombre}</b>?`,
+  pedirConfirmacionPassActivo('🗑 Borrar pedido', `¿Borrar el pedido completo de <b>${getSucursalActual().nombre}</b>?`,
     () => {
       pedido = pedido.filter(p => p.sucursal && p.sucursal !== sucursalActual);
       renderPedido();
@@ -3911,8 +3610,8 @@ function arrancar() {
     actualizarInventarioActual();
     entrarApp();
   } else {
-    document.getElementById('loginBg').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
+    const lb = document.getElementById('loginBg'); if (lb) lb.style.display = 'flex';
+    const app = document.getElementById('app'); if (app) app.style.display = 'none';
     setTimeout(() => { const inp = document.getElementById('loginUsuario'); if (inp) inp.focus(); }, 200);
   }
 }
