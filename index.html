@@ -924,6 +924,8 @@ let superaTotalPendiente = null;
 let ventaProductoSel = null;
 let audioCtx = null;
 let configSonido = { activo: true, volumen: 70, vibrar: true };
+let codigoParaVincularNuevo = null;
+let contextoNuevoProducto = 'pedido';
 
 // *** HELPERS SEGUROS: evitan errores de null ***
 function setText(id, text) {
@@ -2546,7 +2548,7 @@ function invBuscar() {
       const chipHora = hora ? `<span class="chip-time">${fmtHora(hora)}</span>` : '';
       const claseExis = p.exis < 0 ? 'neg-num' : '';
       return `<tr class="resultado" data-idx="${i}" onclick="invSeleccionar(${i})">
-        <td>${p.sku}${chip}${chipHora}</td><td>${p.descripcion || ''}</td>
+        <td>${p.sku}${p.manual ? ' <span class="badge badge-manual">🆕</span>' : ''}${chip}${chipHora}</td><td>${p.descripcion || ''}</td>
         <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}</td>
         <td style="text-align:center;">→</td></tr>`;
     }).join('') + '</tbody></table>';
@@ -2594,6 +2596,8 @@ function invTeclaBusqueda(e) {
   else if (e.key === 'ArrowUp') { e.preventDefault(); invIndiceSel = Math.max(invIndiceSel - 1, 0); invPintarSeleccion(); }
 }
 function abrirModalNuevoProductoDesdeInventario(codigo) {
+  codigoParaVincularNuevo = (codigo || '').toUpperCase() || null;
+  contextoNuevoProducto = 'inventario';
   setVal('npSku', (codigo || '').toUpperCase());
   setVal('npDesc', ''); setVal('npUm', 'PIEZA'); setVal('npPrecio', '');
   const m = document.getElementById('modalNuevoProducto'); if (m) m.classList.add('activo');
@@ -2717,7 +2721,7 @@ function renderInventario() {
     const claseExis = p.exis < 0 ? 'neg-num' : '';
     const signo = d > 0 ? '+' : '';
     return `<tr class="${claseRow}">
-      <td style="font-family:monospace;">${p.sku}</td>
+      <td style="font-family:monospace;">${p.sku}${p.manual ? ' <span class="badge badge-manual">🆕 AGREGADO</span>' : ''}</td>
       <td class="small">${p.descripcion || ''}</td>
       <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}${vendido ? ' <span class="chip-venta">-' + vendido + '</span>' : ''}</td>
       <td style="text-align:right; font-family:monospace; font-weight:bold;">${c}</td>
@@ -3139,7 +3143,10 @@ function agregarAlPedido(p, cant) {
 /* ============ NUEVO PRODUCTO ============ */
 function abrirModalNuevoProducto() {
   const inp = document.getElementById('busqueda');
-  setVal('npSku', inp ? inp.value.trim().toUpperCase() : '');
+  const codigoEscaneado = inp ? inp.value.trim().toUpperCase() : '';
+  codigoParaVincularNuevo = codigoEscaneado || null;
+  contextoNuevoProducto = 'pedido';
+  setVal('npSku', codigoEscaneado);
   setVal('npDesc', ''); setVal('npUm', 'PIEZA'); setVal('npPrecio', '');
   const m = document.getElementById('modalNuevoProducto'); if (m) m.classList.add('activo');
   setTimeout(() => { const i = document.getElementById('npDesc'); if (i) i.focus(); }, 100);
@@ -3152,17 +3159,70 @@ function guardarNuevoProducto() {
   if (!sku) { alert('Pon el SKU.'); return; }
   if (!desc) { alert('Pon la descripción.'); return; }
   if (precio < 0) { alert('Precio inválido.'); return; }
-  if (productosManuales.some(p => p.sku === sku) || productos.some(p => p.sku === sku) || inventarioBase.some(p => p.sku === sku)) { alert('Ya existe un producto con ese SKU.'); return; }
-  const nuevo = { sku, descripcion: desc, um, precio, fuente: 'Manual', creadoPor: usuarioLogueado, sucursal: sucursalActual, fecha: new Date().toISOString() };
+  if (productosManuales.some(p => p.sku === sku) || productos.some(p => p.sku === sku)) { alert('Ya existe un producto con ese SKU.'); return; }
+
+  const nuevo = {
+    sku, descripcion: desc, um, precio,
+    fuente: 'Manual',
+    creadoPor: usuarioLogueado,
+    sucursal: sucursalActual,
+    fecha: new Date().toISOString()
+  };
   productosManuales.push(nuevo);
+
+  // ① VINCULAR EL CÓDIGO ESCANEADO (si hay)
+  if (codigoParaVincularNuevo && codigoParaVincularNuevo !== sku) {
+    const codigo = codigoParaVincularNuevo;
+    if (!vinculos[codigo]) vinculos[codigo] = [];
+    if (!Array.isArray(vinculos[codigo])) vinculos[codigo] = vinculos[codigo] ? [vinculos[codigo]] : [];
+    if (!vinculos[codigo].some(x => (x.sku || x).toUpperCase() === sku)) {
+      vinculos[codigo].push({
+        sku, creadoPor: usuarioLogueado,
+        sucursal: sucursalActual,
+        fecha: new Date().toISOString()
+      });
+    }
+    localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
+  }
+
+  // ② AGREGAR AL INVENTARIO DE LA SUCURSAL ACTUAL
+  if (!inventarioBase.some(p => p.sku.toUpperCase() === sku)) {
+    inventarioBase.push({
+      sku, descripcion: desc, precio: precio,
+      exis: 0,
+      manual: true,
+      agregadoPor: usuarioLogueado,
+      fechaAgregado: new Date().toISOString()
+    });
+    persistirInventarioActual();
+  }
+
   guardarEstado();
   const m = document.getElementById('modalNuevoProducto'); if (m) m.classList.remove('activo');
   const n = document.getElementById('noEncontradoWrap'); if (n) n.style.display = 'none';
   setVal('busqueda', '');
-  abrirModalCantidad(nuevo);
+
   renderManuales();
   renderBaseDatosStats();
-  toast('✔ Producto agregado');
+  renderInvTopStats();
+  actualizarUIInventario();
+  renderInventario();
+  renderVinculos();
+
+  // ③ ABRIR LO QUE CORRESPONDA SEGÚN DE DÓNDE VINISTE
+  if (contextoNuevoProducto === 'inventario') {
+    const prodInv = inventarioBase.find(p => p.sku.toUpperCase() === sku);
+    if (prodInv) setTimeout(() => abrirModalConteo(prodInv), 200);
+  } else {
+    abrirModalCantidad(nuevo);
+  }
+
+  const msj = codigoParaVincularNuevo && codigoParaVincularNuevo !== sku
+    ? '✔ Producto agregado y código vinculado'
+    : '✔ Producto agregado';
+  toast(msj);
+  codigoParaVincularNuevo = null;
+  contextoNuevoProducto = 'pedido';
 }
 
 /* ============ VINCULAR RÁPIDO ============ */
