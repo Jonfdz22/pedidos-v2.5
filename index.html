@@ -3232,7 +3232,7 @@ function capturarCodigo() {
     codigoPendiente = null;
     return;
   }
-  const b2 = document.getElementById('bannerCodigoNuevo'); if (b2) b2.classList.add('show');
+  const bannerNuevo = document.getElementById('bannerCodigoNuevo'); if (bannerNuevo) bannerNuevo.classList.add('show');
   codigoPendiente = codigo;
   setText('codigoCapturado', codigo);
   const p2 = document.getElementById('paso2Wrap'); if (p2) p2.style.display = 'block';
