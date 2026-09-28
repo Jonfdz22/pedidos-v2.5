@@ -925,7 +925,7 @@ let ventaProductoSel = null;
 let audioCtx = null;
 let configSonido = { activo: true, volumen: 70, vibrar: true };
 
-// *** HELPER SEGURO: evitar errores de null ***
+// *** HELPERS SEGUROS: evitan errores de null ***
 function setText(id, text) {
   const el = document.getElementById(id);
   if (el) el.textContent = text;
@@ -1387,6 +1387,7 @@ function cambiarSucursal(id) {
   actualizarHeaderSucursal();
   renderPedido();
   renderInvTopStats();
+  actualizarUIInventario();
   renderInventario();
   renderManuales();
   renderBaseDatosStats();
@@ -1579,6 +1580,7 @@ function entrarApp() {
     if (productos.length === 0 && productosManuales.length === 0) cargarEstado();
     else { renderPedido(); renderVinculos(); }
     renderInvTopStats();
+    actualizarUIInventario();
     renderInventario();
     renderManuales();
     renderBaseDatosStats();
@@ -1617,7 +1619,7 @@ function cambiarPestana(t) {
   });
   if (t === 'vincular') setTimeout(() => { const i = document.getElementById('inputCodigo'); if (i) i.focus(); }, 100);
   if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); }
-  if (t === 'inventario') { renderInvTopStats(); renderInventario(); actualizarSucursalNombreEnVistas(); }
+  if (t === 'inventario') { renderInvTopStats(); actualizarUIInventario(); renderInventario(); actualizarSucursalNombreEnVistas(); }
   if (t === 'baseDatos') { renderManuales(); renderBaseDatosStats(); }
   guardarEstado();
 }
@@ -1873,7 +1875,7 @@ function importarRespaldo(event) {
       guardarEstado();
       actualizarInventarioActual();
       renderPedido(); renderVinculos(); renderUsuarios(); renderSucursales();
-      renderInvTopStats(); renderInventario(); renderManuales(); renderBaseDatosStats();
+      renderInvTopStats(); actualizarUIInventario(); renderInventario(); renderManuales(); renderBaseDatosStats();
       actualizarHeaderSucursal(); actualizarSucursalNombreEnVistas();
       actualizarEstadoEmailJS(); cargarConfigSonido();
       toast('✔');
@@ -2245,6 +2247,7 @@ async function cargarExcelInventario(file, modoCarga) {
     const bow = document.getElementById('invBtnOlvidarWrap'); if (bow) bow.style.display = 'block';
     const ipc = document.getElementById('invPanelContar'); if (ipc) ipc.style.display = 'block';
     renderInvTopStats();
+    actualizarUIInventario();
     renderInventario();
     renderBaseDatosStats();
     actualizarInfoSnapshot();
@@ -2438,6 +2441,27 @@ function eliminarVenta(idx) {
       actualizarInfoSnapshot();
       toast('🗑 Venta eliminada');
     });
+}
+
+/* ============ ACTUALIZAR UI INVENTARIO ============ */
+function actualizarUIInventario() {
+  const info = document.getElementById('invInfo');
+  const infoBD = document.getElementById('bdInfoInv');
+  const bow = document.getElementById('invBtnOlvidarWrap');
+  const ipc = document.getElementById('invPanelContar');
+  const s = getSucursalActual();
+  if (inventarioBase.length > 0) {
+    const msg = `✔ <b>${inventarioBase.length}</b> productos (${s ? s.nombre : ''})`;
+    if (info) info.innerHTML = msg;
+    if (infoBD) infoBD.innerHTML = msg;
+    if (bow) bow.style.display = 'block';
+    if (ipc) ipc.style.display = 'block';
+  } else {
+    if (info) info.innerHTML = '';
+    if (infoBD) infoBD.innerHTML = '';
+    if (bow) bow.style.display = 'none';
+    if (ipc) ipc.style.display = 'none';
+  }
 }
 
 /* ============ RENDER INVENTARIO ============ */
@@ -3227,7 +3251,7 @@ function capturarCodigo() {
         <button class="verde" style="font-size:13px; padding:8px 14px;" onclick="agregarSkuACodigo('${codigo.replace(/'/g, "\\'")}')">➕ Agregar otro SKU</button>
         <button class="gris" style="font-size:13px; padding:8px 14px;" onclick="limpiarInputCodigo()">Listo</button>
       </div>`;
-    const b = document.getElementById('bannerCodigoYaVinculado'); if (b) b.classList.add('show');
+    const banner1 = document.getElementById('bannerCodigoYaVinculado'); if (banner1) banner1.classList.add('show');
     const p2 = document.getElementById('paso2Wrap'); if (p2) p2.style.display = 'none';
     codigoPendiente = null;
     return;
