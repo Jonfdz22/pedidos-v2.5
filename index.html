@@ -76,6 +76,9 @@
   table { width:100%; border-collapse:collapse; background:white; margin-top:8px;}
   th, td { border:1px solid #ddd; padding:6px 8px; text-align:left; font-size:13px;}
   th { background:#1a5fbf; color:white; font-size:12px;}
+  th.ordenable { cursor:pointer; user-select:none; }
+  th.ordenable:hover { background:#1552a8; }
+  .ord-ind { font-size:11px; margin-left:4px; opacity:.9; }
   tr.resultado:active, tr.resultado.sel { background:#dbe9ff; }
   tr.resultado.sel td { background:#dbe9ff; }
   tr.resultado { cursor:pointer; }
@@ -87,6 +90,7 @@
   .badge-promo { background:#e67e22; }
   .badge-sistema { background:#1a5fbf; }
   .badge-manual { background:#7f8c8d; }
+  .badge-contado { background:#1e8449; font-size:10px; padding:2px 6px; }
   .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
            background:#1e8449; color:white; padding:10px 18px; border-radius:8px;
            box-shadow:0 4px 12px rgba(0,0,0,.25); opacity:0; transition:opacity .25s;
@@ -198,6 +202,7 @@
   .pill-manual { background:#f0f0f0; color:#555; border:1px solid #999;}
   .pill-existencias { background:#e8f5e9; color:#0d4d26; border:1px solid #1e8449;}
   .pill-sin-datos { background:#fff3e0; color:#7a3d00; border:1px solid #e67e22;}
+  .pill-cuadrado { background:#e8f5e9; color:#0d4d26; border:2px solid #1e8449;}
   .hint-scan { background:#fff3e0; padding:8px 10px; border-radius:6px; font-size:12px; color:#7a3d00;
                margin-top:8px; border-left:3px solid #e67e22;}
   .opcion-producto { background:#f0f7ff; padding:12px; border-radius:8px; margin:8px 0;
@@ -371,7 +376,15 @@
     </div>
     <div id="tablaPedidoWrap">
       <table id="tablaPedido">
-        <thead><tr><th>Rex</th><th>Descripción</th><th>Pido</th><th>Exist.</th><th>Total pz</th><th>UM</th><th></th></tr></thead>
+        <thead><tr>
+          <th class="ordenable" onclick="ordenarPedido('sku')">Rex <span class="ord-ind" data-tabla="pedido" data-col="sku"></span></th>
+          <th class="ordenable" onclick="ordenarPedido('descripcion')">Descripción <span class="ord-ind" data-tabla="pedido" data-col="descripcion"></span></th>
+          <th class="ordenable" onclick="ordenarPedido('cantidad')">Pido <span class="ord-ind" data-tabla="pedido" data-col="cantidad"></span></th>
+          <th class="ordenable" onclick="ordenarPedido('exist')">Exist. <span class="ord-ind" data-tabla="pedido" data-col="exist"></span></th>
+          <th class="ordenable" onclick="ordenarPedido('totalpz')">Total pz <span class="ord-ind" data-tabla="pedido" data-col="totalpz"></span></th>
+          <th class="ordenable" onclick="ordenarPedido('um')">UM <span class="ord-ind" data-tabla="pedido" data-col="um"></span></th>
+          <th></th>
+        </tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -427,7 +440,18 @@
     <input type="text" id="invFiltro" placeholder="Filtrar productos…" oninput="renderInventario()">
     <div class="tabla-scroll">
       <table id="tablaInventario">
-        <thead><tr><th>SKU</th><th>Descripción</th><th>Debe haber</th><th>Contado</th><th>Dif</th><th>Dif $</th><th></th></tr></thead>
+        <thead><tr>
+          <th class="ordenable" onclick="ordenarInventario('sku')" style="text-align:left;">Clave <span class="ord-ind" data-tabla="inv" data-col="sku"></span></th>
+          <th class="ordenable" onclick="ordenarInventario('descripcion')" style="text-align:left;">Descripción <span class="ord-ind" data-tabla="inv" data-col="descripcion"></span></th>
+          <th class="ordenable" onclick="ordenarInventario('exis')" style="text-align:right;">Esperado <span class="ord-ind" data-tabla="inv" data-col="exis"></span></th>
+          <th class="ordenable" onclick="ordenarInventario('vendido')" style="text-align:right;">Vendido <span class="ord-ind" data-tabla="inv" data-col="vendido"></span></th>
+          <th class="ordenable" onclick="ordenarInventario('ajustado')" style="text-align:right;">Ajustado <span class="ord-ind" data-tabla="inv" data-col="ajustado"></span></th>
+          <th class="ordenable" onclick="ordenarInventario('contado')" style="text-align:right;">Contado <span class="ord-ind" data-tabla="inv" data-col="contado"></span></th>
+          <th class="ordenable" onclick="ordenarInventario('dif')" style="text-align:right;">Dif <span class="ord-ind" data-tabla="inv" data-col="dif"></span></th>
+          <th class="ordenable" onclick="ordenarInventario('difmxn')" style="text-align:right;">Dif $ <span class="ord-ind" data-tabla="inv" data-col="difmxn"></span></th>
+          <th class="ordenable" onclick="ordenarInventario('usuario')" style="text-align:left;">Contó <span class="ord-ind" data-tabla="inv" data-col="usuario"></span></th>
+          <th></th>
+        </tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -649,6 +673,7 @@
     <div id="ventaResultados" style="max-height:280px; overflow-y:auto; margin-top:8px;"></div>
     <div id="ventaProductoSel" style="display:none; margin-top:14px; background:#f0f7ff; padding:12px; border-radius:8px; border-left:4px solid #1a5fbf;">
       <div id="ventaInfo" style="margin-bottom:10px;"></div>
+      <div id="ventaCuadradoAviso" style="display:none;"></div>
       <label class="small">Cantidad vendida</label>
       <input type="number" id="ventaCantidad" value="1" min="1" style="font-size:22px; text-align:center; font-weight:bold;">
     </div>
@@ -848,7 +873,6 @@
 </div>
 
 <div class="toast" id="toast"></div>
-
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
@@ -925,10 +949,15 @@ let superaTotalPendiente = null;
 let ventaProductoSel = null;
 let audioCtx = null;
 let configSonido = { activo: true, volumen: 70, vibrar: true };
-let codigoParaVincularNuevo = null;
-let contextoNuevoProducto = 'pedido';
 
-// *** HELPERS SEGUROS: evitan errores de null ***
+// Variables para ordenamiento de tablas
+let ordenInventario = { columna: 'sku', dir: 'asc' };
+let ordenPedido = { columna: 'sku', dir: 'asc' };
+
+// Variables para el producto nuevo
+let codigoParaVincularNuevo = null;
+
+/* ============ HELPERS SEGUROS ============ */
 function setText(id, text) {
   const el = document.getElementById(id);
   if (el) el.textContent = text;
@@ -1154,10 +1183,12 @@ function cargarInventarios() {
     }
   } catch(e) { console.error('Error cargando inventarios:', e); }
   sucursales.forEach(s => {
-    if (!inventariosPorSucursal[s.id]) inventariosPorSucursal[s.id] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
+    if (!inventariosPorSucursal[s.id]) inventariosPorSucursal[s.id] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {}, usuarioConteoPorSku: {}, ajustadoCongelado: {} };
     else {
       if (typeof inventariosPorSucursal[s.id].fechaCargaBase === 'undefined') inventariosPorSucursal[s.id].fechaCargaBase = null;
       if (typeof inventariosPorSucursal[s.id].horaConteoPorSku === 'undefined') inventariosPorSucursal[s.id].horaConteoPorSku = {};
+      if (typeof inventariosPorSucursal[s.id].usuarioConteoPorSku === 'undefined') inventariosPorSucursal[s.id].usuarioConteoPorSku = {};
+      if (typeof inventariosPorSucursal[s.id].ajustadoCongelado === 'undefined') inventariosPorSucursal[s.id].ajustadoCongelado = {};
     }
   });
   actualizarInventarioActual();
@@ -1183,23 +1214,42 @@ function actualizarInventarioActual() {
   else { inventarioBase = []; inventarioConteo = {}; }
 }
 function persistirInventarioActual() {
-  if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
+  if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {}, usuarioConteoPorSku: {}, ajustadoCongelado: {} };
   inventariosPorSucursal[sucursalActual].base = inventarioBase;
   inventariosPorSucursal[sucursalActual].conteo = inventarioConteo;
   guardarInventarios();
 }
 function getFechaCargaBase() { const slot = inventariosPorSucursal[sucursalActual]; return slot ? slot.fechaCargaBase : null; }
 function setFechaCargaBase(iso) {
-  if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
+  if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {}, usuarioConteoPorSku: {}, ajustadoCongelado: {} };
   inventariosPorSucursal[sucursalActual].fechaCargaBase = iso;
   guardarInventarios();
 }
 function getHoraConteoPorSku() { const slot = inventariosPorSucursal[sucursalActual]; return (slot && slot.horaConteoPorSku) || {}; }
 function setHoraConteoPorSku(sku, iso) {
-  if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
+  if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {}, usuarioConteoPorSku: {}, ajustadoCongelado: {} };
   if (!inventariosPorSucursal[sucursalActual].horaConteoPorSku) inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
   inventariosPorSucursal[sucursalActual].horaConteoPorSku[sku] = iso;
   guardarInventarios();
+}
+function getUsuarioConteoPorSku() { const slot = inventariosPorSucursal[sucursalActual]; return (slot && slot.usuarioConteoPorSku) || {}; }
+function setUsuarioConteoPorSku(sku, usuario) {
+  if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {}, usuarioConteoPorSku: {}, ajustadoCongelado: {} };
+  if (!inventariosPorSucursal[sucursalActual].usuarioConteoPorSku) inventariosPorSucursal[sucursalActual].usuarioConteoPorSku = {};
+  inventariosPorSucursal[sucursalActual].usuarioConteoPorSku[sku] = usuario;
+  guardarInventarios();
+}
+function getAjustadoCongelado() { const slot = inventariosPorSucursal[sucursalActual]; return (slot && slot.ajustadoCongelado) || {}; }
+function setAjustadoCongelado(sku, valor) {
+  if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {}, usuarioConteoPorSku: {}, ajustadoCongelado: {} };
+  if (!inventariosPorSucursal[sucursalActual].ajustadoCongelado) inventariosPorSucursal[sucursalActual].ajustadoCongelado = {};
+  inventariosPorSucursal[sucursalActual].ajustadoCongelado[sku] = valor;
+  guardarInventarios();
+}
+function getAjustadoDeSku(sku, p) {
+  const cong = getAjustadoCongelado();
+  if (typeof cong[sku] === 'number') return cong[sku];
+  return (p.exis || 0) - totalVendidoDeSku(sku);
 }
 
 /* ============ EMAILJS ============ */
@@ -1333,29 +1383,81 @@ function intentarLogin() {
     setTimeout(() => { if (confirm('¿Cambiar contraseña por defecto ahora?')) abrirModalCambiarMiPassword(); }, 400);
   }
 }
+
+/* ============ CERRAR SESIÓN (con pregunta) ============ */
 function cerrarSesion() {
   if (!confirm('¿Cerrar sesión?')) return;
-  borrarSesion();
-  usuarioLogueado = null;
-  document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
-  document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('activo'));
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('loginBg').style.display = 'flex';
-  setVal('loginUsuario', '');
-  setVal('loginPassword', '');
+  // Pregunta si borrar datos capturados
+  setTimeout(() => {
+    const tienePedidos = pedido.filter(p => p.sucursal === sucursalActual).length > 0;
+    const tieneConteos = Object.keys(inventarioConteo).length > 0;
+    if (tienePedidos || tieneConteos) {
+      let msg = '⚠️ Tienes datos sin guardar:\n\n';
+      if (tienePedidos) msg += `• Pedido de ${getSucursalActual().nombre}: ${pedido.filter(p => p.sucursal === sucursalActual).length} productos\n`;
+      if (tieneConteos) msg += `• Conteo de ${getSucursalActual().nombre}: ${Object.keys(inventarioConteo).length} productos contados\n`;
+      msg += '\n¿Quieres BORRAR estos datos al cerrar sesión?\n\n[Aceptar] = Borrar\n[Cancelar] = Conservar';
+      if (confirm(msg)) {
+        // Borrar pedidos de esta sucursal
+        pedido = pedido.filter(p => p.sucursal !== sucursalActual);
+        // Borrar conteo de esta sucursal
+        inventarioConteo = {};
+        if (inventariosPorSucursal[sucursalActual]) {
+          inventariosPorSucursal[sucursalActual].conteo = {};
+          inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
+          inventariosPorSucursal[sucursalActual].usuarioConteoPorSku = {};
+          inventariosPorSucursal[sucursalActual].ajustadoCongelado = {};
+        }
+        guardarEstado();
+        guardarInventarios();
+        toast('🗑 Datos borrados');
+      }
+    }
+    // Cerrar
+    borrarSesion();
+    usuarioLogueado = null;
+    document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
+    document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('activo'));
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('loginBg').style.display = 'flex';
+    setVal('loginUsuario', '');
+    setVal('loginPassword', '');
+  }, 100);
 }
 function cambiarDeCuenta() {
   cerrarMenuUsuario();
   if (!confirm('¿Cambiar de cuenta? Se cerrará la sesión actual.')) return;
-  borrarSesion();
-  usuarioLogueado = null;
-  document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('loginBg').style.display = 'flex';
-  setVal('loginUsuario', '');
-  setVal('loginPassword', '');
-  const inp = document.getElementById('loginUsuario');
-  if (inp) inp.focus();
+  // Pregunta igual que cerrarSesion
+  setTimeout(() => {
+    const tienePedidos = pedido.filter(p => p.sucursal === sucursalActual).length > 0;
+    const tieneConteos = Object.keys(inventarioConteo).length > 0;
+    if (tienePedidos || tieneConteos) {
+      let msg = '⚠️ Tienes datos sin guardar:\n\n';
+      if (tienePedidos) msg += `• Pedido de ${getSucursalActual().nombre}: ${pedido.filter(p => p.sucursal === sucursalActual).length} productos\n`;
+      if (tieneConteos) msg += `• Conteo de ${getSucursalActual().nombre}: ${Object.keys(inventarioConteo).length} productos contados\n`;
+      msg += '\n¿Quieres BORRAR estos datos al cambiar de cuenta?\n\n[Aceptar] = Borrar\n[Cancelar] = Conservar';
+      if (confirm(msg)) {
+        pedido = pedido.filter(p => p.sucursal !== sucursalActual);
+        inventarioConteo = {};
+        if (inventariosPorSucursal[sucursalActual]) {
+          inventariosPorSucursal[sucursalActual].conteo = {};
+          inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
+          inventariosPorSucursal[sucursalActual].usuarioConteoPorSku = {};
+          inventariosPorSucursal[sucursalActual].ajustadoCongelado = {};
+        }
+        guardarEstado();
+        guardarInventarios();
+      }
+    }
+    borrarSesion();
+    usuarioLogueado = null;
+    document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('loginBg').style.display = 'flex';
+    setVal('loginUsuario', '');
+    setVal('loginPassword', '');
+    const inp = document.getElementById('loginUsuario');
+    if (inp) inp.focus();
+  }, 100);
 }
 
 /* ============ MENÚS ============ */
@@ -1814,7 +1916,7 @@ function guardarSucursal() {
   } else {
     const id = nombre.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) + '_' + Date.now().toString().slice(-4);
     sucursales.push({ id, nombre, abrev });
-    inventariosPorSucursal[id] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {} };
+    inventariosPorSucursal[id] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {}, usuarioConteoPorSku: {}, ajustadoCongelado: {} };
     ventasPorSucursal[id] = [];
     toast('✔ Sucursal agregada');
   }
@@ -1842,7 +1944,7 @@ function eliminarSucursal(id) {
 
 /* ============ RESPALDO ============ */
 function exportarRespaldo() {
-  const data = { version: 16, exportado: new Date().toISOString(),
+  const data = { version: 17, exportado: new Date().toISOString(),
     productos, productosManuales, pedido, vinculos, usuarios, configEmailJS,
     inventariosPorSucursal, ventasPorSucursal, sucursales, nombreEmpresa, sucursalActual, configSonido };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1977,6 +2079,37 @@ function badgeFuente(fuente) {
   return '<span class="badge badge-manual">✏️ MANUAL</span>';
 }
 
+/* ============ ORDENAMIENTO DE TABLAS ============ */
+function ordenarPedido(col) {
+  if (ordenPedido.columna === col) {
+    ordenPedido.dir = ordenPedido.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    ordenPedido.columna = col;
+    ordenPedido.dir = 'asc';
+  }
+  renderPedido();
+}
+function ordenarInventario(col) {
+  if (ordenInventario.columna === col) {
+    ordenInventario.dir = ordenInventario.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    ordenInventario.columna = col;
+    ordenInventario.dir = 'asc';
+  }
+  renderInventario();
+}
+function actualizarIndicadorOrdenPedido() {
+  document.querySelectorAll('.ord-ind[data-tabla="pedido"]').forEach(el => { el.textContent = ''; });
+  const el = document.querySelector(`.ord-ind[data-tabla="pedido"][data-col="${ordenPedido.columna}"]`);
+  if (el) el.textContent = ordenPedido.dir === 'asc' ? '▲' : '▼';
+}
+function actualizarIndicadorOrdenInv() {
+  document.querySelectorAll('.ord-ind[data-tabla="inv"]').forEach(el => { el.textContent = ''; });
+  const el = document.querySelector(`.ord-ind[data-tabla="inv"][data-col="${ordenInventario.columna}"]`);
+  if (el) el.textContent = ordenInventario.dir === 'asc' ? '▲' : '▼';
+}
+</script>
+<script>
 /* ============ PERSISTENCIA ============ */
 function guardarEstado() {
   try {
@@ -2116,7 +2249,7 @@ function parsearLinea(texto) {
   return 'ok';
 }
 
-/* ============ INVENTARIO ============ */
+/* ============ INVENTARIO (cargar Excel) ============ */
 function olvidarInventario() {
   const s = getSucursalActual();
   const tieneBase = inventarioBase.length > 0;
@@ -2137,6 +2270,8 @@ function olvidarInventario() {
     inventariosPorSucursal[sucursalActual].conteo = {};
     inventariosPorSucursal[sucursalActual].fechaCargaBase = null;
     inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
+    inventariosPorSucursal[sucursalActual].usuarioConteoPorSku = {};
+    inventariosPorSucursal[sucursalActual].ajustadoCongelado = {};
   }
   guardarInventarios(); guardarVentas();
   setText('invInfo', '');
@@ -2258,6 +2393,27 @@ async function cargarExcelInventario(file, modoCarga) {
   } catch (err) { console.error(err); alert('Error al leer: ' + err.message); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; }
 }
 
+/* ============ ACTUALIZAR UI INVENTARIO ============ */
+function actualizarUIInventario() {
+  const info = document.getElementById('invInfo');
+  const infoBD = document.getElementById('bdInfoInv');
+  const bow = document.getElementById('invBtnOlvidarWrap');
+  const ipc = document.getElementById('invPanelContar');
+  const s = getSucursalActual();
+  if (inventarioBase.length > 0) {
+    const msg = `✔ <b>${inventarioBase.length}</b> productos (${s ? s.nombre : ''})`;
+    if (info) info.innerHTML = msg;
+    if (infoBD) infoBD.innerHTML = msg;
+    if (bow) bow.style.display = 'block';
+    if (ipc) ipc.style.display = 'block';
+  } else {
+    if (info) info.innerHTML = '';
+    if (infoBD) infoBD.innerHTML = '';
+    if (bow) bow.style.display = 'none';
+    if (ipc) ipc.style.display = 'none';
+  }
+}
+
 /* ============ MODO PZ ============ */
 function toggleModoPz() {
   modoEscanearPz = !modoEscanearPz;
@@ -2289,7 +2445,7 @@ function escanearPorPieza(codigo) {
   const nuevo = actual + 1;
   const esperado = p.exis;
   const vendido = totalVendidoDeSku(p.sku);
-  const ajustado = esperado - vendido;
+  const ajustado = getAjustadoDeSku(p.sku, p);
   if (nuevo > ajustado) {
     feedbackAlerta();
     superaTotalPendiente = { producto: p, cantidadNueva: nuevo, ajustado, cantidadAnterior: actual };
@@ -2300,6 +2456,9 @@ function escanearPorPieza(codigo) {
   }
   inventarioConteo[p.sku] = nuevo;
   setHoraConteoPorSku(p.sku, new Date().toISOString());
+  setUsuarioConteoPorSku(p.sku, usuarioLogueado);
+  // CONGELAR AJUSTADO
+  setAjustadoCongelado(p.sku, ajustado);
   ultimoEscanerPz = { sku: p.sku, cantidadAnterior: actual };
   persistirInventarioActual();
   feedbackExito();
@@ -2309,9 +2468,11 @@ function escanearPorPieza(codigo) {
 }
 function confirmarSuperaTotal() {
   if (!superaTotalPendiente) return;
-  const { producto, cantidadNueva, cantidadAnterior } = superaTotalPendiente;
+  const { producto, cantidadNueva, cantidadAnterior, ajustado } = superaTotalPendiente;
   inventarioConteo[producto.sku] = cantidadNueva;
   setHoraConteoPorSku(producto.sku, new Date().toISOString());
+  setUsuarioConteoPorSku(producto.sku, usuarioLogueado);
+  setAjustadoCongelado(producto.sku, ajustado);
   ultimoEscanerPz = { sku: producto.sku, cantidadAnterior };
   persistirInventarioActual();
   const m = document.getElementById('modalSuperaTotal'); if (m) m.classList.remove('activo');
@@ -2328,12 +2489,13 @@ function deshacerUltimoEscaner() {
   toast('↩ Escaneo cancelado');
 }
 
-/* ============ VENTAS ============ */
+/* ============ VENTAS (con nuevo comportamiento) ============ */
 function abrirRegistrarVenta() {
   ventaProductoSel = null;
   setVal('ventaBusqueda', '');
   const vr = document.getElementById('ventaResultados'); if (vr) vr.innerHTML = '';
   const vps = document.getElementById('ventaProductoSel'); if (vps) vps.style.display = 'none';
+  const vca = document.getElementById('ventaCuadradoAviso'); if (vca) vca.style.display = 'none';
   const bcv = document.getElementById('btnConfirmarVenta'); if (bcv) bcv.disabled = true;
   renderVentasHoy();
   const m = document.getElementById('modalRegistrarVenta'); if (m) m.classList.add('activo');
@@ -2379,12 +2541,32 @@ function seleccionarParaVenta(sku) {
   ventaProductoSel = p;
   const yaContado = inventarioConteo[p.sku] !== undefined;
   const vendido = totalVendidoDeSku(p.sku);
+  const ajustado = getAjustadoDeSku(p.sku, p);
+  const contado = inventarioConteo[p.sku];
+  const difActual = yaContado ? calcularDif(ajustado, contado) : null;
+  const cuadraPerfecto = yaContado && difActual === 0;
+
   const vi = document.getElementById('ventaInfo');
   if (vi) vi.innerHTML = `
     <div style="font-weight:bold; color:#1a3a6b; font-size:15px;">${p.sku}</div>
     <div class="small" style="margin-top:4px;">${p.descripcion || ''}</div>
     <div class="small" style="margin-top:6px;">Exis: <b>${p.exis}</b> · Vendido hoy: <b>${vendido}</b></div>
-    ${yaContado ? '<div class="small" style="margin-top:6px; color:#1e8449;">✅ Ya contado</div>' : '<div class="small" style="margin-top:6px; color:#e67e22;">⚠️ Aún no contado</div>'}`;
+    ${yaContado ? '<div class="small" style="margin-top:6px; color:#1e8449;">✅ Ya contado (' + contado + ')</div>' : '<div class="small" style="margin-top:6px; color:#e67e22;">⚠️ Aún no contado</div>'}`;
+
+  const vca = document.getElementById('ventaCuadradoAviso');
+  if (vca) {
+    if (cuadraPerfecto) {
+      vca.style.display = 'block';
+      vca.innerHTML = `<div style="background:#e8f5e9; padding:10px; border-radius:8px; border-left:4px solid #1e8449; margin-bottom:10px; font-size:13px; color:#0d4d26;">
+        ✅ <b>Este producto ya está contado y CUADRA con el sistema.</b><br>
+        La venta se registrará SIN ajustar el conteo. La diferencia seguirá en 0.
+      </div>`;
+    } else {
+      vca.style.display = 'none';
+      vca.innerHTML = '';
+    }
+  }
+
   const vps = document.getElementById('ventaProductoSel'); if (vps) vps.style.display = 'block';
   const bcv = document.getElementById('btnConfirmarVenta'); if (bcv) bcv.disabled = false;
   const vc = document.getElementById('ventaCantidad');
@@ -2399,7 +2581,12 @@ function confirmarVenta() {
   ventasPorSucursal[sucursalActual].push({ sku: p.sku, descripcion: p.descripcion || '', cantidad: cant, hora: new Date().toISOString(), usuario: usuarioLogueado });
   guardarVentas();
   feedbackExito();
-  toast(`🛒 Venta registrada: ${cant} × ${p.sku}`, 'warn');
+  const yaContado = inventarioConteo[p.sku] !== undefined;
+  if (yaContado) {
+    toast(`🛒 Venta registrada: ${cant} × ${p.sku} (conteo NO se ajusta)`, 'warn');
+  } else {
+    toast(`🛒 Venta registrada: ${cant} × ${p.sku}`, 'warn');
+  }
   renderVentasHoy();
   renderInvTopStats();
   renderInventario();
@@ -2408,6 +2595,7 @@ function confirmarVenta() {
   setVal('ventaBusqueda', '');
   const vr = document.getElementById('ventaResultados'); if (vr) vr.innerHTML = '';
   const vps = document.getElementById('ventaProductoSel'); if (vps) vps.style.display = 'none';
+  const vca = document.getElementById('ventaCuadradoAviso'); if (vca) vca.style.display = 'none';
   const bcv = document.getElementById('btnConfirmarVenta'); if (bcv) bcv.disabled = true;
   const vbi = document.getElementById('ventaBusqueda'); if (vbi) vbi.focus();
 }
@@ -2446,28 +2634,7 @@ function eliminarVenta(idx) {
     });
 }
 
-/* ============ ACTUALIZAR UI INVENTARIO ============ */
-function actualizarUIInventario() {
-  const info = document.getElementById('invInfo');
-  const infoBD = document.getElementById('bdInfoInv');
-  const bow = document.getElementById('invBtnOlvidarWrap');
-  const ipc = document.getElementById('invPanelContar');
-  const s = getSucursalActual();
-  if (inventarioBase.length > 0) {
-    const msg = `✔ <b>${inventarioBase.length}</b> productos (${s ? s.nombre : ''})`;
-    if (info) info.innerHTML = msg;
-    if (infoBD) infoBD.innerHTML = msg;
-    if (bow) bow.style.display = 'block';
-    if (ipc) ipc.style.display = 'block';
-  } else {
-    if (info) info.innerHTML = '';
-    if (infoBD) infoBD.innerHTML = '';
-    if (bow) bow.style.display = 'none';
-    if (ipc) ipc.style.display = 'none';
-  }
-}
-
-/* ============ RENDER INVENTARIO ============ */
+/* ============ RENDER STATS ============ */
 function renderInvTopStats() {
   const el = document.getElementById('invStatsTop');
   if (!el) return;
@@ -2548,8 +2715,9 @@ function invBuscar() {
       const chip = (contado !== undefined) ? `<span class="chip-counted">✔ ${contado}</span>` : `<span class="chip-pending">pendiente</span>`;
       const chipHora = hora ? `<span class="chip-time">${fmtHora(hora)}</span>` : '';
       const claseExis = p.exis < 0 ? 'neg-num' : '';
+      const badgeManual = p.manual ? ' <span class="badge badge-manual">🆕</span>' : '';
       return `<tr class="resultado" data-idx="${i}" onclick="invSeleccionar(${i})">
-        <td>${p.sku}${p.manual ? ' <span class="badge badge-manual">🆕</span>' : ''}${chip}${chipHora}</td><td>${p.descripcion || ''}</td>
+        <td>${p.sku}${badgeManual}${chip}${chipHora}</td><td>${p.descripcion || ''}</td>
         <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}</td>
         <td style="text-align:center;">→</td></tr>`;
     }).join('') + '</tbody></table>';
@@ -2598,7 +2766,6 @@ function invTeclaBusqueda(e) {
 }
 function abrirModalNuevoProductoDesdeInventario(codigo) {
   codigoParaVincularNuevo = (codigo || '').toUpperCase() || null;
-  contextoNuevoProducto = 'inventario';
   setVal('npSku', (codigo || '').toUpperCase());
   setVal('npDesc', ''); setVal('npUm', 'PIEZA'); setVal('npPrecio', '');
   const m = document.getElementById('modalNuevoProducto'); if (m) m.classList.add('activo');
@@ -2610,7 +2777,7 @@ function abrirModalConteo(p) {
   const contado = inventarioConteo[p.sku];
   const fechaBase = getFechaCargaBase();
   const vendido = totalVendidoDeSku(p.sku);
-  const ajustado = p.exis - vendido;
+  const ajustado = getAjustadoDeSku(p.sku, p);
   const cip = document.getElementById('conteoInfoProducto');
   if (cip) cip.innerHTML = `
     <div style="font-weight:bold; font-size:15px; color:#1a3a6b;">${p.sku}</div>
@@ -2641,14 +2808,18 @@ function confirmarConteo() {
   if (!invProductoActual) return;
   const inp = document.getElementById('inputConteo');
   const cant = Math.max(0, parseInt(inp ? inp.value : 0) || 0);
-  inventarioConteo[invProductoActual.sku] = cant;
-  setHoraConteoPorSku(invProductoActual.sku, new Date().toISOString());
-  invUltimoSku = invProductoActual.sku;
+  const p = invProductoActual;
+  const ajustadoActual = p.exis - totalVendidoDeSku(p.sku);
+  inventarioConteo[p.sku] = cant;
+  setHoraConteoPorSku(p.sku, new Date().toISOString());
+  setUsuarioConteoPorSku(p.sku, usuarioLogueado);
+  setAjustadoCongelado(p.sku, ajustadoActual);
+  invUltimoSku = p.sku;
   persistirInventarioActual();
   feedbackExito();
-  toast(`✔ ${invProductoActual.sku} = ${cant}`);
+  toast(`✔ ${p.sku} = ${cant}`);
   const bi = document.getElementById('invBusqueda');
-  if (bi) bi.value = invProductoActual.sku;
+  if (bi) bi.value = p.sku;
   invProductoActual = null;
   const m = document.getElementById('modalConteo'); if (m) m.classList.remove('activo');
   renderInvTopStats();
@@ -2661,6 +2832,8 @@ function quitarConteoActual() {
   if (!confirm(`¿Quitar el conteo de este producto?\n\n${p.sku}\n${p.descripcion || ''}`)) return;
   delete inventarioConteo[p.sku];
   if (inventariosPorSucursal[sucursalActual] && inventariosPorSucursal[sucursalActual].horaConteoPorSku) delete inventariosPorSucursal[sucursalActual].horaConteoPorSku[p.sku];
+  if (inventariosPorSucursal[sucursalActual] && inventariosPorSucursal[sucursalActual].usuarioConteoPorSku) delete inventariosPorSucursal[sucursalActual].usuarioConteoPorSku[p.sku];
+  if (inventariosPorSucursal[sucursalActual] && inventariosPorSucursal[sucursalActual].ajustadoCongelado) delete inventariosPorSucursal[sucursalActual].ajustadoCongelado[p.sku];
   persistirInventarioActual();
   const m = document.getElementById('modalConteo'); if (m) m.classList.remove('activo');
   invProductoActual = null;
@@ -2670,6 +2843,8 @@ function quitarConteoActual() {
   renderInventario();
   const bi = document.getElementById('invBusqueda'); if (bi) bi.focus();
 }
+
+/* ============ RENDER INVENTARIO (tabla) ============ */
 function renderInventario() {
   const tb = document.querySelector('#tablaInventario tbody');
   if (!tb) return;
@@ -2683,13 +2858,36 @@ function renderInventario() {
   }
   if (panelRes) panelRes.style.display = 'block';
   if (panelAcc) panelAcc.style.display = 'flex';
+
+  const usuariosConteo = getUsuarioConteoPorSku();
+  const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
+  const dirMul = ordenInventario.dir === 'asc' ? 1 : -1;
+  const col = ordenInventario.columna;
+  rows.sort((a, b) => {
+    let va, vb;
+    if (col === 'sku') { va = (a.sku || '').toUpperCase(); vb = (b.sku || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
+    if (col === 'descripcion') { va = (a.descripcion || '').toUpperCase(); vb = (b.descripcion || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
+    if (col === 'usuario') { va = (usuariosConteo[a.sku] || '').toUpperCase(); vb = (usuariosConteo[b.sku] || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
+    if (col === 'exis') { va = a.exis; vb = b.exis; }
+    else if (col === 'vendido') { va = totalVendidoDeSku(a.sku); vb = totalVendidoDeSku(b.sku); }
+    else if (col === 'ajustado') { va = getAjustadoDeSku(a.sku, a); vb = getAjustadoDeSku(b.sku, b); }
+    else if (col === 'contado') { va = inventarioConteo[a.sku]; vb = inventarioConteo[b.sku]; }
+    else if (col === 'dif') { va = calcularDif(getAjustadoDeSku(a.sku, a), inventarioConteo[a.sku]); vb = calcularDif(getAjustadoDeSku(b.sku, b), inventarioConteo[b.sku]); }
+    else if (col === 'difmxn') {
+      const da = calcularDif(getAjustadoDeSku(a.sku, a), inventarioConteo[a.sku]);
+      const db = calcularDif(getAjustadoDeSku(b.sku, b), inventarioConteo[b.sku]);
+      va = da * (a.precio || 0); vb = db * (b.precio || 0);
+    }
+    else { va = (a.sku || '').toUpperCase(); vb = (b.sku || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
+    return (va - vb) * dirMul;
+  });
+  actualizarIndicadorOrdenInv();
+
   let sobrantes = 0, faltantes = 0, cuadran = 0, negEnSistema = 0;
   let totalDifMxn = 0, totalDifPiezas = 0;
-  const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   rows.forEach(p => {
     const c = inventarioConteo[p.sku];
-    const vendido = totalVendidoDeSku(p.sku);
-    const ajustado = p.exis - vendido;
+    const ajustado = getAjustadoDeSku(p.sku, p);
     const d = calcularDif(ajustado, c);
     if (d > 0) sobrantes++; else if (d < 0) faltantes++; else cuadran++;
     if (p.exis < 0) negEnSistema++;
@@ -2706,28 +2904,35 @@ function renderInventario() {
       <div class="num">$${totalDifMxn.toFixed(2)}</div><div class="lbl">Dif $</div></div>
     <div class="inv-stat ${totalDifPiezas > 0 ? 'ok' : (totalDifPiezas < 0 ? 'err' : '')}">
       <div class="num">${totalDifPiezas > 0 ? '+' : ''}${totalDifPiezas}</div><div class="lbl">Dif piezas</div></div>`;
+
   const inp = document.getElementById('invFiltro');
   const filtro = (inp ? inp.value : '').toLowerCase().trim();
   let visibles = rows.filter(p => !filtro || p.sku.toLowerCase().includes(filtro) || (p.descripcion || '').toLowerCase().includes(filtro));
-  if (!visibles.length) { tb.innerHTML = '<tr><td colspan="7" class="small" style="text-align:center; padding:20px;">Sin resultados</td></tr>'; return; }
+  if (!visibles.length) { tb.innerHTML = '<tr><td colspan="10" class="small" style="text-align:center; padding:20px;">Sin resultados</td></tr>'; return; }
   tb.innerHTML = visibles.map(p => {
     const c = inventarioConteo[p.sku];
     const vendido = totalVendidoDeSku(p.sku);
-    const ajustado = p.exis - vendido;
+    const ajustado = getAjustadoDeSku(p.sku, p);
     const d = calcularDif(ajustado, c);
     const difMxn = d * (p.precio || 0);
-    let claseRow = d > 0 ? 'sobrante' : (d < 0 ? 'faltante' : 'ok-row');
-    if (p.exis < 0) claseRow = 'negativo';
+    let claseRow = '';
+    if (d > 0) claseRow = 'sobrante';
+    else if (d < 0) claseRow = 'faltante';
     const claseDif = d > 0 ? 'dif-pos' : (d < 0 ? 'dif-neg' : '');
     const claseExis = p.exis < 0 ? 'neg-num' : '';
     const signo = d > 0 ? '+' : '';
+    const badgeManual = p.manual ? ' <span class="badge badge-manual">🆕</span>' : '';
+    const conto = usuariosConteo[p.sku] || '—';
     return `<tr class="${claseRow}">
-      <td style="font-family:monospace;">${p.sku}${p.manual ? ' <span class="badge badge-manual">🆕 AGREGADO</span>' : ''}</td>
+      <td style="font-family:monospace;">${p.sku}${badgeManual}</td>
       <td class="small">${p.descripcion || ''}</td>
-      <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}${vendido ? ' <span class="chip-venta">-' + vendido + '</span>' : ''}</td>
+      <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}</td>
+      <td style="text-align:right; font-family:monospace;">${vendido || 0}</td>
+      <td style="text-align:right; font-family:monospace;">${ajustado}</td>
       <td style="text-align:right; font-family:monospace; font-weight:bold;">${c}</td>
       <td style="text-align:right;" class="${claseDif}">${signo}${d}</td>
       <td style="text-align:right;" class="${claseDif}">${signo}$${difMxn.toFixed(2)}</td>
+      <td class="small">@${conto}</td>
       <td><button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="abrirQuitarConteo('${p.sku.replace(/'/g, "\\'")}')">🗑</button></td>
     </tr>`;
   }).join('');
@@ -2741,7 +2946,12 @@ function limpiarConteo() {
   const s = getSucursalActual();
   if (!confirm(`¿Borrar TODO el conteo de "${s.nombre}"?\n\nEl Excel cargado y las ventas se mantienen.`)) return;
   inventarioConteo = {};
-  if (inventariosPorSucursal[sucursalActual]) { inventariosPorSucursal[sucursalActual].conteo = {}; inventariosPorSucursal[sucursalActual].horaConteoPorSku = {}; }
+  if (inventariosPorSucursal[sucursalActual]) {
+    inventariosPorSucursal[sucursalActual].conteo = {};
+    inventariosPorSucursal[sucursalActual].horaConteoPorSku = {};
+    inventariosPorSucursal[sucursalActual].usuarioConteoPorSku = {};
+    inventariosPorSucursal[sucursalActual].ajustadoCongelado = {};
+  }
   guardarInventarios();
   renderInvTopStats();
   renderInventario();
@@ -2749,28 +2959,31 @@ function limpiarConteo() {
   toast('🗑 Conteo borrado');
 }
 
-/* ============ EXPORTAR INVENTARIO ============ */
+/* ============ EXPORTAR INVENTARIO (con hoja nueva + colores + usuario) ============ */
 function exportarInventario() {
   if (!Object.keys(inventarioConteo).length) { alert('No has contado nada.'); return; }
   const s = getSucursalActual();
   const fechaBase = getFechaCargaBase();
   const horas = getHoraConteoPorSku();
+  const usuariosConteo = getUsuarioConteoPorSku();
   const ventas = getVentasActuales();
+
+  // ===== HOJA 1: RESUMEN =====
   const aoa1 = [];
-  aoa1.push(['Reporte de Inventario Físico', '', '', '', '', '', '', '', '']);
-  aoa1.push(['Empresa', nombreEmpresa, '', '', '', '', '', '', '']);
-  aoa1.push(['Sucursal', s.nombre, '', '', '', '', '', '', '']);
-  aoa1.push(['Fecha reporte', new Date().toLocaleString('es-MX'), '', '', '', '', '', '', '']);
-  aoa1.push(['Usuario', usuarioLogueado || '', '', '', '', '', '', '', '']);
-  if (fechaBase) aoa1.push(['Referencia del sistema', fmtFecha(fechaBase), '', '', '', '', '', '', '']);
-  aoa1.push(['', '', '', '', '', '', '', '', '']);
-  aoa1.push(['Clave', 'Descripción', 'Esperado', 'Vendido', 'Ajustado', 'Contado', 'Dif', 'Precio U.', 'Dif $']);
+  aoa1.push(['Reporte de Inventario Físico']);
+  aoa1.push(['Empresa', nombreEmpresa]);
+  aoa1.push(['Sucursal', s.nombre]);
+  aoa1.push(['Fecha reporte', new Date().toLocaleString('es-MX')]);
+  aoa1.push(['Usuario', usuarioLogueado || '']);
+  if (fechaBase) aoa1.push(['Referencia del sistema', fmtFecha(fechaBase)]);
+  aoa1.push([]);
+  aoa1.push(['Clave', 'Descripción', 'Esperado', 'Vendido', 'Ajustado', 'Contado', 'Dif', 'Precio U.', 'Dif $', 'Contado por']);
   let totalDifMxn = 0, totalDifPz = 0;
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   rows.sort((a, b) => {
     const va = totalVendidoDeSku(a.sku), vb = totalVendidoDeSku(b.sku);
-    const da = calcularDif(a.exis - va, inventarioConteo[a.sku]);
-    const db = calcularDif(b.exis - vb, inventarioConteo[b.sku]);
+    const da = calcularDif(getAjustadoDeSku(a.sku, a), inventarioConteo[a.sku]);
+    const db = calcularDif(getAjustadoDeSku(b.sku, b), inventarioConteo[b.sku]);
     if (a.exis < 0 && b.exis >= 0) return -1;
     if (b.exis < 0 && a.exis >= 0) return 1;
     return da - db;
@@ -2778,28 +2991,27 @@ function exportarInventario() {
   rows.forEach(p => {
     const c = inventarioConteo[p.sku];
     const vendido = totalVendidoDeSku(p.sku);
-    const ajustado = p.exis - vendido;
+    const ajustado = getAjustadoDeSku(p.sku, p);
     const d = calcularDif(ajustado, c);
     const difMxn = d * (p.precio || 0);
     totalDifMxn += difMxn; totalDifPz += d;
-    aoa1.push([p.sku, p.descripcion || '', p.exis, vendido, ajustado, c, d, p.precio || 0, difMxn]);
+    aoa1.push([p.sku, p.descripcion || '', p.exis, vendido, ajustado, c, d, p.precio || 0, difMxn, '@' + (usuariosConteo[p.sku] || '—')]);
   });
-  aoa1.push(['', '', '', '', '', 'TOTALES', totalDifPz, '', totalDifMxn]);
+  aoa1.push(['', '', '', '', '', 'TOTALES', totalDifPz, '', totalDifMxn, '']);
   const ws1 = XLSX.utils.aoa_to_sheet(aoa1);
-  ws1['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 12 }];
-  const headerRow = fechaBase ? 8 : 7;
-  ['A','B','C','D','E','F','G','H','I'].forEach(col => {
-    const cell = col + (headerRow + 1);
+  ws1['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 12 }, { wch: 15 }];
+  const headerRow1 = fechaBase ? 7 : 6;
+  ['A','B','C','D','E','F','G','H','I','J'].forEach(col => {
+    const cell = col + (headerRow1 + 1);
     if (ws1[cell]) ws1[cell].s = { fill: { fgColor: { rgb: '1A5FBF' } }, font: { color: { rgb: 'FFFFFF' }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' } };
   });
   if (ws1['A1']) ws1['A1'].s = { font: { bold: true, sz: 14, color: { rgb: '1A3A6B' } } };
-  const inicioDatos = headerRow + 2;
+  const inicioDatos = headerRow1 + 2;
   for (let i = 0; i < rows.length; i++) {
     const filaExcel = inicioDatos + i;
     const p = rows[i];
     const c = inventarioConteo[p.sku];
-    const vendido = totalVendidoDeSku(p.sku);
-    const ajustado = p.exis - vendido;
+    const ajustado = getAjustadoDeSku(p.sku, p);
     const d = calcularDif(ajustado, c);
     const celdaG = 'G' + filaExcel, celdaI = 'I' + filaExcel;
     if (d > 0) {
@@ -2810,59 +3022,86 @@ function exportarInventario() {
       if (!ws1[celdaG]) ws1[celdaG] = {}; if (!ws1[celdaI]) ws1[celdaI] = {};
       ws1[celdaG].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
       ws1[celdaI].s = { fill: { fgColor: { rgb: 'FFC7CE' } }, font: { color: { rgb: '9C0006' }, bold: true } };
-    }
-    if (vendido > 0) {
-      const cd = 'D' + filaExcel;
-      if (!ws1[cd]) ws1[cd] = {};
-      ws1[cd].s = { fill: { fgColor: { rgb: 'FFE0B2' } }, font: { color: { rgb: '7A3D00' }, bold: true } };
+    } else {
+      if (!ws1[celdaG]) ws1[celdaG] = {}; if (!ws1[celdaI]) ws1[celdaI] = {};
+      ws1[celdaG].s = { fill: { fgColor: { rgb: 'FFFFFF' } } };
+      ws1[celdaI].s = { fill: { fgColor: { rgb: 'FFFFFF' } } };
     }
   }
-  const filaTotal = inicioDatos + rows.length;
-  ['A','B','C','D','E','F','G','H','I'].forEach(col => {
-    const cell = col + filaTotal;
+  const filaTotal1 = inicioDatos + rows.length;
+  ['A','B','C','D','E','F','G','H','I','J'].forEach(col => {
+    const cell = col + filaTotal1;
     if (!ws1[cell]) ws1[cell] = {};
     ws1[cell].s = { font: { bold: true }, fill: { fgColor: { rgb: 'E3F2FD' } } };
   });
+  // AutoFilter
+  ws1['!autofilter'] = { ref: `A${headerRow1 + 1}:J${filaTotal1 - 1}` };
 
+  // ===== HOJA 2: FALTARON POR CONTAR =====
   const aoa2 = [];
-  aoa2.push(['Detalle de Conteo (hora por producto)']);
+  aoa2.push(['Productos que FALTARON por contar']);
   aoa2.push(['Empresa', nombreEmpresa]);
   aoa2.push(['Sucursal', s.nombre]);
   aoa2.push(['Fecha reporte', new Date().toLocaleString('es-MX')]);
   aoa2.push([]);
-  aoa2.push(['Clave', 'Descripción', 'Hora conteo', 'Contado', 'UM']);
-  const conteosConHora = rows.map(p => ({ sku: p.sku, descripcion: p.descripcion || '', hora: horas[p.sku] || null, cantidad: inventarioConteo[p.sku], um: p.um || detectarUM(p.sku) }))
-    .sort((a, b) => { if (!a.hora) return 1; if (!b.hora) return -1; return new Date(a.hora) - new Date(b.hora); });
-  conteosConHora.forEach(c => { aoa2.push([c.sku, c.descripcion, c.hora ? fmtFecha(c.hora) + ' ' + fmtHora(c.hora) : '—', c.cantidad, c.um]); });
+  aoa2.push(['Clave', 'Descripción', 'Esperado', 'Precio U.', 'Importe']);
+  const pendientes = inventarioBase.filter(p => inventarioConteo[p.sku] === undefined);
+  let totalPendientes = 0, totalImporte = 0;
+  pendientes.forEach(p => {
+    const importe = (p.exis || 0) * (p.precio || 0);
+    totalPendientes++;
+    totalImporte += importe;
+    aoa2.push([p.sku, p.descripcion || '', p.exis || 0, p.precio || 0, importe]);
+  });
+  aoa2.push([]);
+  aoa2.push(['', 'TOTAL', totalPendientes + ' productos', '', totalImporte]);
   const ws2 = XLSX.utils.aoa_to_sheet(aoa2);
-  ws2['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 22 }, { wch: 10 }, { wch: 8 }];
-  if (ws2['A1']) ws2['A1'].s = { font: { bold: true, sz: 14, color: { rgb: '1A3A6B' } } };
-  ['A','B','C','D','E'].forEach(col => { const cell = col + '6'; if (ws2[cell]) ws2[cell].s = { fill: { fgColor: { rgb: '1A5FBF' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } }; });
+  ws2['!cols'] = [{ wch: 18 }, { wch: 45 }, { wch: 12 }, { wch: 12 }, { wch: 14 }];
+  if (ws2['A1']) ws2['A1'].s = { font: { bold: true, sz: 14, color: { rgb: 'C0392B' } } };
+  ['A','B','C','D','E'].forEach(col => { const cell = col + '6'; if (ws2[cell]) ws2[cell].s = { fill: { fgColor: { rgb: 'C0392B' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } }; });
 
+  // ===== HOJA 3: DETALLE CONTEO =====
   const aoa3 = [];
-  aoa3.push(['Ventas durante el inventario']);
+  aoa3.push(['Detalle de Conteo (hora y usuario por producto)']);
   aoa3.push(['Empresa', nombreEmpresa]);
   aoa3.push(['Sucursal', s.nombre]);
   aoa3.push(['Fecha reporte', new Date().toLocaleString('es-MX')]);
   aoa3.push([]);
-  aoa3.push(['SKU', 'Descripción', 'Cantidad vendida', 'Hora', 'Registrado por']);
-  let totalVendido = 0;
-  ventas.forEach(v => { totalVendido += v.cantidad; aoa3.push([v.sku, v.descripcion || '', v.cantidad, fmtHora(v.hora), '@' + (v.usuario || '')]); });
-  aoa3.push([]);
-  aoa3.push(['', 'TOTAL', totalVendido, '', '']);
+  aoa3.push(['Clave', 'Descripción', 'Hora conteo', 'Contado', 'UM', 'Contado por']);
+  const conteosConHora = rows.map(p => ({ sku: p.sku, descripcion: p.descripcion || '', hora: horas[p.sku] || null, cantidad: inventarioConteo[p.sku], um: p.um || detectarUM(p.sku), usuario: usuariosConteo[p.sku] || '—' }))
+    .sort((a, b) => { if (!a.hora) return 1; if (!b.hora) return -1; return new Date(a.hora) - new Date(b.hora); });
+  conteosConHora.forEach(c => { aoa3.push([c.sku, c.descripcion, c.hora ? fmtFecha(c.hora) + ' ' + fmtHora(c.hora) : '—', c.cantidad, c.um, '@' + c.usuario]); });
   const ws3 = XLSX.utils.aoa_to_sheet(aoa3);
-  ws3['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 16 }, { wch: 12 }, { wch: 15 }];
-  if (ws3['A1']) ws3['A1'].s = { font: { bold: true, sz: 14, color: { rgb: '7A3D00' } } };
-  ['A','B','C','D','E'].forEach(col => { const cell = col + '6'; if (ws3[cell]) ws3[cell].s = { fill: { fgColor: { rgb: 'E67E22' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } }; });
+  ws3['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 22 }, { wch: 10 }, { wch: 8 }, { wch: 15 }];
+  if (ws3['A1']) ws3['A1'].s = { font: { bold: true, sz: 14, color: { rgb: '1A3A6B' } } };
+  ['A','B','C','D','E','F'].forEach(col => { const cell = col + '6'; if (ws3[cell]) ws3[cell].s = { fill: { fgColor: { rgb: '1A5FBF' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } }; });
+
+  // ===== HOJA 4: VENTAS =====
+  const aoa4 = [];
+  aoa4.push(['Ventas durante el inventario']);
+  aoa4.push(['Empresa', nombreEmpresa]);
+  aoa4.push(['Sucursal', s.nombre]);
+  aoa4.push(['Fecha reporte', new Date().toLocaleString('es-MX')]);
+  aoa4.push([]);
+  aoa4.push(['SKU', 'Descripción', 'Cantidad vendida', 'Hora', 'Registrado por']);
+  let totalVendido = 0;
+  ventas.forEach(v => { totalVendido += v.cantidad; aoa4.push([v.sku, v.descripcion || '', v.cantidad, fmtHora(v.hora), '@' + (v.usuario || '')]); });
+  aoa4.push([]);
+  aoa4.push(['', 'TOTAL', totalVendido, '', '']);
+  const ws4 = XLSX.utils.aoa_to_sheet(aoa4);
+  ws4['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 16 }, { wch: 12 }, { wch: 15 }];
+  if (ws4['A1']) ws4['A1'].s = { font: { bold: true, sz: 14, color: { rgb: '7A3D00' } } };
+  ['A','B','C','D','E'].forEach(col => { const cell = col + '6'; if (ws4[cell]) ws4[cell].s = { fill: { fgColor: { rgb: 'E67E22' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } }; });
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
-  XLSX.utils.book_append_sheet(wb, ws2, 'Detalle conteo');
-  XLSX.utils.book_append_sheet(wb, ws3, 'Ventas');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Faltaron por contar');
+  XLSX.utils.book_append_sheet(wb, ws3, 'Detalle conteo');
+  XLSX.utils.book_append_sheet(wb, ws4, 'Ventas');
   const fecha = new Date().toISOString().slice(0,10);
   const sId = s.abrev.replace(/[^A-Z0-9]/gi, '_');
   XLSX.writeFile(wb, `inventario_${sId}_${fecha}.xlsx`);
-  toast('📥 Descargado (3 hojas)');
+  toast('📥 Descargado (4 hojas)');
 }
 
 /* ============ CÁMARA ============ */
@@ -3146,7 +3385,6 @@ function abrirModalNuevoProducto() {
   const inp = document.getElementById('busqueda');
   const codigoEscaneado = inp ? inp.value.trim().toUpperCase() : '';
   codigoParaVincularNuevo = codigoEscaneado || null;
-  contextoNuevoProducto = 'pedido';
   setVal('npSku', codigoEscaneado);
   setVal('npDesc', ''); setVal('npUm', 'PIEZA'); setVal('npPrecio', '');
   const m = document.getElementById('modalNuevoProducto'); if (m) m.classList.add('activo');
@@ -3160,7 +3398,10 @@ function guardarNuevoProducto() {
   if (!sku) { alert('Pon el SKU.'); return; }
   if (!desc) { alert('Pon la descripción.'); return; }
   if (precio < 0) { alert('Precio inválido.'); return; }
-  if (productosManuales.some(p => p.sku === sku) || productos.some(p => p.sku === sku)) { alert('Ya existe un producto con ese SKU.'); return; }
+  if (productosManuales.some(p => p.sku === sku) || productos.some(p => p.sku === sku)) {
+    alert('Ya existe un producto con ese SKU.');
+    return;
+  }
 
   const nuevo = {
     sku, descripcion: desc, um, precio,
@@ -3171,17 +3412,14 @@ function guardarNuevoProducto() {
   };
   productosManuales.push(nuevo);
 
-  // ① VINCULAR EL CÓDIGO ESCANEADO (si hay)
-  if (codigoParaVincularNuevo && codigoParaVincularNuevo !== sku) {
-    const codigo = codigoParaVincularNuevo;
-    if (!vinculos[codigo]) vinculos[codigo] = [];
-    if (!Array.isArray(vinculos[codigo])) vinculos[codigo] = vinculos[codigo] ? [vinculos[codigo]] : [];
-    if (!vinculos[codigo].some(x => (x.sku || x).toUpperCase() === sku)) {
-      vinculos[codigo].push({
-        sku, creadoPor: usuarioLogueado,
-        sucursal: sucursalActual,
-        fecha: new Date().toISOString()
-      });
+  // ① VINCULAR CÓDIGO ESCANEADO
+  const codigoEscaneado = (document.getElementById('busqueda')?.value || '').trim().toUpperCase();
+  const codigoVin = codigoParaVincularNuevo || codigoEscaneado;
+  if (codigoVin && codigoVin !== sku) {
+    if (!vinculos[codigoVin]) vinculos[codigoVin] = [];
+    if (!Array.isArray(vinculos[codigoVin])) vinculos[codigoVin] = vinculos[codigoVin] ? [vinculos[codigoVin]] : [];
+    if (!vinculos[codigoVin].some(x => (x.sku || x).toUpperCase() === sku)) {
+      vinculos[codigoVin].push({ sku, creadoPor: usuarioLogueado, sucursal: sucursalActual, fecha: new Date().toISOString() });
     }
     localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   }
@@ -3210,20 +3448,17 @@ function guardarNuevoProducto() {
   renderInventario();
   renderVinculos();
 
-  // ③ ABRIR LO QUE CORRESPONDA SEGÚN DE DÓNDE VINISTE
-  if (contextoNuevoProducto === 'inventario') {
+  // ③ DECIDIR QUÉ ABRIR
+  if (tabActual === 'inventario') {
     const prodInv = inventarioBase.find(p => p.sku.toUpperCase() === sku);
-    if (prodInv) setTimeout(() => abrirModalConteo(prodInv), 200);
+    if (prodInv) setTimeout(() => abrirModalConteo(prodInv), 300);
+    else setTimeout(() => abrirModalCantidad(nuevo), 300);
   } else {
     abrirModalCantidad(nuevo);
   }
 
-  const msj = codigoParaVincularNuevo && codigoParaVincularNuevo !== sku
-    ? '✔ Producto agregado y código vinculado'
-    : '✔ Producto agregado';
-  toast(msj);
+  toast('✔ Producto agregado');
   codigoParaVincularNuevo = null;
-  contextoNuevoProducto = 'pedido';
 }
 
 /* ============ VINCULAR RÁPIDO ============ */
@@ -3574,6 +3809,21 @@ function cerrarModalImportar() {
 /* ============ PEDIDO RENDER ============ */
 function renderPedido() {
   const pedidoFiltrado = pedido.filter(p => p.sucursal === sucursalActual || !p.sucursal);
+  const dirMul = ordenPedido.dir === 'asc' ? 1 : -1;
+  const col = ordenPedido.columna;
+  pedidoFiltrado.sort((a, b) => {
+    let va, vb;
+    if (col === 'sku') { va = (a.sku || '').toUpperCase(); vb = (b.sku || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
+    if (col === 'descripcion') { va = (a.descripcion || '').toUpperCase(); vb = (b.descripcion || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
+    if (col === 'um') { va = (a.um || '').toUpperCase(); vb = (b.um || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
+    if (col === 'cantidad') { va = a.cantidad; vb = b.cantidad; }
+    else if (col === 'exist') { va = getExistencias(a.sku) || 0; vb = getExistencias(b.sku) || 0; }
+    else if (col === 'totalpz') { va = a.cantidad + (getExistencias(a.sku) || 0); vb = b.cantidad + (getExistencias(b.sku) || 0); }
+    else { va = (a.sku || '').toUpperCase(); vb = (b.sku || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
+    return (va - vb) * dirMul;
+  });
+  actualizarIndicadorOrdenPedido();
+
   const tb = document.querySelector('#tablaPedido tbody');
   if (tb) {
     tb.innerHTML = pedidoFiltrado.map((p) => {
