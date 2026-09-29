@@ -2937,6 +2937,7 @@ function renderInventario() {
   if (panelAcc) panelAcc.style.display = 'flex';
 
   const usuariosConteo = getUsuarioConteoPorSku();
+  const horasMap = getHoraConteoPorSku();
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   const dirMul = ordenInventario.dir === 'asc' ? 1 : -1;
   const col = ordenInventario.columna;
@@ -3057,8 +3058,8 @@ function exportarInventario() {
   const fechaBase = getFechaCargaBase();
   const horas = getHoraConteoPorSku();
   const usuariosConteo = getUsuarioConteoPorSku();
- const horasMap = getHoraConteoPorSku();
   const ventas = getVentasActuales();
+ 
 
   // ===== HOJA 1: RESUMEN =====
   const aoa1 = [];
