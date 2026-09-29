@@ -682,7 +682,10 @@
       <button class="gris" onclick="cerrarModalRegistrarVenta()">Cancelar</button>
     </div>
     <hr style="margin:16px 0; border:none; border-top:1px solid #eee;">
-    <h4 style="margin:0 0 8px 0; color:#1a3a6b; font-size:13px;">Ventas registradas hoy (<span id="contVentas">0</span>)</h4>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;">
+      <h4 style="margin:0; color:#1a3a6b; font-size:13px;">Ventas registradas hoy (<span id="contVentas">0</span>)</h4>
+      <button class="rojo" id="btnBorrarTodasVentas" style="font-size:11px; padding:5px 10px;" onclick="eliminarTodasLasVentas()">🗑 Borrar todas</button>
+    </div>
     <div id="listaVentasHoy" style="max-height:300px; overflow-y:auto;"></div>
   </div>
 </div>
@@ -2602,6 +2605,12 @@ function confirmarVenta() {
 function renderVentasHoy() {
   const ventas = getVentasActuales();
   setText('contVentas', ventas.length);
+  const btn = document.getElementById('btnBorrarTodasVentas');
+  if (btn) {
+    btn.disabled = ventas.length === 0;
+    btn.style.opacity = ventas.length === 0 ? '.4' : '1';
+    btn.style.cursor = ventas.length === 0 ? 'not-allowed' : 'pointer';
+  }
   const cont = document.getElementById('listaVentasHoy');
   if (!cont) return;
   if (!ventas.length) { cont.innerHTML = '<p class="small">Sin ventas registradas</p>'; return; }
@@ -2633,6 +2642,26 @@ function eliminarVenta(idx) {
       toast('🗑 Venta eliminada');
     });
 }
+function eliminarTodasLasVentas() {
+  const ventas = getVentasActuales();
+  if (!ventas.length) { toast('No hay ventas que borrar'); return; }
+  const s = getSucursalActual();
+  const totalPiezas = ventas.reduce((sum, v) => sum + v.cantidad, 0);
+  pedirConfirmacionPassAdmin('🗑 Borrar TODAS las ventas',
+    `⚠️ Vas a borrar <b>${ventas.length}</b> venta(s) de <b>${s.nombre}</b>.<br><br>
+     Total de piezas vendidas: <b>${totalPiezas}</b><br><br>
+     Esta acción NO se puede deshacer.`,
+    () => {
+      ventasPorSucursal[sucursalActual] = [];
+      guardarVentas();
+      renderVentasHoy();
+      renderInvTopStats();
+      renderInventario();
+      actualizarInfoSnapshot();
+      toast('🗑 Todas las ventas borradas');
+    });
+}
+ 
 
 /* ============ RENDER STATS ============ */
 function renderInvTopStats() {
