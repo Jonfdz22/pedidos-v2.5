@@ -956,7 +956,7 @@ let ordenPedido = { columna: 'sku', dir: 'asc' };
 
 // Variables para el producto nuevo
 let codigoParaVincularNuevo = null;
-
+let contextoVincularRapido = 'pedido';
 /* ============ HELPERS SEGUROS ============ */
 function setText(id, text) {
   const el = document.getElementById(id);
@@ -2757,13 +2757,54 @@ function invTeclaBusqueda(e) {
     if (invResultados.length && invIndiceSel >= 0) { invSeleccionar(invIndiceSel); return; }
     feedbackError();
     inp.value = '';
-    if (confirm(`❌ No se encontró el código: ${c}\n\n¿Quieres agregarlo como producto nuevo?`)) abrirModalNuevoProductoDesdeInventario(c);
-    return;
+   mostrarNoEncontradoInventario(c, null);
   }
   if (!invResultados.length) return;
   if (e.key === 'ArrowDown') { e.preventDefault(); invIndiceSel = Math.min(invIndiceSel + 1, invResultados.length - 1); invPintarSeleccion(); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); invIndiceSel = Math.max(invIndiceSel - 1, 0); invPintarSeleccion(); }
 }
+function mostrarNoEncontradoInventario(codigo, skuVinculado) {
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2500;display:flex;align-items:center;justify-content:center;padding:15px;';
+  const skuInfo = skuVinculado
+    ? `<div style="background:#fff3e0; padding:10px; border-radius:8px; margin-bottom:12px; font-size:13px; border-left:4px solid #e67e22;">
+        ⚠️ El código <b style="font-family:monospace;">${codigo}</b> está vinculado al SKU <b>${skuVinculado}</b>,<br>
+        pero ese SKU <b>NO está en el inventario de esta sucursal</b>.
+      </div>`
+    : `<div style="background:#fff3e0; padding:10px; border-radius:8px; margin-bottom:12px; font-size:13px; border-left:4px solid #e67e22;">
+        ❌ No se encontró el código: <b style="font-family:monospace;">${codigo}</b>
+      </div>`;
+  modal.innerHTML = `<div style="background:white;border-radius:12px;padding:20px;width:100%;max-width:480px;">
+    <h3 style="margin-top:0;color:#1a3a6b;">🔍 Código no registrado</h3>
+    ${skuInfo}
+    <button class="amarillo" style="width:100%;text-align:left;padding:14px;margin-bottom:8px;" id="btnAgregarNuevo">
+      <div style="font-size:15px;font-weight:bold;">✏️ Agregar como producto nuevo</div>
+      <div style="font-size:12px;opacity:.9;margin-top:4px;">Se crea el producto y se agrega al inventario</div>
+    </button>
+    <button class="verde" style="width:100%;text-align:left;padding:14px;margin-bottom:8px;" id="btnVincular">
+      <div style="font-size:15px;font-weight:bold;">🔗 Vincular a un producto existente</div>
+      <div style="font-size:12px;opacity:.9;margin-top:4px;">Asocia este código a un SKU que ya existe</div>
+    </button>
+    <button class="gris" style="width:100%;text-align:left;padding:14px;" id="btnCancelar">
+      <div style="font-size:15px;font-weight:bold;">❌ Cancelar</div>
+    </button>
+  </div>`;
+  document.body.appendChild(modal);
+
+  modal.querySelector('#btnAgregarNuevo').onclick = () => {
+    modal.remove();
+    abrirModalNuevoProductoDesdeInventario(codigo);
+  };
+  modal.querySelector('#btnVincular').onclick = () => {
+    modal.remove();
+    abrirVincularRapido(codigo, 'inventario');
+  };
+  modal.querySelector('#btnCancelar').onclick = () => {
+    modal.remove();
+    toast('Cancelado');
+  };
+}
+ 
 function abrirModalNuevoProductoDesdeInventario(codigo) {
   codigoParaVincularNuevo = (codigo || '').toUpperCase() || null;
   setVal('npSku', (codigo || '').toUpperCase());
@@ -3185,21 +3226,22 @@ function procesarCodigoInv(codigo) {
   if (items.length === 1) {
     const p = inventarioBase.find(x => x.sku.toUpperCase() === items[0].sku.toUpperCase());
     if (p) { abrirModalConteo(p); return; }
-    toast('⚠️ SKU no está en inventario: ' + items[0].sku, 'error'); return;
+    // El código está vinculado pero el SKU no está en el inventario
+    mostrarNoEncontradoInventario(codigo, items[0].sku);
+    return;
   }
   if (items.length > 1) {
     const candidatos = [];
     items.forEach(it => { const p = inventarioBase.find(x => x.sku.toUpperCase() === it.sku.toUpperCase()); if (p) candidatos.push(p); });
     if (candidatos.length === 1) { abrirModalConteo(candidatos[0]); return; }
     if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, 'inventario'); return; }
-    toast('⚠️ Ninguno de los SKUs está en inventario', 'error'); return;
+    toast('⚠️ Ninguno de los SKUs está en el inventario', 'error'); return;
   }
   const p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
   if (p) { abrirModalConteo(p); return; }
-  feedbackError();
-  if (confirm(`❌ No se encontró el código: ${codigo}\n\n¿Quieres agregarlo como producto nuevo?`)) abrirModalNuevoProductoDesdeInventario(codigo);
+  // No se encontró
+  mostrarNoEncontradoInventario(codigo, null);
 }
-
 /* ============ PROCESAR CÓDIGO EN PEDIDO ============ */
 function procesarCodigoEnPedido(codigo) {
   const c = String(codigo).toUpperCase().trim();
@@ -3462,9 +3504,10 @@ function guardarNuevoProducto() {
 }
 
 /* ============ VINCULAR RÁPIDO ============ */
-function abrirVincularRapido(codigo) {
+function abrirVincularRapido(codigo, contexto) {
   if (!codigo) return;
   codigoRapidoPendiente = String(codigo).toUpperCase().trim();
+  contextoVincularRapido = contexto || 'pedido';
   setText('codigoRapido', codigoRapidoPendiente);
   setVal('busquedaRapida', '');
   const rr = document.getElementById('resultadosRapido'); if (rr) rr.innerHTML = '';
@@ -3511,12 +3554,22 @@ function asignarVincularRapido(sku) {
   const m = document.getElementById('modalVincularRapido'); if (m) m.classList.remove('activo');
   const prod = buscarProductoPorSku(sku);
   const ed = document.getElementById('exitoFullscreenDetalle');
-  if (ed) ed.innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${codigo}</div><div style="opacity:.8; font-size:13px;">AGREGADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9; margin-top:6px;">' + prod.descripcion + '</div>' : ''}`;
+  if (ed) ed.innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${codigo}</div><div style="opacity:.8; font-size:13px;">VINCULADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9; margin-top:6px;">' + prod.descripcion + '</div>' : ''}`;
   const ef = document.getElementById('exitoFullscreen'); if (ef) ef.classList.add('show');
+  const ctx = contextoVincularRapido;
   setTimeout(() => {
     const ef2 = document.getElementById('exitoFullscreen'); if (ef2) ef2.classList.remove('show');
     codigoRapidoPendiente = null;
-    if (prod) setTimeout(() => abrirModalCantidad(prod), 150);
+    if (prod) {
+      if (ctx === 'inventario') {
+        // Buscar en inventario y abrir modal de conteo
+        const prodInv = inventarioBase.find(p => p.sku.toUpperCase() === sku.toUpperCase());
+        if (prodInv) setTimeout(() => abrirModalConteo(prodInv), 150);
+        else toast('⚠️ Producto vinculado pero no está en el inventario de esta sucursal', 'warn');
+      } else {
+        setTimeout(() => abrirModalCantidad(prod), 150);
+      }
+    }
   }, 1400);
 }
 
