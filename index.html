@@ -682,7 +682,10 @@
       <button class="gris" onclick="cerrarModalRegistrarVenta()">Cancelar</button>
     </div>
     <hr style="margin:16px 0; border:none; border-top:1px solid #eee;">
-    <h4 style="margin:0 0 8px 0; color:#1a3a6b; font-size:13px;">Ventas registradas hoy (<span id="contVentas">0</span>)</h4>
+     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;">
+      <h4 style="margin:0; color:#1a3a6b; font-size:13px;">Ventas registradas hoy (<span id="contVentas">0</span>)</h4>
+      <button class="rojo" id="btnBorrarTodasVentas" style="font-size:11px; padding:5px 10px;" onclick="eliminarTodasLasVentas()">🗑 Borrar todas</button>
+    </div>
     <div id="listaVentasHoy" style="max-height:300px; overflow-y:auto;"></div>
   </div>
 </div>
@@ -951,9 +954,9 @@ let audioCtx = null;
 let configSonido = { activo: true, volumen: 70, vibrar: true };
 
 // Variables para ordenamiento de tablas
-let ordenInventario = { columna: 'sku', dir: 'asc' };
-let ordenPedido = { columna: 'sku', dir: 'asc' };
-
+let ordenInventario = { columna: 'hora', dir: 'desc' };
+let ordenPedido = { columna: 'fecha', dir: 'desc' };
+ 
 // Variables para el producto nuevo
 let codigoParaVincularNuevo = null;
 let contextoVincularRapido = 'pedido';
@@ -2580,6 +2583,11 @@ function confirmarVenta() {
   if (!ventasPorSucursal[sucursalActual]) ventasPorSucursal[sucursalActual] = [];
   ventasPorSucursal[sucursalActual].push({ sku: p.sku, descripcion: p.descripcion || '', cantidad: cant, hora: new Date().toISOString(), usuario: usuarioLogueado });
   guardarVentas();
+   // 🔄 Actualizar el ajustado congelado si el producto ya fue contado
+  if (inventarioConteo[p.sku] !== undefined) {
+    const nuevoAjustado = (p.exis || 0) - totalVendidoDeSku(p.sku);
+    setAjustadoCongelado(p.sku, nuevoAjustado);
+  }
   feedbackExito();
   const yaContado = inventarioConteo[p.sku] !== undefined;
   if (yaContado) {
@@ -2602,6 +2610,12 @@ function confirmarVenta() {
 function renderVentasHoy() {
   const ventas = getVentasActuales();
   setText('contVentas', ventas.length);
+  const btn = document.getElementById('btnBorrarTodasVentas');
+  if (btn) {
+    btn.disabled = ventas.length === 0;
+    btn.style.opacity = ventas.length === 0 ? '.4' : '1';
+    btn.style.cursor = ventas.length === 0 ? 'not-allowed' : 'pointer';
+  }
   const cont = document.getElementById('listaVentasHoy');
   if (!cont) return;
   if (!ventas.length) { cont.innerHTML = '<p class="small">Sin ventas registradas</p>'; return; }
@@ -2633,7 +2647,25 @@ function eliminarVenta(idx) {
       toast('🗑 Venta eliminada');
     });
 }
-
+function eliminarTodasLasVentas() {
+  const ventas = getVentasActuales();
+  if (!ventas.length) { toast('No hay ventas que borrar'); return; }
+  const s = getSucursalActual();
+  const totalPiezas = ventas.reduce((sum, v) => sum + v.cantidad, 0);
+  pedirConfirmacionPassAdmin('🗑 Borrar TODAS las ventas',
+    `⚠️ Vas a borrar <b>${ventas.length}</b> venta(s) de <b>${s.nombre}</b>.<br><br>
+     Total de piezas vendidas: <b>${totalPiezas}</b><br><br>
+     Esta acción NO se puede deshacer.`,
+    () => {
+      ventasPorSucursal[sucursalActual] = [];
+      guardarVentas();
+      renderVentasHoy();
+      renderInvTopStats();
+      renderInventario();
+      actualizarInfoSnapshot();
+      toast('🗑 Todas las ventas borradas');
+    });
+}
 /* ============ RENDER STATS ============ */
 function renderInvTopStats() {
   const el = document.getElementById('invStatsTop');
@@ -2677,6 +2709,10 @@ function renderManuales() {
   const inp = document.getElementById('bdFiltroManuales');
   const filtro = (inp ? inp.value : '').toLowerCase().trim();
   const lista = productosManuales.filter(p => !filtro || p.sku.toLowerCase().includes(filtro) || (p.descripcion || '').toLowerCase().includes(filtro));
+   lista.sort((a, b) => {
+    const fa = a.fecha || '', fb = b.fecha || '';
+    return fa < fb ? 1 : fa > fb ? -1 : 0; // DESC: último primero
+  });
   if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" class="small" style="text-align:center; padding:20px;">Sin productos manuales</td></tr>'; return; }
   tb.innerHTML = lista.map(p => `
     <tr><td style="font-family:monospace;">${p.sku}</td>
@@ -2901,11 +2937,17 @@ function renderInventario() {
   if (panelAcc) panelAcc.style.display = 'flex';
 
   const usuariosConteo = getUsuarioConteoPorSku();
+  const horasMap = getHoraConteoPorSku();
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   const dirMul = ordenInventario.dir === 'asc' ? 1 : -1;
   const col = ordenInventario.columna;
   rows.sort((a, b) => {
     let va, vb;
+       if (col === 'hora') {
+      const ha = horasMap[a.sku] || '';
+      const hb = horasMap[b.sku] || '';
+      return ha < hb ? -1 * dirMul : ha > hb ? 1 * dirMul : 0;
+    }
     if (col === 'sku') { va = (a.sku || '').toUpperCase(); vb = (b.sku || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
     if (col === 'descripcion') { va = (a.descripcion || '').toUpperCase(); vb = (b.descripcion || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
     if (col === 'usuario') { va = (usuariosConteo[a.sku] || '').toUpperCase(); vb = (usuariosConteo[b.sku] || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
@@ -3866,6 +3908,10 @@ function renderPedido() {
   const col = ordenPedido.columna;
   pedidoFiltrado.sort((a, b) => {
     let va, vb;
+       if (col === 'fecha') {
+      va = a.fecha || ''; vb = b.fecha || '';
+      return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0;
+    }
     if (col === 'sku') { va = (a.sku || '').toUpperCase(); vb = (b.sku || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
     if (col === 'descripcion') { va = (a.descripcion || '').toUpperCase(); vb = (b.descripcion || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
     if (col === 'um') { va = (a.um || '').toUpperCase(); vb = (b.um || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
