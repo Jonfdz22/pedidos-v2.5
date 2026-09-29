@@ -83,6 +83,8 @@
   tr.resultado.sel td { background:#dbe9ff; }
   tr.resultado { cursor:pointer; }
   tr.ya-vinculado { background:#e8f5e9 !important; }
+  tr.alerta-venta { background:#fff8e1 !important; }
+  tr.alerta-venta td { background:#fff8e1; }
   .cant { width:70px; text-align:center; font-weight:bold; }
   .small { font-size:12px; color:#666;}
   .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; color:white;}
@@ -960,6 +962,7 @@ let ordenPedido = { columna: 'fecha', dir: 'desc' };
 // Variables para el producto nuevo
 let codigoParaVincularNuevo = null;
 let contextoVincularRapido = 'pedido';
+let mostrarAlertaVenta = true;
 /* ============ HELPERS SEGUROS ============ */
 function setText(id, text) {
   const el = document.getElementById(id);
@@ -1185,13 +1188,14 @@ function cargarInventarios() {
       else if (Array.isArray(data)) inventariosPorSucursal = { 'sahagun': { base: data, conteo: {} } };
     }
   } catch(e) { console.error('Error cargando inventarios:', e); }
-  sucursales.forEach(s => {
-    if (!inventariosPorSucursal[s.id]) inventariosPorSucursal[s.id] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {}, usuarioConteoPorSku: {}, ajustadoCongelado: {} };
+   sucursales.forEach(s => {
+    if (!inventariosPorSucursal[s.id]) inventariosPorSucursal[s.id] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {}, usuarioConteoPorSku: {}, ajustadoCongelado: {}, ventaPostConteo: {} };
     else {
       if (typeof inventariosPorSucursal[s.id].fechaCargaBase === 'undefined') inventariosPorSucursal[s.id].fechaCargaBase = null;
       if (typeof inventariosPorSucursal[s.id].horaConteoPorSku === 'undefined') inventariosPorSucursal[s.id].horaConteoPorSku = {};
       if (typeof inventariosPorSucursal[s.id].usuarioConteoPorSku === 'undefined') inventariosPorSucursal[s.id].usuarioConteoPorSku = {};
       if (typeof inventariosPorSucursal[s.id].ajustadoCongelado === 'undefined') inventariosPorSucursal[s.id].ajustadoCongelado = {};
+      if (typeof inventariosPorSucursal[s.id].ventaPostConteo === 'undefined') inventariosPorSucursal[s.id].ventaPostConteo = {};
     }
   });
   actualizarInventarioActual();
@@ -1243,6 +1247,14 @@ function setUsuarioConteoPorSku(sku, usuario) {
   guardarInventarios();
 }
 function getAjustadoCongelado() { const slot = inventariosPorSucursal[sucursalActual]; return (slot && slot.ajustadoCongelado) || {}; }
+ function getVentaPostConteo() { const slot = inventariosPorSucursal[sucursalActual]; return (slot && slot.ventaPostConteo) || {}; }
+function setVentaPostConteo(sku, val) {
+  if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {}, usuarioConteoPorSku: {}, ajustadoCongelado: {}, ventaPostConteo: {} };
+  if (!inventariosPorSucursal[sucursalActual].ventaPostConteo) inventariosPorSucursal[sucursalActual].ventaPostConteo = {};
+  if (val) inventariosPorSucursal[sucursalActual].ventaPostConteo[sku] = true;
+  else delete inventariosPorSucursal[sucursalActual].ventaPostConteo[sku];
+  guardarInventarios();
+}
 function setAjustadoCongelado(sku, valor) {
   if (!inventariosPorSucursal[sucursalActual]) inventariosPorSucursal[sucursalActual] = { base: [], conteo: {}, fechaCargaBase: null, horaConteoPorSku: {}, usuarioConteoPorSku: {}, ajustadoCongelado: {} };
   if (!inventariosPorSucursal[sucursalActual].ajustadoCongelado) inventariosPorSucursal[sucursalActual].ajustadoCongelado = {};
@@ -2461,7 +2473,9 @@ function escanearPorPieza(codigo) {
   setHoraConteoPorSku(p.sku, new Date().toISOString());
   setUsuarioConteoPorSku(p.sku, usuarioLogueado);
   // CONGELAR AJUSTADO
-  setAjustadoCongelado(p.sku, ajustado);
+    setAjustadoCongelado(p.sku, ajustado);
+  setVentaPostConteo(p.sku, false);
+  ultimoEscanerPz = { sku: p.sku, cantidadAnterior: actual };
   ultimoEscanerPz = { sku: p.sku, cantidadAnterior: actual };
   persistirInventarioActual();
   feedbackExito();
@@ -2475,7 +2489,9 @@ function confirmarSuperaTotal() {
   inventarioConteo[producto.sku] = cantidadNueva;
   setHoraConteoPorSku(producto.sku, new Date().toISOString());
   setUsuarioConteoPorSku(producto.sku, usuarioLogueado);
-  setAjustadoCongelado(producto.sku, ajustado);
+   setAjustadoCongelado(producto.sku, ajustado);
+  setVentaPostConteo(producto.sku, false);
+  ultimoEscanerPz = { sku: producto.sku, cantidadAnterior };
   ultimoEscanerPz = { sku: producto.sku, cantidadAnterior };
   persistirInventarioActual();
   const m = document.getElementById('modalSuperaTotal'); if (m) m.classList.remove('activo');
@@ -2588,12 +2604,14 @@ function confirmarVenta() {
     const nuevoAjustado = (p.exis || 0) - totalVendidoDeSku(p.sku);
     setAjustadoCongelado(p.sku, nuevoAjustado);
   }
-  feedbackExito();
+    feedbackExito();
   const yaContado = inventarioConteo[p.sku] !== undefined;
   if (yaContado) {
-    toast(`🛒 Venta registrada: ${cant} × ${p.sku} (conteo NO se ajusta)`, 'warn');
+    // Marcar para revisar después
+    setVentaPostConteo(p.sku, true);
+    toast(`⚠️ Venta registrada: ${cant} × ${p.sku} — Revisa el conteo`, 'warn');
   } else {
-    toast(`🛒 Venta registrada: ${cant} × ${p.sku}`, 'warn');
+    toast(`🛒 Venta registrada: ${cant} × ${p.sku} (ajustado automático)`, 'warn');
   }
   renderVentasHoy();
   renderInvTopStats();
@@ -2890,7 +2908,8 @@ function confirmarConteo() {
   inventarioConteo[p.sku] = cant;
   setHoraConteoPorSku(p.sku, new Date().toISOString());
   setUsuarioConteoPorSku(p.sku, usuarioLogueado);
-  setAjustadoCongelado(p.sku, ajustadoActual);
+   setAjustadoCongelado(p.sku, ajustadoActual);
+  setVentaPostConteo(p.sku, false);
   invUltimoSku = p.sku;
   persistirInventarioActual();
   feedbackExito();
@@ -2938,6 +2957,7 @@ function renderInventario() {
 
   const usuariosConteo = getUsuarioConteoPorSku();
   const horasMap = getHoraConteoPorSku();
+  const ventasPostC = getVentaPostConteo();
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   const dirMul = ordenInventario.dir === 'asc' ? 1 : -1;
   const col = ordenInventario.columna;
@@ -2999,15 +3019,17 @@ function renderInventario() {
     const d = calcularDif(ajustado, c);
     const difMxn = d * (p.precio || 0);
     let claseRow = '';
-    if (d > 0) claseRow = 'sobrante';
+    if (ventasPostC[p.sku]) claseRow = 'alerta-venta';
+    else if (d > 0) claseRow = 'sobrante';
     else if (d < 0) claseRow = 'faltante';
     const claseDif = d > 0 ? 'dif-pos' : (d < 0 ? 'dif-neg' : '');
     const claseExis = p.exis < 0 ? 'neg-num' : '';
     const signo = d > 0 ? '+' : '';
     const badgeManual = p.manual ? ' <span class="badge badge-manual">🆕</span>' : '';
     const conto = usuariosConteo[p.sku] || '—';
+    const alerta = ventasPostC[p.sku] ? ' <span title="Tuvo venta después del conteo. Verifica." style="color:#e67e22; font-weight:bold;">⚠️</span>' : '';
     return `<tr class="${claseRow}">
-      <td style="font-family:monospace;">${p.sku}${badgeManual}</td>
+      <td style="font-family:monospace;">${p.sku}${badgeManual}${alerta}</td>
       <td class="small">${p.descripcion || ''}</td>
       <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}</td>
       <td style="text-align:right; font-family:monospace;">${vendido || 0}</td>
