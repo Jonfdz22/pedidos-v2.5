@@ -374,9 +374,9 @@
       <div style="flex:1;"><label class="small">Fecha:</label>
         <input type="text" id="fecha" readonly></div>
     </div>
-    <div id="tablaPedidoWrap">
-      <table id="tablaPedido">
+          <table id="tablaPedido">
         <thead><tr>
+          <th class="ordenable" onclick="ordenarPedido('fecha')">Fecha <span class="ord-ind" data-tabla="pedido" data-col="fecha"></span></th>
           <th class="ordenable" onclick="ordenarPedido('sku')">Rex <span class="ord-ind" data-tabla="pedido" data-col="sku"></span></th>
           <th class="ordenable" onclick="ordenarPedido('descripcion')">Descripción <span class="ord-ind" data-tabla="pedido" data-col="descripcion"></span></th>
           <th class="ordenable" onclick="ordenarPedido('cantidad')">Pido <span class="ord-ind" data-tabla="pedido" data-col="cantidad"></span></th>
@@ -439,8 +439,10 @@
     <div class="inv-stats" id="invStats"></div>
     <input type="text" id="invFiltro" placeholder="Filtrar productos…" oninput="renderInventario()">
     <div class="tabla-scroll">
-      <table id="tablaInventario">
+          <table id="tablaInventario">
         <thead><tr>
+          <th class="ordenable" onclick="ordenarInventario('hora')" style="text-align:left;">Hora <span class="ord-ind" data-tabla="inv" data-col="hora"></span></th>
+          <th class="ordenable" onclick="ordenarInventario('um')" style="text-align:left;">UM <span class="ord-ind" data-tabla="inv" data-col="um"></span></th>
           <th class="ordenable" onclick="ordenarInventario('sku')" style="text-align:left;">Clave <span class="ord-ind" data-tabla="inv" data-col="sku"></span></th>
           <th class="ordenable" onclick="ordenarInventario('descripcion')" style="text-align:left;">Descripción <span class="ord-ind" data-tabla="inv" data-col="descripcion"></span></th>
           <th class="ordenable" onclick="ordenarInventario('exis')" style="text-align:right;">Esperado <span class="ord-ind" data-tabla="inv" data-col="exis"></span></th>
@@ -954,8 +956,8 @@ let audioCtx = null;
 let configSonido = { activo: true, volumen: 70, vibrar: true };
 
 // Variables para ordenamiento de tablas
-let ordenInventario = { columna: 'sku', dir: 'asc' };
-let ordenPedido = { columna: 'sku', dir: 'asc' };
+let ordenInventario = { columna: 'hora', dir: 'desc' };
+let ordenPedido = { columna: 'fecha', dir: 'desc' };
 
 // Variables para el producto nuevo
 let codigoParaVincularNuevo = null;
@@ -2583,6 +2585,11 @@ function confirmarVenta() {
   if (!ventasPorSucursal[sucursalActual]) ventasPorSucursal[sucursalActual] = [];
   ventasPorSucursal[sucursalActual].push({ sku: p.sku, descripcion: p.descripcion || '', cantidad: cant, hora: new Date().toISOString(), usuario: usuarioLogueado });
   guardarVentas();
+   // 🔄 Actualizar el ajustado congelado si el producto ya fue contado
+  if (inventarioConteo[p.sku] !== undefined) {
+    const nuevoAjustado = (p.exis || 0) - totalVendidoDeSku(p.sku);
+    setAjustadoCongelado(p.sku, nuevoAjustado);
+  }
   feedbackExito();
   const yaContado = inventarioConteo[p.sku] !== undefined;
   if (yaContado) {
@@ -2933,11 +2940,21 @@ function renderInventario() {
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
   const dirMul = ordenInventario.dir === 'asc' ? 1 : -1;
   const col = ordenInventario.columna;
-  rows.sort((a, b) => {
+   rows.sort((a, b) => {
     let va, vb;
     if (col === 'sku') { va = (a.sku || '').toUpperCase(); vb = (b.sku || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
     if (col === 'descripcion') { va = (a.descripcion || '').toUpperCase(); vb = (b.descripcion || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
     if (col === 'usuario') { va = (usuariosConteo[a.sku] || '').toUpperCase(); vb = (usuariosConteo[b.sku] || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
+    if (col === 'um') {
+      va = (a.um || detectarUM(a.sku) || '').toUpperCase();
+      vb = (b.um || detectarUM(b.sku) || '').toUpperCase();
+      return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0;
+    }
+    if (col === 'hora') {
+      const ha = horasMap[a.sku] || '';
+      const hb = horasMap[b.sku] || '';
+      return ha < hb ? -1 * dirMul : ha > hb ? 1 * dirMul : 0;
+    }
     if (col === 'exis') { va = a.exis; vb = b.exis; }
     else if (col === 'vendido') { va = totalVendidoDeSku(a.sku); vb = totalVendidoDeSku(b.sku); }
     else if (col === 'ajustado') { va = getAjustadoDeSku(a.sku, a); vb = getAjustadoDeSku(b.sku, b); }
@@ -2978,7 +2995,7 @@ function renderInventario() {
   const inp = document.getElementById('invFiltro');
   const filtro = (inp ? inp.value : '').toLowerCase().trim();
   let visibles = rows.filter(p => !filtro || p.sku.toLowerCase().includes(filtro) || (p.descripcion || '').toLowerCase().includes(filtro));
-  if (!visibles.length) { tb.innerHTML = '<tr><td colspan="10" class="small" style="text-align:center; padding:20px;">Sin resultados</td></tr>'; return; }
+ if (!visibles.length) { tb.innerHTML = '<tr><td colspan="12" class="small" style="text-align:center; padding:20px;">Sin resultados</td></tr>'; return; }
   tb.innerHTML = visibles.map(p => {
     const c = inventarioConteo[p.sku];
     const vendido = totalVendidoDeSku(p.sku);
@@ -2993,7 +3010,11 @@ function renderInventario() {
     const signo = d > 0 ? '+' : '';
     const badgeManual = p.manual ? ' <span class="badge badge-manual">🆕</span>' : '';
     const conto = usuariosConteo[p.sku] || '—';
+    const hora = horasMap[p.sku] ? fmtHora(horasMap[p.sku]) : '—';
+    const um = p.um || detectarUM(p.sku);
     return `<tr class="${claseRow}">
+      <td class="small" style="font-family:monospace; white-space:nowrap;">${hora}</td>
+      <td><span class="badge ${claseUM(um)}">${um}</span></td>
       <td style="font-family:monospace;">${p.sku}${badgeManual}</td>
       <td class="small">${p.descripcion || ''}</td>
       <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}</td>
@@ -3036,6 +3057,7 @@ function exportarInventario() {
   const fechaBase = getFechaCargaBase();
   const horas = getHoraConteoPorSku();
   const usuariosConteo = getUsuarioConteoPorSku();
+ const horasMap = getHoraConteoPorSku();
   const ventas = getVentasActuales();
 
   // ===== HOJA 1: RESUMEN =====
@@ -3898,6 +3920,10 @@ function renderPedido() {
     if (col === 'sku') { va = (a.sku || '').toUpperCase(); vb = (b.sku || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
     if (col === 'descripcion') { va = (a.descripcion || '').toUpperCase(); vb = (b.descripcion || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
     if (col === 'um') { va = (a.um || '').toUpperCase(); vb = (b.um || '').toUpperCase(); return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0; }
+    if (col === 'fecha') {
+      va = a.fecha || ''; vb = b.fecha || '';
+      return va < vb ? -1 * dirMul : va > vb ? 1 * dirMul : 0;
+    }
     if (col === 'cantidad') { va = a.cantidad; vb = b.cantidad; }
     else if (col === 'exist') { va = getExistencias(a.sku) || 0; vb = getExistencias(b.sku) || 0; }
     else if (col === 'totalpz') { va = a.cantidad + (getExistencias(a.sku) || 0); vb = b.cantidad + (getExistencias(b.sku) || 0); }
@@ -3917,7 +3943,7 @@ function renderPedido() {
       const exist = getExistencias(p.sku);
       const existTxt = (exist !== null) ? exist : '—';
       const totalPz = p.cantidad + (exist !== null ? exist : 0);
-      return `<tr><td>${p.sku}</td><td>${p.descripcion} ${ob}</td>
+      return `<tr><td class="small">${fmtFecha(p.fecha)}</td><td>${p.sku}</td><td>${p.descripcion} ${ob}</td>
         <td><input class="cant" type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)"></td>
         <td style="text-align:center; font-family:monospace;">${existTxt}</td>
         <td style="text-align:center; font-family:monospace; font-weight:bold; color:#1a3a6b;">${totalPz}</td>
