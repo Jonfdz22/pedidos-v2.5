@@ -1221,6 +1221,7 @@ function cargarInventarios() {
     }
   });
   actualizarInventarioActual();
+ if (supabaseClient) { bajarInventarioSupabase(id); }
 }
 function guardarVentas() { try { localStorage.setItem(KEY_VENTAS, JSON.stringify(ventasPorSucursal)); } catch(e) {} }
 function cargarVentas() {
@@ -1504,6 +1505,50 @@ function sincronizarVinculosAuto() {
   }, 2000);
 }
 
+ // Subir inventario de UNA sucursal a Supabase
+async function subirInventarioSupabase(sucId) {
+  if (!supabaseClient) return false;
+  const slot = inventariosPorSucursal[sucId];
+  if (!slot) return false;
+  try {
+    const { error } = await supabaseClient
+      .from('app_data')
+      .upsert({ section: 'inventario_' + sucId, data: slot, updated_at: new Date().toISOString() });
+    if (error) { console.error('Error subiendo inv:', error); return false; }
+    console.log('✅ Inventario subido:', sucId);
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+// Bajar inventario de UNA sucursal
+async function bajarInventarioSupabase(sucId) {
+  if (!supabaseClient) return false;
+  try {
+    const { data, error } = await supabaseClient
+      .from('app_data').select('data').eq('section', 'inventario_' + sucId).maybeSingle();
+    if (error || !data || !data.data) return false;
+    inventariosPorSucursal[sucId] = data.data;
+    guardarInventarios();
+    if (sucId === sucursalActual) {
+      actualizarInventarioActual();  
+     if (supabaseClient) { bajarInventarioSupabase(id); }
+      renderInvTopStats();
+      actualizarUIInventario();
+      renderInventario();
+    }
+    console.log('✅ Inventario bajado:', sucId);
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+// Sync auto del inventario actual (debounce)
+let _syncInvTimeout = null;
+function sincronizarInventarioAuto() {
+  if (!supabaseClient || !sucursalActual) return;
+  clearTimeout(_syncInvTimeout);
+  _syncInvTimeout = setTimeout(() => { subirInventarioSupabase(sucursalActual); }, 3000);
+}
+
 /* ============ USUARIOS ============ */
 function inicializarUsuarios() {
   const raw = localStorage.getItem(KEY_USERS);
@@ -1589,7 +1634,8 @@ function intentarLogin() {
   if (!permitidas.length) { if (err) { err.textContent = 'Sin sucursales asignadas.'; err.classList.add('show'); } usuarioLogueado = null; return; }
   if (permitidas.includes('sahagun')) sucursalActual = 'sahagun';
   else sucursalActual = permitidas[0];
-  actualizarInventarioActual();
+  actualizarInventarioActual(); 
+ if (supabaseClient) { bajarInventarioSupabase(id); }
   guardarSesion(u);
   entrarApp();
   if (usuario.primerLogin) {
@@ -1701,6 +1747,7 @@ function cambiarSucursal(id) {
   if (id === sucursalActual) return;
   sucursalActual = id;
   actualizarInventarioActual();
+ if (supabaseClient) { bajarInventarioSupabase(id); }
   guardarSesion(usuarioLogueado);
   actualizarHeaderSucursal();
   renderPedido();
@@ -1907,8 +1954,9 @@ function entrarApp() {
     const disp = ['pedido','inventario','vincular','baseDatos','ajustes'].filter(t => u.permisos[t]);
     cambiarPestana(disp[0] || 'pedido');
        // Sincronizar vínculos con Supabase (silencioso)
-    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       setTimeout(() => { bajarVinculosSupabase(); }, 500);
+      setTimeout(() => { bajarInventarioSupabase(sucursalActual); }, 1500);
     }
   } catch(e) {
     console.error('Error en entrarApp:', e);
@@ -2195,7 +2243,8 @@ function importarRespaldo(event) {
       if (data.nombreEmpresa) { nombreEmpresa = data.nombreEmpresa; localStorage.setItem(KEY_EMPRESA, nombreEmpresa); cargarNombreEmpresa(); }
       if (data.sucursalActual) sucursalActual = data.sucursalActual;
       guardarEstado();
-      actualizarInventarioActual();
+      actualizarInventarioActual(); 
+     if (supabaseClient) { bajarInventarioSupabase(id); }
       renderPedido(); renderVinculos(); renderUsuarios(); renderSucursales();
       renderInvTopStats(); actualizarUIInventario(); renderInventario(); renderManuales(); renderBaseDatosStats();
       actualizarHeaderSucursal(); actualizarSucursalNombreEnVistas();
@@ -2596,6 +2645,7 @@ async function cargarExcelInventario(file, modoCarga) {
     } else { inventarioBase = nuevos; }
     setFechaCargaBase(new Date().toISOString());
     persistirInventarioActual();
+    sincronizarInventarioAuto();
     const msg = `✔ <b>${inventarioBase.length}</b> productos (${s.nombre})`;
     if (info) info.innerHTML = msg;
     if (infoBD) infoBD.innerHTML = msg;
@@ -2680,6 +2730,7 @@ function escanearPorPieza(codigo) {
   ultimoEscanerPz = { sku: p.sku, cantidadAnterior: actual };
   ultimoEscanerPz = { sku: p.sku, cantidadAnterior: actual };
   persistirInventarioActual();
+  sincronizarInventarioAuto();
   feedbackExito();
   toast(`✔ ${p.sku} = ${nuevo}/${ajustado}`, 'big');
   renderInvTopStats();
@@ -2696,6 +2747,7 @@ function confirmarSuperaTotal() {
   ultimoEscanerPz = { sku: producto.sku, cantidadAnterior };
   ultimoEscanerPz = { sku: producto.sku, cantidadAnterior };
   persistirInventarioActual();
+  sincronizarInventarioAuto();
   const m = document.getElementById('modalSuperaTotal'); if (m) m.classList.remove('activo');
   superaTotalPendiente = null;
   feedbackExito();
@@ -3114,6 +3166,7 @@ function confirmarConteo() {
   setVentaPostConteo(p.sku, false);
   invUltimoSku = p.sku;
   persistirInventarioActual();
+  sincronizarInventarioAuto();
   feedbackExito();
   toast(`✔ ${p.sku} = ${cant}`);
   const bi = document.getElementById('invBusqueda');
@@ -3742,6 +3795,7 @@ function guardarNuevoProducto() {
       fechaAgregado: new Date().toISOString()
     });
     persistirInventarioActual();
+    sincronizarInventarioAuto();
   }
 
   guardarEstado();
@@ -4271,7 +4325,8 @@ function arrancar() {
   if (sesion && sesion.usuario) {
     usuarioLogueado = sesion.usuario;
     sucursalActual = sesion.sucursalActual || (usuarios[usuarioLogueado]?.sucursalesPermitidas || [])[0] || sucursales[0].id;
-    actualizarInventarioActual();
+    actualizarInventarioActual(); 
+   if (supabaseClient) { bajarInventarioSupabase(id); }
     entrarApp();
   } else {
     const lb = document.getElementById('loginBg'); if (lb) lb.style.display = 'flex';
