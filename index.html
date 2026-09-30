@@ -1446,7 +1446,7 @@ function inicializarUsuarios() {
     usuarios['diego'] = { nombre: 'Diego', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };
     usuarios['liz'] = { nombre: 'Liz', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };
     usuarios['jovany'] = { nombre: 'Jovany', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };
-    usuarios['usuario1'] = { nombre: 'Usuario 1', email: '', hash: hashPassword('1234'), permisos: { ...permVendedor }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };
+    /*usuarios['usuario1'] = { nombre: 'Usuario 1', email: '', hash: hashPassword('1234'), permisos: { ...permVendedor }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };*/
     guardarUsuarios();
   }
    } else {
@@ -1455,7 +1455,7 @@ function inicializarUsuarios() {
     if (!usuarios['diego']) { usuarios['diego'] = { nombre: 'Diego', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false }; cambios = true; }
     if (!usuarios['liz']) { usuarios['liz'] = { nombre: 'Liz', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false }; cambios = true; }
     if (!usuarios['jovany']) { usuarios['jovany'] = { nombre: 'Jovany', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false }; cambios = true; }
-    if (!usuarios['usuario1']) { usuarios['usuario1'] = { nombre: 'Usuario 1', email: '', hash: hashPassword('1234'), permisos: { ...permVendedor }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false }; cambios = true; }
+    /*if (!usuarios['usuario1']) { usuarios['usuario1'] = { nombre: 'Usuario 1', email: '', hash: hashPassword('1234'), permisos: { ...permVendedor }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false }; cambios = true; }*/
     if (cambios) guardarUsuarios();
   }
 }
