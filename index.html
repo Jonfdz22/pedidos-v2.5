@@ -1221,7 +1221,6 @@ function cargarInventarios() {
     }
   });
   actualizarInventarioActual();
- if (supabaseClient) { bajarInventarioSupabase(id); }
 }
 function guardarVentas() { try { localStorage.setItem(KEY_VENTAS, JSON.stringify(ventasPorSucursal)); } catch(e) {} }
 function cargarVentas() {
@@ -1505,48 +1504,153 @@ function sincronizarVinculosAuto() {
   }, 2000);
 }
 
- // Subir inventario de UNA sucursal a Supabase
-async function subirInventarioSupabase(sucId) {
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE — INVENTARIOS (FASE 5)
+// Estrategia: base se sube 1 vez (~1 MB), estado se sube cada 3s (~5 KB)
+// Polling cada 15s para detectar cambios de otros dispositivos
+// ═══════════════════════════════════════════════════════════════
+
+// Subir SOLO la base (Excel) de una sucursal
+async function subirInventarioBaseSupabase(sucId) {
   if (!supabaseClient) return false;
   const slot = inventariosPorSucursal[sucId];
   if (!slot) return false;
   try {
-    const { error } = await supabaseClient
-      .from('app_data')
-      .upsert({ section: 'inventario_' + sucId, data: slot, updated_at: new Date().toISOString() });
-    if (error) { console.error('Error subiendo inv:', error); return false; }
-    console.log('✅ Inventario subido:', sucId);
+    const payload = {
+      base: slot.base || [],
+      fechaCargaBase: slot.fechaCargaBase || null
+    };
+    const { error } = await supabaseClient.from('app_data')
+      .upsert({
+        section: 'inventario_base_' + sucId,
+        data: payload,
+        updated_at: new Date().toISOString()
+      });
+    if (error) { console.error('Error subiendo base:', error); return false; }
+    console.log('✅ Base subida:', sucId, (slot.base || []).length, 'prods');
     return true;
   } catch(e) { console.error(e); return false; }
 }
 
-// Bajar inventario de UNA sucursal
+// Subir SOLO el estado (conteos, ventas post-conteo, etc.)
+async function subirInventarioEstadoSupabase(sucId) {
+  if (!supabaseClient) return false;
+  const slot = inventariosPorSucursal[sucId];
+  if (!slot) return false;
+  try {
+    const payload = {
+      conteo: slot.conteo || {},
+      horaConteoPorSku: slot.horaConteoPorSku || {},
+      usuarioConteoPorSku: slot.usuarioConteoPorSku || {},
+      ajustadoCongelado: slot.ajustadoCongelado || {},
+      ventaPostConteo: slot.ventaPostConteo || {}
+    };
+    const { error } = await supabaseClient.from('app_data')
+      .upsert({
+        section: 'inventario_estado_' + sucId,
+        data: payload,
+        updated_at: new Date().toISOString()
+      });
+    if (error) { console.error('Error subiendo estado:', error); return false; }
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+// Bajar base + estado de una sucursal
 async function bajarInventarioSupabase(sucId) {
   if (!supabaseClient) return false;
   try {
-    const { data, error } = await supabaseClient
-      .from('app_data').select('data').eq('section', 'inventario_' + sucId).maybeSingle();
-    if (error || !data || !data.data) return false;
-    inventariosPorSucursal[sucId] = data.data;
+    const [baseRes, estadoRes] = await Promise.all([
+      supabaseClient.from('app_data').select('data')
+        .eq('section', 'inventario_base_' + sucId).maybeSingle(),
+      supabaseClient.from('app_data').select('data')
+        .eq('section', 'inventario_estado_' + sucId).maybeSingle()
+    ]);
+    const baseData = baseRes.data?.data;
+    const estadoData = estadoRes.data?.data;
+    if (!baseData && !estadoData) {
+      console.log('📭 Sin inventario en Supabase para:', sucId);
+      return false;
+    }
+    if (!inventariosPorSucursal[sucId]) {
+      inventariosPorSucursal[sucId] = {
+        base: [], conteo: {}, fechaCargaBase: null,
+        horaConteoPorSku: {}, usuarioConteoPorSku: {},
+        ajustadoCongelado: {}, ventaPostConteo: {}
+      };
+    }
+    if (baseData) {
+      inventariosPorSucursal[sucId].base = baseData.base || [];
+      inventariosPorSucursal[sucId].fechaCargaBase = baseData.fechaCargaBase || null;
+    }
+    if (estadoData) {
+      inventariosPorSucursal[sucId].conteo = estadoData.conteo || {};
+      inventariosPorSucursal[sucId].horaConteoPorSku = estadoData.horaConteoPorSku || {};
+      inventariosPorSucursal[sucId].usuarioConteoPorSku = estadoData.usuarioConteoPorSku || {};
+      inventariosPorSucursal[sucId].ajustadoCongelado = estadoData.ajustadoCongelado || {};
+      inventariosPorSucursal[sucId].ventaPostConteo = estadoData.ventaPostConteo || {};
+    }
     guardarInventarios();
     if (sucId === sucursalActual) {
-      actualizarInventarioActual();  
-     if (supabaseClient) { bajarInventarioSupabase(id); }
+      actualizarInventarioActual();
       renderInvTopStats();
       actualizarUIInventario();
       renderInventario();
+      actualizarInfoSnapshot();
     }
     console.log('✅ Inventario bajado:', sucId);
     return true;
   } catch(e) { console.error(e); return false; }
 }
 
-// Sync auto del inventario actual (debounce)
-let _syncInvTimeout = null;
+// Sync auto de la BASE (debounce 2s, solo al cargar Excel)
+let _syncBaseTimeout = null;
+function sincronizarBaseAuto() {
+  if (!supabaseClient || !sucursalActual) return;
+  clearTimeout(_syncBaseTimeout);
+  _syncBaseTimeout = setTimeout(() => {
+    subirInventarioBaseSupabase(sucursalActual);
+  }, 2000);
+}
+
+// Sync auto del ESTADO (debounce 3s, al contar/vender)
+let _syncEstadoTimeout = null;
 function sincronizarInventarioAuto() {
   if (!supabaseClient || !sucursalActual) return;
-  clearTimeout(_syncInvTimeout);
-  _syncInvTimeout = setTimeout(() => { subirInventarioSupabase(sucursalActual); }, 3000);
+  clearTimeout(_syncEstadoTimeout);
+  _syncEstadoTimeout = setTimeout(() => {
+    subirInventarioEstadoSupabase(sucursalActual);
+  }, 3000);
+}
+
+// Polling: cada 15s revisa si otro dispositivo cambió el estado
+let _pollingInv = null;
+let _lastEstadoUpdated = null;
+function iniciarPollingInventario() {
+  if (_pollingInv) clearInterval(_pollingInv);
+  _pollingInv = setInterval(async () => {
+    if (!supabaseClient || !sucursalActual) return;
+    try {
+      const res = await supabaseClient.from('app_data')
+        .select('updated_at')
+        .eq('section', 'inventario_estado_' + sucursalActual)
+        .maybeSingle();
+      const updated = res.data?.updated_at;
+      if (updated && updated !== _lastEstadoUpdated) {
+        // Primera vez: solo guardar, no rebajar (evita loop)
+        if (_lastEstadoUpdated !== null) {
+          await bajarInventarioSupabase(sucursalActual);
+          toast('🔄 Inventario actualizado desde otro dispositivo', 'warn');
+        }
+        _lastEstadoUpdated = updated;
+      }
+    } catch(e) { console.error('Polling error:', e); }
+  }, 15000);
+  console.log('✅ Polling de inventario iniciado');
+}
+
+function detenerPollingInventario() {
+  if (_pollingInv) { clearInterval(_pollingInv); _pollingInv = null; }
 }
 
 /* ============ USUARIOS ============ */
@@ -1635,7 +1739,6 @@ function intentarLogin() {
   if (permitidas.includes('sahagun')) sucursalActual = 'sahagun';
   else sucursalActual = permitidas[0];
   actualizarInventarioActual(); 
- if (supabaseClient) { bajarInventarioSupabase(id); }
   guardarSesion(u);
   entrarApp();
   if (usuario.primerLogin) {
@@ -1672,6 +1775,7 @@ function cerrarSesion() {
       }
     }
     // Cerrar
+    detenerPollingInventario();
     borrarSesion();
     usuarioLogueado = null;
     document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
@@ -1707,6 +1811,7 @@ function cambiarDeCuenta() {
         guardarInventarios();
       }
     }
+     detenerPollingInventario();
     borrarSesion();
     usuarioLogueado = null;
     document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
@@ -1746,8 +1851,11 @@ function cambiarSucursal(id) {
   cerrarMenuSucursal();
   if (id === sucursalActual) return;
   sucursalActual = id;
-  actualizarInventarioActual();
- if (supabaseClient) { bajarInventarioSupabase(id); }
+   actualizarInventarioActual();
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+    bajarInventarioSupabase(id);
+    iniciarPollingInventario();
+  }
   guardarSesion(usuarioLogueado);
   actualizarHeaderSucursal();
   renderPedido();
@@ -1954,9 +2062,10 @@ function entrarApp() {
     const disp = ['pedido','inventario','vincular','baseDatos','ajustes'].filter(t => u.permisos[t]);
     cambiarPestana(disp[0] || 'pedido');
        // Sincronizar vínculos con Supabase (silencioso)
-      if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+       if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       setTimeout(() => { bajarVinculosSupabase(); }, 500);
       setTimeout(() => { bajarInventarioSupabase(sucursalActual); }, 1500);
+      setTimeout(() => { iniciarPollingInventario(); }, 3000);
     }
   } catch(e) {
     console.error('Error en entrarApp:', e);
@@ -2244,7 +2353,6 @@ function importarRespaldo(event) {
       if (data.sucursalActual) sucursalActual = data.sucursalActual;
       guardarEstado();
       actualizarInventarioActual(); 
-     if (supabaseClient) { bajarInventarioSupabase(id); }
       renderPedido(); renderVinculos(); renderUsuarios(); renderSucursales();
       renderInvTopStats(); actualizarUIInventario(); renderInventario(); renderManuales(); renderBaseDatosStats();
       actualizarHeaderSucursal(); actualizarSucursalNombreEnVistas();
@@ -2645,6 +2753,7 @@ async function cargarExcelInventario(file, modoCarga) {
     } else { inventarioBase = nuevos; }
     setFechaCargaBase(new Date().toISOString());
     persistirInventarioActual();
+    sincronizarBaseAuto();
     sincronizarInventarioAuto();
     const msg = `✔ <b>${inventarioBase.length}</b> productos (${s.nombre})`;
     if (info) info.innerHTML = msg;
@@ -2728,7 +2837,6 @@ function escanearPorPieza(codigo) {
     setAjustadoCongelado(p.sku, ajustado);
   setVentaPostConteo(p.sku, false);
   ultimoEscanerPz = { sku: p.sku, cantidadAnterior: actual };
-  ultimoEscanerPz = { sku: p.sku, cantidadAnterior: actual };
   persistirInventarioActual();
   sincronizarInventarioAuto();
   feedbackExito();
@@ -2744,7 +2852,6 @@ function confirmarSuperaTotal() {
   setUsuarioConteoPorSku(producto.sku, usuarioLogueado);
    setAjustadoCongelado(producto.sku, ajustado);
   setVentaPostConteo(producto.sku, false);
-  ultimoEscanerPz = { sku: producto.sku, cantidadAnterior };
   ultimoEscanerPz = { sku: producto.sku, cantidadAnterior };
   persistirInventarioActual();
   sincronizarInventarioAuto();
@@ -2853,12 +2960,7 @@ function confirmarVenta() {
   if (!ventasPorSucursal[sucursalActual]) ventasPorSucursal[sucursalActual] = [];
   ventasPorSucursal[sucursalActual].push({ sku: p.sku, descripcion: p.descripcion || '', cantidad: cant, hora: new Date().toISOString(), usuario: usuarioLogueado });
   guardarVentas();
-   // 🔄 Actualizar el ajustado congelado si el producto ya fue contado
-  if (inventarioConteo[p.sku] !== undefined) {
-    const nuevoAjustado = (p.exis || 0) - totalVendidoDeSku(p.sku);
-    setAjustadoCongelado(p.sku, nuevoAjustado);
-  }
-    feedbackExito();
+  feedbackExito();
   const yaContado = inventarioConteo[p.sku] !== undefined;
   if (yaContado) {
     // Marcar para revisar después
@@ -4326,7 +4428,6 @@ function arrancar() {
     usuarioLogueado = sesion.usuario;
     sucursalActual = sesion.sucursalActual || (usuarios[usuarioLogueado]?.sucursalesPermitidas || [])[0] || sucursales[0].id;
     actualizarInventarioActual(); 
-   if (supabaseClient) { bajarInventarioSupabase(id); }
     entrarApp();
   } else {
     const lb = document.getElementById('loginBg'); if (lb) lb.style.display = 'flex';
