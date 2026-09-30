@@ -1429,7 +1429,7 @@ async function probarConexionSupabase() {
 }
 
 /* ============ USUARIOS ============ */
-ffunction inicializarUsuarios() {
+function inicializarUsuarios() {
   const raw = localStorage.getItem(KEY_USERS);
   if (raw) { try { usuarios = JSON.parse(raw); } catch(e) { usuarios = {}; } }
   const todos = sucursales.map(s => s.id);
