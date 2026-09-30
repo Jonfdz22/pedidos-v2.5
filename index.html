@@ -620,6 +620,9 @@
       <button class="verde" style="flex:1;" onclick="guardarConfigSupabase()">💾 Guardar</button>
       <button class="amarillo" onclick="probarConexionSupabase()">🧪 Probar conexión</button>
     </div>
+        <div class="fila" style="margin-top:8px;">
+      <button style="flex:1; background:#1e8449;" onclick="sincronizarAhora()">🔄 Sincronizar ahora</button>
+    </div>
     <div id="logSupabase" class="small" style="margin-top:10px; font-family:monospace; background:#f5f5f5; padding:8px; border-radius:6px; display:none; max-height:150px; overflow-y:auto;"></div>
   </div>
   <div class="panel" style="border:2px solid #c0392b;">
@@ -1428,6 +1431,78 @@ async function probarConexionSupabase() {
     escribir('❌ Excepción: ' + e.message);
   }
 }
+ /* ============ SINCRONIZACIÓN SUPABASE ============ */
+
+// Subir vínculos a Supabase
+async function subirVinculosSupabase() {
+  if (!supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient
+      .from('app_data')
+      .upsert({ section: 'vinculos', data: vinculos, updated_at: new Date().toISOString() });
+    if (error) { console.error('Error subiendo vínculos:', error); return false; }
+    console.log('✅ Vínculos subidos a Supabase');
+    return true;
+  } catch(e) {
+    console.error('Excepción subiendo vínculos:', e);
+    return false;
+  }
+}
+
+// Bajar vínculos de Supabase
+async function bajarVinculosSupabase() {
+  if (!supabaseClient) return false;
+  try {
+    const { data, error } = await supabaseClient
+      .from('app_data')
+      .select('data')
+      .eq('section', 'vinculos')
+      .maybeSingle();
+    if (error) { console.error('Error bajando vínculos:', error); return false; }
+    if (!data || !data.data) { console.log('📭 No hay vínculos en Supabase aún'); return false; }
+    // Fusionar con los locales
+    const nube = data.data || {};
+    vinculos = fusionarVinculos(vinculos, nube);
+    localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
+    guardarEstado();
+    renderVinculos();
+    sincronizarVinculosAuto();
+    console.log('✅ Vínculos descargados y fusionados');
+    return true;
+  } catch(e) {
+    console.error('Excepción bajando vínculos:', e);
+    return false;
+  }
+}
+
+// Sincronización manual (baja + sube)
+async function sincronizarAhora() {
+  if (!supabaseClient) {
+    alert('⚠️ Supabase no está configurado. Ve a Ajustes → Supabase.');
+    return;
+  }
+  toast('🔄 Sincronizando...');
+  const bajo = await bajarVinculosSupabase();
+  const subi = await subirVinculosSupabase();
+  if (bajo || subi) {
+    toast('✅ Sincronización completa');
+  } else {
+    toast('⚠️ Sin cambios o error al sincronizar', 'warn');
+  }
+  actualizarUIInventario();
+  renderVinculos();
+  renderBaseDatosStats();
+}
+
+// Subida automática (debounce) para no saturar Supabase
+let _syncVinculosTimeout = null;
+function sincronizarVinculosAuto() {
+  if (!supabaseClient) return;
+  clearTimeout(_syncVinculosTimeout);
+  _syncVinculosTimeout = setTimeout(() => {
+    subirVinculosSupabase();
+  }, 2000);
+}
 
 /* ============ USUARIOS ============ */
 function inicializarUsuarios() {
@@ -1831,6 +1906,10 @@ function entrarApp() {
     renderUsuarios();
     const disp = ['pedido','inventario','vincular','baseDatos','ajustes'].filter(t => u.permisos[t]);
     cambiarPestana(disp[0] || 'pedido');
+       // Sincronizar vínculos con Supabase (silencioso)
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      setTimeout(() => { bajarVinculosSupabase(); }, 500);
+    }
   } catch(e) {
     console.error('Error en entrarApp:', e);
     alert('Error al iniciar la app: ' + e.message);
@@ -3738,6 +3817,7 @@ function asignarVincularRapido(sku) {
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   guardarEstado();
   renderVinculos();
+  sincronizarVinculosAuto();
   const m = document.getElementById('modalVincularRapido'); if (m) m.classList.remove('activo');
   const prod = buscarProductoPorSku(sku);
   const ed = document.getElementById('exitoFullscreenDetalle');
@@ -3819,6 +3899,7 @@ function quitarSkuDeCodigo(codigo, sku) {
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   guardarEstado();
   renderVinculos();
+  sincronizarVinculosAuto();
   setVal('inputCodigo', codigo);
   capturarCodigo();
   toast('🗑 Quitado');
@@ -3864,6 +3945,7 @@ function guardarVinculo(sku) {
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   guardarEstado();
   renderVinculos();
+  sincronizarVinculosAuto();
   const prod = buscarProductoPorSku(sku);
   const ed = document.getElementById('exitoFullscreenDetalle');
   if (ed) ed.innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${codigo}</div><div style="opacity:.8; font-size:13px;">AGREGADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9;">' + prod.descripcion + '</div>' : ''}<div style="font-size:11px; opacity:.9; margin-top:8px;">@${usuarioLogueado}</div>`;
@@ -3924,6 +4006,7 @@ function borrarVinculo(codigo, sku) {
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   guardarEstado();
   renderVinculos();
+  sincronizarVinculosAuto();
   toast('🗑');
 }
 function contarVinculos(obj) {
@@ -4040,6 +4123,7 @@ function ejecutarImportacion(modo) {
   localStorage.setItem(KEY_MAP, JSON.stringify(vinculos));
   guardarEstado();
   renderVinculos();
+  sincronizarVinculosAuto();
 }
 function cerrarModalImportar() {
   const m = document.getElementById('modalImportarVinculos'); if (m) m.classList.remove('activo');
