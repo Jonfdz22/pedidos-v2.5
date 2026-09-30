@@ -1429,29 +1429,27 @@ async function probarConexionSupabase() {
 }
 
 /* ============ USUARIOS ============ */
-function inicializarUsuarios() {
+ffunction inicializarUsuarios() {
   const raw = localStorage.getItem(KEY_USERS);
   if (raw) { try { usuarios = JSON.parse(raw); } catch(e) { usuarios = {}; } }
   const todos = sucursales.map(s => s.id);
   const permTodo = { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true };
+  const permVendedor = { pedido: true, inventario: false, vincular: false, baseDatos: true, ajustes: false };
   Object.keys(usuarios).forEach(u => {
     if (!usuarios[u].permisos) usuarios[u].permisos = {};
     if (typeof usuarios[u].permisos.baseDatos === 'undefined') usuarios[u].permisos.baseDatos = usuarios[u].permisos.ajustes === true;
     if (!Array.isArray(usuarios[u].sucursalesPermitidas)) usuarios[u].sucursalesPermitidas = todos;
   });
-   if (!usuarios || Object.keys(usuarios).length === 0) {
+  if (!usuarios || Object.keys(usuarios).length === 0) {
     usuarios = {};
-    const permVendedor = { pedido: true, inventario: false, vincular: false, baseDatos: true, ajustes: false };
     usuarios['admin'] = { nombre: 'Administrador', email: '', hash: hashPassword('admin123'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: true };
     usuarios['diego'] = { nombre: 'Diego', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };
     usuarios['liz'] = { nombre: 'Liz', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };
     usuarios['jovany'] = { nombre: 'Jovany', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };
     usuarios['usuario1'] = { nombre: 'Usuario 1', email: '', hash: hashPassword('1234'), permisos: { ...permVendedor }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };
     guardarUsuarios();
-    
-   } else {
+  } else {
     let cambios = false;
-    const permVendedor = { pedido: true, inventario: false, vincular: false, baseDatos: true, ajustes: false };
     if (!usuarios['diego']) { usuarios['diego'] = { nombre: 'Diego', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false }; cambios = true; }
     if (!usuarios['liz']) { usuarios['liz'] = { nombre: 'Liz', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false }; cambios = true; }
     if (!usuarios['jovany']) { usuarios['jovany'] = { nombre: 'Jovany', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false }; cambios = true; }
