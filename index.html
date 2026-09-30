@@ -606,6 +606,21 @@
       <button class="amarillo" onclick="probarEmailJS()">🧪 Probar</button>
     </div>
   </div>
+   <div class="panel" style="border:2px solid #1e8449;">
+    <h3>☁️ Supabase (sincronización)</h3>
+    <div class="ayuda" id="estadoSupabase">
+      ⚠️ No configurado. Pega tu URL y tu Publishable Key.
+    </div>
+    <label class="small">Project URL</label>
+    <input type="text" id="cfgSupabaseUrl" placeholder="https://xxxxx.supabase.co">
+    <label class="small" style="display:block; margin-top:8px;">Publishable Key (anon)</label>
+    <input type="text" id="cfgSupabaseKey" placeholder="sb_publishable_...">
+    <div class="fila" style="margin-top:12px;">
+      <button class="verde" style="flex:1;" onclick="guardarConfigSupabase()">💾 Guardar</button>
+      <button class="amarillo" onclick="probarConexionSupabase()">🧪 Probar conexión</button>
+    </div>
+    <div id="logSupabase" class="small" style="margin-top:10px; font-family:monospace; background:#f5f5f5; padding:8px; border-radius:6px; display:none; max-height:150px; overflow-y:auto;"></div>
+  </div>
   <div class="panel" style="border:2px solid #c0392b;">
     <h3>⚠️ Zona de riesgo</h3>
     <button class="rojo" style="width:100%;" onclick="reiniciarUsuarios()">🔄 Borrar usuarios</button>
@@ -963,6 +978,9 @@ let ordenPedido = { columna: 'fecha', dir: 'desc' };
 let codigoParaVincularNuevo = null;
 let contextoVincularRapido = 'pedido';
 let mostrarAlertaVenta = true;
+let supabaseClient = null;
+let configSupabase = { url: '', key: '' };
+const KEY_SUPABASE = 'sahagun_supabase_v1';
 /* ============ HELPERS SEGUROS ============ */
 function setText(id, text) {
   const el = document.getElementById(id);
@@ -1307,6 +1325,107 @@ async function probarEmailJS() {
     });
     alert('✅ Enviado.');
   } catch (err) { alert('❌ ' + (err?.text || err?.message || JSON.stringify(err))); }
+}
+ /* ============ SUPABASE ============ */
+function cargarConfigSupabase() {
+  try {
+    const raw = localStorage.getItem(KEY_SUPABASE);
+    if (raw) configSupabase = JSON.parse(raw);
+  } catch(e) {}
+  inicializarSupabase();
+  const inpUrl = document.getElementById('cfgSupabaseUrl');
+  const inpKey = document.getElementById('cfgSupabaseKey');
+  if (inpUrl) inpUrl.value = configSupabase.url || '';
+  if (inpKey) inpKey.value = configSupabase.key || '';
+  actualizarEstadoSupabase();
+}
+
+function inicializarSupabase() {
+  if (!configSupabase.url || !configSupabase.key) { supabaseClient = null; return; }
+  if (typeof supabase === 'undefined') { console.warn('Supabase CDN no cargó'); supabaseClient = null; return; }
+  try {
+    supabaseClient = supabase.createClient(configSupabase.url, configSupabase.key);
+    console.log('✅ Supabase inicializado');
+  } catch(e) {
+    console.error('Error inicializando Supabase:', e);
+    supabaseClient = null;
+  }
+}
+
+function guardarConfigSupabase() {
+  const url = (document.getElementById('cfgSupabaseUrl').value || '').trim();
+  const key = (document.getElementById('cfgSupabaseKey').value || '').trim();
+  if (!url || !key) { alert('Llena los 2 campos.'); return; }
+  if (!url.startsWith('https://')) { alert('El URL debe empezar con https://'); return; }
+  configSupabase = { url, key };
+  try { localStorage.setItem(KEY_SUPABASE, JSON.stringify(configSupabase)); } catch(e) {}
+  inicializarSupabase();
+  actualizarEstadoSupabase();
+  toast('✔ Configuración guardada');
+}
+
+function actualizarEstadoSupabase() {
+  const el = document.getElementById('estadoSupabase');
+  if (!el) return;
+  if (configSupabase.url && configSupabase.key && supabaseClient) {
+    el.innerHTML = '✅ Conectado a Supabase';
+    el.style.background = '#e8f5e9';
+  } else if (configSupabase.url && configSupabase.key) {
+    el.innerHTML = '⚠️ Configurado pero sin conexión';
+    el.style.background = '#fff3e0';
+  } else {
+    el.innerHTML = '⚠️ No configurado. Pega tu URL y tu Publishable Key.';
+    el.style.background = '#fff3e0';
+  }
+}
+
+async function probarConexionSupabase() {
+  const log = document.getElementById('logSupabase');
+  if (!log) return;
+  log.style.display = 'block';
+  log.innerHTML = '';
+  const escribir = (msg) => { log.innerHTML += msg + '<br>'; log.scrollTop = log.scrollHeight; };
+
+  escribir('🚀 Iniciando prueba...');
+
+  if (!configSupabase.url || !configSupabase.key) {
+    escribir('❌ Falta configurar URL o Key');
+    return;
+  }
+
+  if (typeof supabase === 'undefined') {
+    escribir('❌ La librería de Supabase no cargó (revisa el CDN)');
+    return;
+  }
+
+  inicializarSupabase();
+  if (!supabaseClient) {
+    escribir('❌ No se pudo crear el cliente');
+    return;
+  }
+
+  escribir('✅ Cliente creado');
+  escribir('📡 Leyendo tabla app_data...');
+
+  try {
+    const { data, error } = await supabaseClient.from('app_data').select('section').limit(5);
+    if (error) {
+      escribir('❌ Error: ' + error.message);
+      return;
+    }
+    escribir('✅ Conexión exitosa');
+    escribir('📊 Secciones en la tabla: ' + (data.length || 0));
+    if (data.length) {
+      escribir('   → ' + data.map(x => x.section).join(', '));
+    } else {
+      escribir('   (tabla vacía, es normal)');
+    }
+    escribir('');
+    escribir('🎉 ¡Todo listo para la FASE 4!');
+    toast('✔ Supabase conectado');
+  } catch(e) {
+    escribir('❌ Excepción: ' + e.message);
+  }
 }
 
 /* ============ USUARIOS ============ */
@@ -1738,7 +1857,7 @@ function cambiarPestana(t) {
     if (p) p.style.display = (x === t) ? 'block' : 'none';
   });
   if (t === 'vincular') setTimeout(() => { const i = document.getElementById('inputCodigo'); if (i) i.focus(); }, 100);
-  if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); }
+  if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); actualizarEstadoSupabase(); }
   if (t === 'inventario') { renderInvTopStats(); actualizarUIInventario(); renderInventario(); actualizarSucursalNombreEnVistas(); }
   if (t === 'baseDatos') { renderManuales(); renderBaseDatosStats(); }
   guardarEstado();
@@ -4055,6 +4174,7 @@ function arrancar() {
     cargarNombreEmpresa();
     cargarConfig();
     cargarConfigSonido();
+    cargarConfigSupabase();
     inicializarUsuarios();
     cargarInventarios();
     cargarVentas();
