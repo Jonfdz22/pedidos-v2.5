@@ -620,8 +620,11 @@
       <button class="verde" style="flex:1;" onclick="guardarConfigSupabase()">💾 Guardar</button>
       <button class="amarillo" onclick="probarConexionSupabase()">🧪 Probar conexión</button>
     </div>
-        <div class="fila" style="margin-top:8px;">
+          <div class="fila" style="margin-top:8px;">
       <button style="flex:1; background:#1e8449;" onclick="sincronizarAhora()">🔄 Sincronizar ahora</button>
+    </div>
+    <div class="fila" style="margin-top:8px;">
+      <button style="flex:1; background:#1a3a6b;" onclick="subirTodoALaNube()">☁️ Subir TODO a la nube</button>
     </div>
     <div id="logSupabase" class="small" style="margin-top:10px; font-family:monospace; background:#f5f5f5; padding:8px; border-radius:6px; display:none; max-height:150px; overflow-y:auto;"></div>
   </div>
@@ -1175,7 +1178,10 @@ function cargarSucursales() {
     guardarSucursales();
   }
 }
-function guardarSucursales() { try { localStorage.setItem(KEY_SUCURSALES, JSON.stringify(sucursales)); } catch(e) {} }
+function guardarSucursales() {
+  try { localStorage.setItem(KEY_SUCURSALES, JSON.stringify(sucursales)); } catch(e) {}
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) sincronizarSucursalesAuto();
+}
 function getSucursal(id) { return sucursales.find(s => s.id === id) || null; }
 function getSucursalActual() { return getSucursal(sucursalActual) || sucursales[0]; }
 function cargarNombreEmpresa() {
@@ -1190,6 +1196,7 @@ function guardarNombreEmpresa() {
   if (!n) { alert('Pon un nombre.'); return; }
   nombreEmpresa = n;
   try { localStorage.setItem(KEY_EMPRESA, n); } catch(e) {}
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) sincronizarEmpresaAuto();
   setText('headerEmpresa', n);
   setText('loginTituloEmpresa', n);
   document.title = n + ' — Pedidos · Inventario · Vínculos';
@@ -1332,10 +1339,25 @@ async function probarEmailJS() {
 }
  /* ============ SUPABASE ============ */
 function cargarConfigSupabase() {
+  // Valores por defecto HARDCODEADOS para que cualquier dispositivo
+  // nuevo se conecte automáticamente sin configurar nada
+  const DEFAULT_URL = 'https://cshozghrtisdyzqmcaco.supabase.co';
+  const DEFAULT_KEY = 'sb_publishable_DWP5mqJRQiKSzKwqKrnyAA_bzYHKhV6';
   try {
     const raw = localStorage.getItem(KEY_SUPABASE);
-    if (raw) configSupabase = JSON.parse(raw);
-  } catch(e) {}
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      configSupabase = {
+        url: parsed.url || DEFAULT_URL,
+        key: parsed.key || DEFAULT_KEY
+      };
+    } else {
+      configSupabase = { url: DEFAULT_URL, key: DEFAULT_KEY };
+      localStorage.setItem(KEY_SUPABASE, JSON.stringify(configSupabase));
+    }
+  } catch(e) {
+    configSupabase = { url: DEFAULT_URL, key: DEFAULT_KEY };
+  }
   inicializarSupabase();
   const inpUrl = document.getElementById('cfgSupabaseUrl');
   const inpKey = document.getElementById('cfgSupabaseKey');
@@ -1494,7 +1516,6 @@ async function sincronizarAhora() {
   renderBaseDatosStats();
 }
 
-// Subida automática (debounce) para no saturar Supabase
 let _syncVinculosTimeout = null;
 function sincronizarVinculosAuto() {
   if (!supabaseClient) return;
@@ -1503,6 +1524,156 @@ function sincronizarVinculosAuto() {
     subirVinculosSupabase();
   }, 2000);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE — USUARIOS (FASE 6)
+// ═══════════════════════════════════════════════════════════════
+async function subirUsuariosSupabase() {
+  if (!supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient.from('app_data')
+      .upsert({ section: 'usuarios', data: usuarios, updated_at: new Date().toISOString() });
+    if (error) { console.error('Error subiendo usuarios:', error); return false; }
+    console.log('✅ Usuarios subidos:', Object.keys(usuarios).length);
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+async function bajarUsuariosSupabase() {
+  if (!supabaseClient) return false;
+  try {
+    const { data, error } = await supabaseClient.from('app_data')
+      .select('data').eq('section', 'usuarios').maybeSingle();
+    if (error) { console.error('Error bajando usuarios:', error); return false; }
+    if (!data || !data.data || !Object.keys(data.data).length) {
+      console.log('📭 Sin usuarios en Supabase');
+      return false;
+    }
+    usuarios = data.data;
+    localStorage.setItem(KEY_USERS, JSON.stringify(usuarios));
+    console.log('✅ Usuarios bajados:', Object.keys(usuarios).length);
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE — SUCURSALES
+// ═══════════════════════════════════════════════════════════════
+async function subirSucursalesSupabase() {
+  if (!supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient.from('app_data')
+      .upsert({ section: 'sucursales', data: sucursales, updated_at: new Date().toISOString() });
+    if (error) { console.error('Error subiendo sucursales:', error); return false; }
+    console.log('✅ Sucursales subidas:', sucursales.length);
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+async function bajarSucursalesSupabase() {
+  if (!supabaseClient) return false;
+  try {
+    const { data, error } = await supabaseClient.from('app_data')
+      .select('data').eq('section', 'sucursales').maybeSingle();
+    if (error) { console.error('Error bajando sucursales:', error); return false; }
+    if (!data || !data.data || !Array.isArray(data.data) || !data.data.length) {
+      console.log('📭 Sin sucursales en Supabase');
+      return false;
+    }
+    sucursales = data.data;
+    localStorage.setItem(KEY_SUCURSALES, JSON.stringify(sucursales));
+    console.log('✅ Sucursales bajadas:', sucursales.length);
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE — EMPRESA
+// ═══════════════════════════════════════════════════════════════
+async function subirEmpresaSupabase() {
+  if (!supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient.from('app_data')
+      .upsert({ section: 'empresa', data: { nombre: nombreEmpresa }, updated_at: new Date().toISOString() });
+    if (error) { console.error('Error subiendo empresa:', error); return false; }
+    console.log('✅ Empresa subida:', nombreEmpresa);
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+async function bajarEmpresaSupabase() {
+  if (!supabaseClient) return false;
+  try {
+    const { data, error } = await supabaseClient.from('app_data')
+      .select('data').eq('section', 'empresa').maybeSingle();
+    if (error) { console.error('Error bajando empresa:', error); return false; }
+    if (!data || !data.data || !data.data.nombre) return false;
+    nombreEmpresa = data.data.nombre;
+    localStorage.setItem(KEY_EMPRESA, nombreEmpresa);
+    console.log('✅ Empresa bajada:', nombreEmpresa);
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE — CORE (descarga todo antes del login)
+// ═══════════════════════════════════════════════════════════════
+async function bajarCoreSupabase() {
+  if (!supabaseClient) return false;
+  console.log('⬇️ Descargando datos core desde Supabase...');
+  const tieneUsuarios = await bajarUsuariosSupabase();
+  const tieneSucursales = await bajarSucursalesSupabase();
+  const tieneEmpresa = await bajarEmpresaSupabase();
+  await bajarVinculosSupabase();
+  // Semilla: si Supabase está vacío, subimos lo local para que otros dispositivos lo tengan
+  if (!tieneUsuarios) {
+    console.log('📤 Subiendo usuarios locales como semilla');
+    await subirUsuariosSupabase();
+  }
+  if (!tieneSucursales) {
+    console.log('📤 Subiendo sucursales locales como semilla');
+    await subirSucursalesSupabase();
+  }
+  if (!tieneEmpresa) {
+    console.log('📤 Subiendo empresa local como semilla');
+    await subirEmpresaSupabase();
+  }
+  console.log('✅ Core sincronizado');
+  return true;
+}
+
+// Sync auto con debounce para no saturar
+let _syncUsuariosTimeout = null;
+function sincronizarUsuariosAuto() {
+  if (!supabaseClient) return;
+  clearTimeout(_syncUsuariosTimeout);
+  _syncUsuariosTimeout = setTimeout(() => { subirUsuariosSupabase(); }, 1500);
+}
+let _syncSucursalesTimeout = null;
+function sincronizarSucursalesAuto() {
+  if (!supabaseClient) return;
+  clearTimeout(_syncSucursalesTimeout);
+  _syncSucursalesTimeout = setTimeout(() => { subirSucursalesSupabase(); }, 1500);
+}
+let _syncEmpresaTimeout = null;
+function sincronizarEmpresaAuto() {
+  if (!supabaseClient) return;
+  clearTimeout(_syncEmpresaTimeout);
+  _syncEmpresaTimeout = setTimeout(() => { subirEmpresaSupabase(); }, 1500);
+}
+
+async function subirTodoALaNube() {           // ← LO NUEVO
+  if (!supabaseClient) { alert('⚠️ Supabase no configurado'); return; }
+  toast('☁️ Subiendo todo a la nube...');
+  const r1 = await subirUsuariosSupabase();
+  const r2 = await subirSucursalesSupabase();
+  const r3 = await subirEmpresaSupabase();
+  const r4 = await subirVinculosSupabase();
+  const ok = [r1, r2, r3, r4].filter(Boolean).length;
+  if (ok >= 3) toast('✅ Todo subido (' + ok + '/4)');
+  else toast('⚠️ Algunos fallaron (' + ok + '/4)', 'warn');
+  console.log('Subida completa:', { usuarios: r1, sucursales: r2, empresa: r3, vinculos: r4 });
+}                                             // ← CIERRE
 
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — INVENTARIOS (FASE 5)
@@ -1682,7 +1853,10 @@ function inicializarUsuarios() {
     if (cambios) guardarUsuarios();
   }
 }
-function guardarUsuarios() { try { localStorage.setItem(KEY_USERS, JSON.stringify(usuarios)); } catch(e) {} }
+function guardarUsuarios() {
+  try { localStorage.setItem(KEY_USERS, JSON.stringify(usuarios)); } catch(e) {}
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) sincronizarUsuariosAuto();
+}
 function reiniciarUsuarios() {
   if (!usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔'); return; }
   if (!confirm('⚠️ Borrar TODOS los usuarios y volver a los de fábrica?')) return;
@@ -4409,7 +4583,7 @@ function exportarExcel() {
 }
 
 /* ============ ARRANQUE ============ */
-function arrancar() {
+async function arrancar() {
   document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
   document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('activo'));
   try {
@@ -4423,11 +4597,23 @@ function arrancar() {
     cargarInventarios();
     cargarVentas();
   } catch(e) { console.error('Init:', e); }
+
+  // ⬇️ NUEVO: bajar datos core desde Supabase ANTES del login
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+    try {
+      await bajarCoreSupabase();
+      // Re-inicializar por si los usuarios bajados cambiaron
+      inicializarUsuarios();
+      cargarNombreEmpresa();
+      actualizarHeaderSucursal();
+    } catch(e) { console.error('Error bajando core en arranque:', e); }
+  }
+
   const sesion = cargarSesion();
   if (sesion && sesion.usuario) {
     usuarioLogueado = sesion.usuario;
     sucursalActual = sesion.sucursalActual || (usuarios[usuarioLogueado]?.sucursalesPermitidas || [])[0] || sucursales[0].id;
-    actualizarInventarioActual(); 
+    actualizarInventarioActual();
     entrarApp();
   } else {
     const lb = document.getElementById('loginBg'); if (lb) lb.style.display = 'flex';
