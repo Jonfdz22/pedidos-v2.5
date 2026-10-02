@@ -596,7 +596,7 @@
       <input type="file" id="inputRespaldo" accept=".json" style="display:none" onchange="importarRespaldo(event)">
     </div>
   </div>
-  <div class="panel">
+    <div class="panel" id="panelEmailJS">
     <h3>📧 EmailJS</h3>
     <div class="ayuda" id="estadoEmailJS"></div>
     <label class="small">Public Key</label><input type="text" id="cfgPublicKey">
@@ -607,7 +607,7 @@
       <button class="amarillo" onclick="probarEmailJS()">🧪 Probar</button>
     </div>
   </div>
-   <div class="panel" style="border:2px solid #1e8449;">
+     <div class="panel" id="panelSupabase" style="border:2px solid #1e8449;">
     <h3>☁️ Supabase (sincronización)</h3>
     <div class="ayuda" id="estadoSupabase">
       ⚠️ No configurado. Pega tu URL y tu Publishable Key.
@@ -628,7 +628,7 @@
     </div>
     <div id="logSupabase" class="small" style="margin-top:10px; font-family:monospace; background:#f5f5f5; padding:8px; border-radius:6px; display:none; max-height:150px; overflow-y:auto;"></div>
   </div>
-  <div class="panel" style="border:2px solid #c0392b;">
+   <div class="panel" id="panelRiesgo" style="border:2px solid #c0392b;">
     <h3>⚠️ Zona de riesgo</h3>
     <button class="rojo" style="width:100%;" onclick="reiniciarUsuarios()">🔄 Borrar usuarios</button>
   </div>
@@ -1620,25 +1620,31 @@ async function bajarEmpresaSupabase() {
 // ═══════════════════════════════════════════════════════════════
 async function bajarCoreSupabase() {
   if (!supabaseClient) return false;
-  console.log('⬇️ Descargando datos core desde Supabase...');
-  const tieneUsuarios = await bajarUsuariosSupabase();
-  const tieneSucursales = await bajarSucursalesSupabase();
-  const tieneEmpresa = await bajarEmpresaSupabase();
-  await bajarVinculosSupabase();
-  // Semilla: si Supabase está vacío, subimos lo local para que otros dispositivos lo tengan
+  console.log('⬇️ Descargando datos core desde Supabase (paralelo)...');
+  const t0 = performance.now();
+  // ⚡ Las 4 peticiones en PARALELO (antes eran en serie)
+  const [tieneUsuarios, tieneSucursales, tieneEmpresa] = await Promise.all([
+    bajarUsuariosSupabase(),
+    bajarSucursalesSupabase(),
+    bajarEmpresaSupabase()
+  ]);
+  // Vínculos en paralelo también, no bloquea
+  bajarVinculosSupabase();
+  // Semilla: si Supabase está vacío, subimos lo local
   if (!tieneUsuarios) {
     console.log('📤 Subiendo usuarios locales como semilla');
-    await subirUsuariosSupabase();
+    subirUsuariosSupabase();
   }
   if (!tieneSucursales) {
     console.log('📤 Subiendo sucursales locales como semilla');
-    await subirSucursalesSupabase();
+    subirSucursalesSupabase();
   }
   if (!tieneEmpresa) {
     console.log('📤 Subiendo empresa local como semilla');
-    await subirEmpresaSupabase();
+    subirEmpresaSupabase();
   }
-  console.log('✅ Core sincronizado');
+  const ms = Math.round(performance.now() - t0);
+  console.log(`✅ Core sincronizado en ${ms}ms`);
   return true;
 }
 
@@ -1816,8 +1822,8 @@ function iniciarPollingInventario() {
         _lastEstadoUpdated = updated;
       }
     } catch(e) { console.error('Polling error:', e); }
-  }, 15000);
-  console.log('✅ Polling de inventario iniciado');
+   }, 30000);
+  console.log('✅ Polling de inventario iniciado (cada 30s)');
 }
 
 function detenerPollingInventario() {
@@ -2236,10 +2242,10 @@ function entrarApp() {
     const disp = ['pedido','inventario','vincular','baseDatos','ajustes'].filter(t => u.permisos[t]);
     cambiarPestana(disp[0] || 'pedido');
        // Sincronizar vínculos con Supabase (silencioso)
-       if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-      setTimeout(() => { bajarVinculosSupabase(); }, 500);
-      setTimeout(() => { bajarInventarioSupabase(sucursalActual); }, 1500);
-      setTimeout(() => { iniciarPollingInventario(); }, 3000);
+          if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      setTimeout(() => { bajarVinculosSupabase(); }, 100);
+      setTimeout(() => { bajarInventarioSupabase(sucursalActual); }, 400);
+      setTimeout(() => { iniciarPollingInventario(); }, 1000);
     }
   } catch(e) {
     console.error('Error en entrarApp:', e);
@@ -2259,6 +2265,18 @@ function aplicarPermisos() {
     cambiarPestana(disp[0] || 'pedido');
   }
   if (u.permisos.ajustes) renderUsuarios();
+  aplicarVisibilidadAdmin();
+}
+
+// 🆕 Solo el usuario "admin" ve los paneles sensibles (EmailJS, Supabase, Zona de riesgo)
+function aplicarVisibilidadAdmin() {
+  const esAdmin = (usuarioLogueado === 'admin');
+  const pE = document.getElementById('panelEmailJS');
+  const pS = document.getElementById('panelSupabase');
+  const pR = document.getElementById('panelRiesgo');
+  if (pE) pE.style.display = esAdmin ? 'block' : 'none';
+  if (pS) pS.style.display = esAdmin ? 'block' : 'none';
+  if (pR) pR.style.display = esAdmin ? 'block' : 'none';
 }
 function cambiarPestana(t) {
   const u = usuarios[usuarioLogueado];
@@ -2271,7 +2289,7 @@ function cambiarPestana(t) {
     if (p) p.style.display = (x === t) ? 'block' : 'none';
   });
   if (t === 'vincular') setTimeout(() => { const i = document.getElementById('inputCodigo'); if (i) i.focus(); }, 100);
-  if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); actualizarEstadoSupabase(); }
+  if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); actualizarEstadoSupabase(); aplicarVisibilidadAdmin(); }
   if (t === 'inventario') { renderInvTopStats(); actualizarUIInventario(); renderInventario(); actualizarSucursalNombreEnVistas(); }
   if (t === 'baseDatos') { renderManuales(); renderBaseDatosStats(); }
   guardarEstado();
@@ -4598,27 +4616,36 @@ async function arrancar() {
     cargarVentas();
   } catch(e) { console.error('Init:', e); }
 
-  // ⬇️ NUEVO: bajar datos core desde Supabase ANTES del login
-  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-    try {
-      await bajarCoreSupabase();
-      // Re-inicializar por si los usuarios bajados cambiaron
-      inicializarUsuarios();
-      cargarNombreEmpresa();
-      actualizarHeaderSucursal();
-    } catch(e) { console.error('Error bajando core en arranque:', e); }
-  }
-
+  // ⚡ MOSTRAR LOGIN INMEDIATAMENTE (no esperar a Supabase)
   const sesion = cargarSesion();
   if (sesion && sesion.usuario) {
+    // Ya tenía sesión: entrar directo
     usuarioLogueado = sesion.usuario;
     sucursalActual = sesion.sucursalActual || (usuarios[usuarioLogueado]?.sucursalesPermitidas || [])[0] || sucursales[0].id;
     actualizarInventarioActual();
     entrarApp();
+    // Refrescar core en background
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      bajarCoreSupabase().then(() => {
+        inicializarUsuarios();
+        cargarNombreEmpresa();
+        actualizarHeaderSucursal();
+      }).catch(e => console.error('Core bg:', e));
+    }
   } else {
+    // Mostrar login YA, bajar core en background
     const lb = document.getElementById('loginBg'); if (lb) lb.style.display = 'flex';
     const app = document.getElementById('app'); if (app) app.style.display = 'none';
-    setTimeout(() => { const inp = document.getElementById('loginUsuario'); if (inp) inp.focus(); }, 200);
+    setTimeout(() => { const inp = document.getElementById('loginUsuario'); if (inp) inp.focus(); }, 100);
+    // Bajar core en paralelo sin bloquear
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      bajarCoreSupabase().then(() => {
+        inicializarUsuarios();
+        cargarNombreEmpresa();
+        actualizarHeaderSucursal();
+        console.log('✅ Core refrescado en background');
+      }).catch(e => console.error('Core bg:', e));
+    }
   }
 }
 arrancar();
