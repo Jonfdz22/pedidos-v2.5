@@ -607,6 +607,17 @@
       <button class="amarillo" onclick="probarEmailJS()">🧪 Probar</button>
     </div>
   </div>
+   <div class="panel" id="panelSesiones" style="border:2px solid #1a5fbf; display:none;">
+    <h3>📋 Sesiones de Conteo</h3>
+    <div class="ayuda">
+      Una <b>sesión</b> agrupa el trabajo de varias personas contando el inventario.
+      Puede durar varios días y cada usuario ve solo las páginas asignadas.
+    </div>
+    <button class="verde" style="width:100%; margin-bottom:10px;" onclick="abrirModalNuevaSesion()">
+      ➕ Nueva sesión de conteo
+    </button>
+    <div id="listaSesiones" class="small">Cargando...</div>
+  </div>
      <div class="panel" id="panelSupabase" style="border:2px solid #1e8449;">
     <h3>☁️ Supabase (sincronización)</h3>
     <div class="ayuda" id="estadoSupabase">
@@ -841,6 +852,37 @@
       <button class="verde" style="flex:1;" onclick="guardarUsuario()">💾 Guardar</button>
       <button class="gris" onclick="cerrarModalUsuario()">Cancelar</button>
     </div>
+  </div>
+</div>
+ <div class="modal-bg" id="modalNuevaSesion">
+  <div class="modal" style="max-width:600px;">
+    <h3>📋 Nueva Sesión de Conteo</h3>
+
+    <label class="small">Nombre de la sesión *</label>
+    <input type="text" id="sesionNombre" placeholder="Ej: Inventario Sahagún Oct-2026">
+
+    <label class="small" style="display:block; margin-top:12px;">Sucursal *</label>
+    <select id="sesionSucursal"></select>
+
+    <label class="small" style="display:block; margin-top:12px;">Tamaño de cada página</label>
+    <input type="number" id="sesionPaginaTamano" value="200" min="50" max="500">
+    <div class="small" style="margin-top:4px;">Recomendado: 200 productos por página</div>
+
+    <div style="background:#e3f2fd; padding:12px; border-radius:8px; margin-top:14px; border-left:4px solid #1a5fbf;">
+      <div style="font-weight:bold; color:#1a3a6b; font-size:13px;">📄 Asignación de páginas</div>
+      <div class="small" style="margin-top:6px;">
+        Selecciona qué páginas le tocan a cada usuario. Se generarán automáticamente según el tamaño de página.
+      </div>
+      <div id="sesionPaginasInfo" class="small" style="margin-top:8px; font-weight:bold; color:#1a5fbf;"></div>
+    </div>
+
+    <div id="sesionAsignaciones" style="margin-top:10px;"></div>
+
+    <div class="fila" style="margin-top:16px;">
+      <button class="verde" style="flex:1;" onclick="guardarNuevaSesion()">💾 Crear sesión</button>
+      <button class="gris" onclick="cerrarModalNuevaSesion()">Cancelar</button>
+    </div>
+    <div id="sesionError" class="login-error" style="text-align:center;"></div>
   </div>
 </div>
 
@@ -1655,6 +1697,37 @@ function sincronizarUsuariosAuto() {
   clearTimeout(_syncUsuariosTimeout);
   _syncUsuariosTimeout = setTimeout(() => { subirUsuariosSupabase(); }, 1500);
 }
+
+// 🆕 Polling de usuarios: cada 30s revisa si otro dispositivo agregó/modificó usuarios
+let _pollingUsuarios = null;
+let _lastUsuariosUpdated = null;
+function iniciarPollingUsuarios() {
+  if (_pollingUsuarios) clearInterval(_pollingUsuarios);
+  _pollingUsuarios = setInterval(async () => {
+    if (!supabaseClient) return;
+    try {
+      const res = await supabaseClient.from('app_data')
+        .select('updated_at').eq('section', 'usuarios').maybeSingle();
+      const updated = res.data?.updated_at;
+      if (updated && updated !== _lastUsuariosUpdated) {
+        if (_lastUsuariosUpdated !== null) {
+          await bajarUsuariosSupabase();
+          console.log('🔄 Usuarios actualizados desde otro dispositivo');
+          // Refrescar lista si el modal de usuarios está abierto
+          if (document.getElementById('pestanaAjustes')?.style.display !== 'none') {
+            renderUsuarios();
+          }
+        }
+        _lastUsuariosUpdated = updated;
+      }
+    } catch(e) { console.error('Polling usuarios:', e); }
+  }, 30000);
+  console.log('✅ Polling de usuarios iniciado (cada 30s)');
+}
+
+function detenerPollingUsuarios() {
+  if (_pollingUsuarios) { clearInterval(_pollingUsuarios); _pollingUsuarios = null; }
+}
 let _syncSucursalesTimeout = null;
 function sincronizarSucursalesAuto() {
   if (!supabaseClient) return;
@@ -1954,8 +2027,9 @@ function cerrarSesion() {
         toast('🗑 Datos borrados');
       }
     }
-    // Cerrar
+       // Cerrar
     detenerPollingInventario();
+    detenerPollingUsuarios();
     borrarSesion();
     usuarioLogueado = null;
     document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
@@ -1991,7 +2065,8 @@ function cambiarDeCuenta() {
         guardarInventarios();
       }
     }
-     detenerPollingInventario();
+        detenerPollingInventario();
+    detenerPollingUsuarios();
     borrarSesion();
     usuarioLogueado = null;
     document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
@@ -2245,7 +2320,8 @@ function entrarApp() {
           if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       setTimeout(() => { bajarVinculosSupabase(); }, 100);
       setTimeout(() => { bajarInventarioSupabase(sucursalActual); }, 400);
-      setTimeout(() => { iniciarPollingInventario(); }, 1000);
+           setTimeout(() => { iniciarPollingInventario(); }, 1000);
+      setTimeout(() => { iniciarPollingUsuarios(); }, 1500);
     }
   } catch(e) {
     console.error('Error en entrarApp:', e);
@@ -3950,8 +4026,15 @@ function buscar() {
   }
   cont.innerHTML = '<table><thead><tr><th>SKU</th><th>Descripción</th><th>Precio</th><th>Origen</th></tr></thead><tbody>' +
     resultadosActuales.map((p, i) => {
-      const exist = getExistencias(p.sku);
-      const exisTxt = (exist !== null) ? `<div class="small" style="color:#1e8449;">Exist: ${exist}</div>` : '';
+          const exist = getExistencias(p.sku);
+      let exisTxt = '';
+      if (exist !== null) {
+        if (exist < 0) {
+          exisTxt = `<div class="small" style="color:#c0392b; font-weight:bold;">⚠️ Exist: ${exist}</div>`;
+        } else {
+          exisTxt = `<div class="small" style="color:#1e8449;">Exist: ${exist}</div>`;
+        }
+      }
       return `<tr class="resultado" data-idx="${i}" onclick="seleccionar(${i})">
         <td>${p.sku}${exisTxt}</td><td>${p.descripcion}</td>
         <td>$${(p.precio || 0).toFixed(2)}</td><td>${badgeFuente(p.fuente)}</td></tr>`;
@@ -3984,7 +4067,14 @@ function abrirModalCantidad(p) {
   productoSeleccionado = p;
   const exist = getExistencias(p.sku);
   const fuente = p.fuente || 'PDF';
-  const existHTML = (exist !== null) ? `<span class="pill pill-existencias">📦 En existencia: ${exist}</span>` : `<span class="pill pill-sin-datos">⚠️ Existencias: no hay datos</span>`;
+   let existHTML;
+  if (exist === null) {
+    existHTML = `<span class="pill pill-sin-datos">⚠️ Existencias: no hay datos</span>`;
+  } else if (exist < 0) {
+    existHTML = `<span class="pill" style="background:#fee; color:#c0392b; border:1px solid #c0392b; font-weight:bold;">⚠️ En existencia: ${exist} (NEGATIVO)</span>`;
+  } else {
+    existHTML = `<span class="pill pill-existencias">📦 En existencia: ${exist}</span>`;
+  }
   const fuenteHTML = fuente === 'PDF' ? `<span class="pill pill-promo">🏷️ EN PROMOCIÓN</span>` : fuente === 'Sistema' ? `<span class="pill pill-sistema">📦 SISTEMA</span>` : `<span class="pill pill-manual">✏️ MANUAL</span>`;
   const ip = document.getElementById('infoProducto');
   if (ip) ip.innerHTML = `
@@ -4511,9 +4601,10 @@ function renderPedido() {
       const exist = getExistencias(p.sku);
       const existTxt = (exist !== null) ? exist : '—';
       const totalPz = p.cantidad + (exist !== null ? exist : 0);
+      const claseExist = (exist !== null && exist < 0) ? 'color:#c0392b; font-weight:bold;' : '';
       return `<tr><td>${p.sku}</td><td>${p.descripcion} ${ob}</td>
         <td><input class="cant" type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)"></td>
-        <td style="text-align:center; font-family:monospace;">${existTxt}</td>
+        <td style="text-align:center; font-family:monospace; ${claseExist}">${existTxt}</td>
         <td style="text-align:center; font-family:monospace; font-weight:bold; color:#1a3a6b;">${totalPz}</td>
         <td><span class="badge ${claseUM(p.um)}">${p.um}</span></td>
         <td><button class="rojo" onclick="eliminar(${idxOriginal})" style="padding:6px 10px;">X</button></td></tr>`;
@@ -4530,6 +4621,7 @@ function renderPedido() {
       const exist = getExistencias(p.sku);
       const existTxt = (exist !== null) ? exist : '—';
       const totalPz = p.cantidad + (exist !== null ? exist : 0);
+      const estiloExist = (exist !== null && exist < 0) ? 'color:#c0392b; font-weight:bold; background:#fee;' : '';
       return `<div class="pedido-card">
         <div class="pedido-card-top"><div class="pedido-card-sku">${p.sku}</div>
           <button class="btn-x" onclick="eliminar(${idxOriginal})">X</button></div>
@@ -4538,7 +4630,7 @@ function renderPedido() {
           <div class="pedido-card-field"><label>Pido</label>
             <input type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)"></div>
           <div class="pedido-card-field"><label>Exist.</label>
-            <div class="valor">${existTxt}</div></div>
+            <div class="valor" style="${estiloExist}">${existTxt}</div></div>
           <div class="pedido-card-field"><label>Total pz (${p.um})</label>
             <div class="valor" style="background:#e3f2fd; color:#1a3a6b;">${totalPz}</div></div>
         </div></div>`;
