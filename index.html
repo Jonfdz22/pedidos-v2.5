@@ -1828,7 +1828,46 @@ async function actualizarInfoPaginas() {
 
   const tamPag = parseInt(document.getElementById('sesionPaginaTamano').value) || 200;
   const numPaginas = Math.ceil(total / tamPag);
-  info.innerHTML = `📄 <b>${total}</b> productos · <b>${numPaginas}</b> páginas de <b>${tamPag}</b> cada una`;
+
+  // 🆕 Análisis en vivo
+  const analisis = analizarAsignaciones(numPaginas);
+
+  // Cabecera con semáforo
+  let colorEstado, icono, mensaje;
+  if (analisis.traslapadas.length) {
+    colorEstado = '#c0392b';
+    icono = '❌';
+    mensaje = `Hay <b>${analisis.traslapadas.length}</b> páginas traslapadas. Revisa los rangos.`;
+  } else if (analisis.sinAsignar.length) {
+    colorEstado = '#e67e22';
+    icono = '⚠️';
+    mensaje = `Faltan <b>${analisis.sinAsignar.length}</b> páginas sin asignar.`;
+  } else {
+    colorEstado = '#1e8449';
+    icono = '✅';
+    mensaje = `Todo cubierto: <b>${analisis.totalPaginas}</b> páginas asignadas.`;
+  }
+
+  info.innerHTML = `
+    <div style="font-size:12px; color:#666; margin-bottom:4px;">
+      📄 <b>${total}</b> productos · <b>${numPaginas}</b> páginas de <b>${tamPag}</b> cada una
+    </div>
+    <div style="color:${colorEstado}; font-weight:bold; font-size:13px;">
+      ${icono} ${mensaje}
+    </div>`;
+
+  // 🆕 Si hay traslapes, mostrar cuáles
+  if (analisis.traslapadas.length) {
+    const lista = analisis.traslapadas.slice(0, 5).map(t =>
+      `<div>· Pág. ${t.pagina}: <b>${t.usuarios.join(' + ')}</b></div>`
+    ).join('');
+    info.innerHTML += `<div style="color:#c0392b; font-size:11px; margin-top:6px;">${lista}${analisis.traslapadas.length > 5 ? '<div>... y ' + (analisis.traslapadas.length - 5) + ' más</div>' : ''}</div>`;
+  }
+
+  // 🆕 Si faltan páginas, mostrar cuáles
+  if (analisis.sinAsignar.length) {
+    info.innerHTML += `<div style="color:#e67e22; font-size:11px; margin-top:6px;">Faltan: ${resumirPaginas(analisis.sinAsignar)}</div>`;
+  }
 
   // Lista de usuarios con permiso de inventario
   const usuariosValidos = Object.entries(usuarios).filter(([user, u]) => {
@@ -1840,11 +1879,34 @@ async function actualizarInfoPaginas() {
     return;
   }
 
-  contAsig.innerHTML = usuariosValidos.map(([user, u]) => {
+  // 🆕 Botón de repartir automáticamente
+  const botonRepartir = `<button class="amarillo" style="width:100%; margin-bottom:10px; font-size:12px; padding:8px;" onclick="repartirAutomatico()">
+    🎯 Repartir automáticamente entre ${usuariosValidos.length} usuarios
+  </button>`;
+
+  contAsig.innerHTML = botonRepartir + usuariosValidos.map(([user, u]) => {
     const asig = _sesionTempAsignaciones[user] || {};
     const ini = asig.inicio || '';
     const fin = asig.fin || '';
-    return `<div style="background:#fafafa; padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid #eee;">
+    // 🆕 Detectar si este usuario tiene traslapes con otros
+    let avisoTraslape = '';
+    if (ini && fin && ini <= fin) {
+      const misPaginas = [];
+      for (let p = ini; p <= fin; p++) misPaginas.push(p);
+      const conflictos = misPaginas.filter(p => {
+        return Object.entries(_sesionTempAsignaciones).some(([otroUser, otraAsig]) => {
+          if (otroUser === user) return false;
+          const oi = otraAsig.inicio || 0, of = otraAsig.fin || 0;
+          return p >= oi && p <= of;
+        });
+      });
+      if (conflictos.length) {
+        avisoTraslape = `<div class="small" style="color:#c0392b; margin-top:6px; font-weight:bold;">
+          ⚠️ ${conflictos.length} página(s) se traslapan con otro usuario
+        </div>`;
+      }
+    }
+    return `<div style="background:#fafafa; padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid ${avisoTraslape ? '#c0392b' : '#eee'};">
       <div style="font-weight:bold; color:#1a3a6b; margin-bottom:6px;">👤 ${u.nombre || user} <span class="small">@${user}</span></div>
       <div class="fila">
         <div style="flex:1;">
@@ -1860,14 +1922,98 @@ async function actualizarInfoPaginas() {
                  placeholder="${numPaginas}">
         </div>
       </div>
+      ${avisoTraslape}
     </div>`;
   }).join('');
 }
 
+// 🆕 Repartir equitativamente entre todos los usuarios
+function repartirAutomatico() {
+  const sel = document.getElementById('sesionSucursal');
+  const sucId = sel ? sel.value : sucursalActual;
+  const slot = inventariosPorSucursal[sucId];
+  if (!slot || !slot.base || !slot.base.length) return;
+
+  const tamPag = parseInt(document.getElementById('sesionPaginaTamano').value) || 200;
+  const numPaginas = Math.ceil(slot.base.length / tamPag);
+
+  const usuariosValidos = Object.entries(usuarios).filter(([user, u]) => {
+    return u.permisos && u.permisos.inventario && (u.sucursalesPermitidas || []).includes(sucId);
+  }).map(([user]) => user);
+
+  if (!usuariosValidos.length) return;
+
+  // Reparto equitativo
+  const porUsuario = Math.ceil(numPaginas / usuariosValidos.length);
+  _sesionTempAsignaciones = {};
+  let pagActual = 1;
+  usuariosValidos.forEach(user => {
+    const ini = pagActual;
+    const fin = Math.min(pagActual + porUsuario - 1, numPaginas);
+    if (ini <= numPaginas) {
+      _sesionTempAsignaciones[user] = { inicio: ini, fin: fin };
+    }
+    pagActual = fin + 1;
+  });
+
+  toast('🎯 Páginas repartidas');
+  actualizarInfoPaginas();
+}
 // Guardar en memoria la asignación
 function actualizarAsignacion(user, campo, valor) {
   if (!_sesionTempAsignaciones[user]) _sesionTempAsignaciones[user] = {};
   _sesionTempAsignaciones[user][campo] = parseInt(valor) || 0;
+}
+
+// 🆕 Analiza las asignaciones y detecta: páginas sin asignar, traslapes
+function analizarAsignaciones(numPaginas) {
+  // Mapa: página -> [usuarios que la tienen]
+  const mapa = {};
+  for (let i = 1; i <= numPaginas; i++) mapa[i] = [];
+
+  Object.entries(_sesionTempAsignaciones).forEach(([user, asig]) => {
+    const ini = asig.inicio || 0;
+    const fin = asig.fin || 0;
+    if (!ini || !fin) return;
+    if (ini < 1 || fin > numPaginas || ini > fin) return; // inválido, se valida aparte
+    for (let p = ini; p <= fin; p++) mapa[p].push(user);
+  });
+
+//*****************************************************************************************************************
+ //****************************************************************************************************************yo
+
+ 
+ // Convierte [1,2,3,5,6,7,10] → "1-3, 5-7, 10"
+function resumirPaginas(arr) {
+  if (!arr.length) return '';
+  const sorted = [...arr].sort((a, b) => a - b);
+  const rangos = [];
+  let ini = sorted[0], prev = sorted[0];
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === prev + 1) { prev = sorted[i]; continue; }
+    rangos.push(ini === prev ? `${ini}` : `${ini}-${prev}`);
+    ini = prev = sorted[i];
+  }
+  rangos.push(ini === prev ? `${ini}` : `${ini}-${prev}`);
+  return rangos.join(', ');
+}
+
+
+ 
+ //******************************************************************************************************************
+ //*****************************************************************************************************************yo
+
+  const sinAsignar = [];
+  const traslapadas = []; // { pagina, usuarios: [] }
+  const asignadasOk = [];
+
+  for (let p = 1; p <= numPaginas; p++) {
+    if (mapa[p].length === 0) sinAsignar.push(p);
+    else if (mapa[p].length > 1) traslapadas.push({ pagina: p, usuarios: mapa[p] });
+    else asignadasOk.push(p);
+  }
+
+  return { sinAsignar, traslapadas, asignadasOk, totalPaginas: numPaginas };
 }
 
 // Crear la sesión en Supabase
@@ -1890,24 +2036,48 @@ async function guardarNuevaSesion() {
     return;
   }
 
-  // Validar asignaciones
   const numPaginas = Math.ceil(slot.base.length / tamPag);
+
+  // Validar rangos individuales primero
   const asignacionesFinales = {};
-  let totalAsignadas = 0;
   for (const [user, asig] of Object.entries(_sesionTempAsignaciones)) {
     const ini = asig.inicio || 0;
     const fin = asig.fin || 0;
-    if (!ini || !fin) continue;
+    if (!ini && !fin) continue; // fila vacía, ignorar
+    if (!ini || !fin) {
+      mostrarErrorSesion(`Completa el rango de ${user} (inicio y fin).`);
+      return;
+    }
     if (ini < 1 || fin > numPaginas || ini > fin) {
       mostrarErrorSesion(`El rango de ${user} es inválido (páginas 1 a ${numPaginas}).`);
       return;
     }
     asignacionesFinales[user] = { inicio: ini, fin: fin };
-    totalAsignadas++;
   }
 
-  if (!totalAsignadas) {
+  if (!Object.keys(asignacionesFinales).length) {
     mostrarErrorSesion('Asigna al menos un rango a algún usuario.');
+    return;
+  }
+
+  // 🆕 Validar cobertura total y sin traslapes
+  const analisis = analizarAsignaciones(numPaginas);
+
+  if (analisis.traslapadas.length) {
+    const ejemplos = analisis.traslapadas.slice(0, 3).map(t => 
+      `Página ${t.pagina}: ${t.usuarios.join(' + ')}`
+    ).join('<br>');
+    mostrarErrorSesion(
+      `❌ Hay páginas asignadas a más de un usuario (${analisis.traslapadas.length}):<br>${ejemplos}`
+    );
+    return;
+  }
+
+  if (analisis.sinAsignar.length) {
+    const rangos = resumirPaginas(analisis.sinAsignar);
+    mostrarErrorSesion(
+      `❌ Faltan páginas sin asignar (${analisis.sinAsignar.length}):<br>${rangos}`
+    );
     return;
   }
 
