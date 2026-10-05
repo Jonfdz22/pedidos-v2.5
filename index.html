@@ -2001,19 +2001,6 @@ function resumirPaginas(arr) {
   rangos.push(ini === prev ? `${ini}` : `${ini}-${prev}`);
   return rangos.join(', ');
 }
- 
-  const sinAsignar = [];
-  const traslapadas = []; // { pagina, usuarios: [] }
-  const asignadasOk = [];
-
-  for (let p = 1; p <= numPaginas; p++) {
-    if (mapa[p].length === 0) sinAsignar.push(p);
-    else if (mapa[p].length > 1) traslapadas.push({ pagina: p, usuarios: mapa[p] });
-    else asignadasOk.push(p);
-  }
-
-  return { sinAsignar, traslapadas, asignadasOk, totalPaginas: numPaginas };
-}
 
 // Crear la sesión en Supabase
 async function guardarNuevaSesion() {
