@@ -406,6 +406,11 @@
 </div>
 
 <div id="pestanaInventario" style="display:none;">
+  <div class="panel" id="invPanelSesion" style="border:2px solid #1a5fbf; background:linear-gradient(135deg,#f0f7ff 0%,#e3f2fd 100%);">
+    <h3>📋 Sesión de Conteo</h3>
+    <div id="invSesionEstado" class="small">Cargando...</div>
+    <div id="invSesionAcciones" style="margin-top:10px;"></div>
+  </div>
   <div class="panel">
     <h3>1 · Cargar inventario del sistema (<span id="invSucursalNombre"></span>)</h3>
     <div class="ayuda">Cada sucursal tiene <b>su propio inventario</b>. Sube el <b>Reporte de Inventario</b> (Excel).</div>
@@ -607,17 +612,7 @@
       <button class="amarillo" onclick="probarEmailJS()">🧪 Probar</button>
     </div>
   </div>
-   <div class="panel" id="panelSesiones" style="border:2px solid #1a5fbf; display:none;">
-    <h3>📋 Sesiones de Conteo</h3>
-    <div class="ayuda">
-      Una <b>sesión</b> agrupa el trabajo de varias personas contando el inventario.
-      Puede durar varios días y cada usuario ve solo las páginas asignadas.
-    </div>
-    <button class="verde" style="width:100%; margin-bottom:10px;" onclick="abrirModalNuevaSesion()">
-      ➕ Nueva sesión de conteo
-    </button>
-    <div id="listaSesiones" class="small">Cargando...</div>
-  </div>
+   <!-- Sesiones de Conteo se movió a la pestaña Inventario -->
      <div class="panel" id="panelSupabase" style="border:2px solid #1e8449;">
     <h3>☁️ Supabase (sincronización)</h3>
     <div class="ayuda" id="estadoSupabase">
@@ -2125,11 +2120,7 @@ function mostrarErrorSesion(msg) {
 
 // Cargar la lista de sesiones desde Supabase
 async function cargarListaSesiones() {
-  const cont = document.getElementById('listaSesiones');
-  if (!cont) return;
-  if (!supabaseClient) { cont.innerHTML = '<p class="small">Supabase no configurado.</p>'; return; }
-
-  cont.innerHTML = '⏳ Cargando sesiones...';
+  if (!supabaseClient) return;
   try {
     const { data, error } = await supabaseClient
       .from('sesiones_conteo')
@@ -2138,15 +2129,92 @@ async function cargarListaSesiones() {
       .limit(20);
 
     if (error) {
-      cont.innerHTML = '<p class="small" style="color:#c0392b;">Error: ' + error.message + '</p>';
+      console.error('Error cargando sesiones:', error);
       return;
     }
 
     sesionesActuales = data || [];
-    renderSesiones();
+    renderBannerSesion();
   } catch (e) {
-    cont.innerHTML = '<p class="small" style="color:#c0392b;">Error: ' + e.message + '</p>';
+    console.error('Error cargando sesiones:', e);
   }
+}
+
+// 🆕 Renderiza el banner de sesión arriba de Inventario
+function renderBannerSesion() {
+  const estado = document.getElementById('invSesionEstado');
+  const acciones = document.getElementById('invSesionAcciones');
+  if (!estado || !acciones) return;
+
+  const u = usuarios[usuarioLogueado];
+  const puedeCrear = u && u.permisos && u.permisos.ajustes;
+
+  // Buscar sesión activa en esta sucursal (borrador o abierta)
+  const sesionActiva = sesionesActuales.find(s =>
+    s.sucursal_id === sucursalActual && (s.estado === 'borrador' || s.estado === 'abierta')
+  );
+
+  if (!sesionActiva) {
+    estado.innerHTML = '📭 <b>No hay sesión activa</b> en esta sucursal.<br><span class="small">Una sesión permite que varias personas cuenten el inventario al mismo tiempo.</span>';
+    if (puedeCrear) {
+      acciones.innerHTML = `<button class="verde" style="width:100%;" onclick="abrirModalNuevaSesion()">➕ Crear sesión de conteo</button>`;
+    } else {
+      acciones.innerHTML = `<div class="small">Pide a un administrador que cree una sesión.</div>`;
+    }
+    return;
+  }
+
+  // Hay sesión activa: mostrar info
+  const asignados = Object.keys(sesionActiva.asignaciones || {}).length;
+  const colorEstado = sesionActiva.estado === 'abierta' ? '#1e8449' : '#e67e22';
+  const textoEstado = sesionActiva.estado === 'abierta' ? 'ABIERTA' : 'BORRADOR';
+
+  estado.innerHTML = `
+    <div style="font-size:15px; font-weight:bold; color:#1a3a6b;">${sesionActiva.nombre}</div>
+    <div class="small" style="margin-top:4px;">
+      <span style="color:${colorEstado}; font-weight:bold;">● ${textoEstado}</span> · 
+      📦 ${sesionActiva.total_productos} prods · 
+      👥 ${asignados} asignados
+    </div>
+    <div class="small" style="margin-top:4px; color:#666;">
+      Creada por @${sesionActiva.creada_por} · ${fmtFecha(sesionActiva.fecha_creacion)}
+    </div>`;
+
+  // Botones según estado y permisos
+  let botonesHTML = '';
+  if (sesionActiva.estado === 'abierta') {
+    // Usuario puede unirse si tiene permiso de inventario
+    if (u && u.permisos && u.permisos.inventario) {
+      botonesHTML += `<button class="verde" style="width:100%; margin-bottom:6px;" onclick="unirseASesion('${sesionActiva.id}')">👥 Unirse a la sesión</button>`;
+    }
+  }
+  if (puedeCrear) {
+    if (sesionActiva.estado === 'borrador') {
+      botonesHTML += `<button class="amarillo" style="width:100%; margin-bottom:6px;" onclick="abrirSesion('${sesionActiva.id}')">🔓 Abrir sesión para que otros se unan</button>`;
+    }
+    botonesHTML += `<button class="rojo" style="width:100%; font-size:12px;" onclick="eliminarSesion('${sesionActiva.id}', '${sesionActiva.nombre.replace(/'/g, "\\'")}')">🗑 Eliminar sesión</button>`;
+  }
+  acciones.innerHTML = botonesHTML;
+}
+
+// 🆕 Placeholder: unirse a sesión (se completa en Sesión 3)
+function unirseASesion(id) {
+  toast('⏳ Función en construcción (próxima sesión)', 'warn');
+}
+
+// 🆕 Cambiar estado de la sesión a "abierta"
+async function abrirSesion(id) {
+  if (!supabaseClient) return;
+  if (!confirm('¿Abrir la sesión para que los usuarios puedan unirse y empezar a contar?')) return;
+  try {
+    const { error } = await supabaseClient
+      .from('sesiones_conteo')
+      .update({ estado: 'abierta', fecha_apertura: new Date().toISOString() })
+      .eq('id', id);
+    if (error) { alert('Error: ' + error.message); return; }
+    toast('🔓 Sesión abierta');
+    await cargarListaSesiones();
+  } catch (e) { alert('Error: ' + e.message); }
 }
 
 // Renderizar la lista
@@ -2771,8 +2839,12 @@ function entrarApp() {
     renderBaseDatosStats();
     renderSucursales();
     renderUsuarios();
-    const disp = ['pedido','inventario','vincular','baseDatos','ajustes'].filter(t => u.permisos[t]);
+      const disp = ['pedido','inventario','vincular','baseDatos','ajustes'].filter(t => u.permisos[t]);
     cambiarPestana(disp[0] || 'pedido');
+    // Cargar sesiones para el banner de Inventario
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      setTimeout(() => { cargarListaSesiones(); }, 2000);
+    }
        // Sincronizar vínculos con Supabase (silencioso)
           if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       setTimeout(() => { bajarVinculosSupabase(); }, 100);
@@ -2810,13 +2882,6 @@ function aplicarVisibilidadAdmin() {
   if (pE) pE.style.display = esAdmin ? 'block' : 'none';
   if (pS) pS.style.display = esAdmin ? 'block' : 'none';
   if (pR) pR.style.display = esAdmin ? 'block' : 'none';
-  // 📋 Panel de Sesiones: visible para cualquier usuario con permiso Ajustes
-  const pSes = document.getElementById('panelSesiones');
-  if (pSes) {
-    const u = usuarios[usuarioLogueado];
-    const tieneAjustes = u && u.permisos && u.permisos.ajustes;
-    pSes.style.display = tieneAjustes ? 'block' : 'none';
-  }
 }
 function cambiarPestana(t) {
   const u = usuarios[usuarioLogueado];
@@ -2829,7 +2894,8 @@ function cambiarPestana(t) {
     if (p) p.style.display = (x === t) ? 'block' : 'none';
   });
   if (t === 'vincular') setTimeout(() => { const i = document.getElementById('inputCodigo'); if (i) i.focus(); }, 100);
-   if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); actualizarEstadoSupabase(); aplicarVisibilidadAdmin(); cargarListaSesiones(); }
+  if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); actualizarEstadoSupabase(); aplicarVisibilidadAdmin(); }
+  if (t === 'inventario') { renderBannerSesion(); }
   if (t === 'inventario') { renderInvTopStats(); actualizarUIInventario(); renderInventario(); actualizarSucursalNombreEnVistas(); }
   if (t === 'baseDatos') { renderManuales(); renderBaseDatosStats(); }
   guardarEstado();
