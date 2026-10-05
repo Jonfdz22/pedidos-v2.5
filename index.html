@@ -1755,6 +1755,293 @@ async function subirTodoALaNube() {           // ← LO NUEVO
 }                                             // ← CIERRE
 
 // ═══════════════════════════════════════════════════════════════
+// SESIONES DE CONTEO COLABORATIVO (FASE 6 · Sesión 2)
+// ═══════════════════════════════════════════════════════════════
+
+let sesionesActuales = [];
+let _sesionTempAsignaciones = {}; // { usuario: {inicio, fin} }
+
+// Detectar si estamos en PC o celular (para saber dispositivo)
+function detectarDispositivo() {
+  const ua = navigator.userAgent || '';
+  if (/iPad|iPhone|iPod/.test(ua)) return 'iOS';
+  if (/Android/i.test(ua)) return 'Android';
+  return 'PC';
+}
+
+// Abrir modal para crear nueva sesión
+async function abrirModalNuevaSesion() {
+  // Reset
+  setVal('sesionNombre', '');
+  setVal('sesionPaginaTamano', '200');
+  _sesionTempAsignaciones = {};
+
+  // Llenar select de sucursales
+  const sel = document.getElementById('sesionSucursal');
+  if (sel) {
+    sel.innerHTML = sucursales.map(s => `<option value="${s.id}">${s.nombre}</option>`).join('');
+    if (sucursalActual) sel.value = sucursalActual;
+  }
+
+  // Sugerir nombre
+  const hoy = new Date();
+  const mes = hoy.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' });
+  const s = getSucursal(sucursalActual);
+  if (s) setVal('sesionNombre', `Inventario ${s.nombre} ${mes}`);
+
+  // Generar UI de asignaciones inicial
+  await actualizarInfoPaginas();
+
+  const m = document.getElementById('modalNuevaSesion');
+  if (m) m.classList.add('activo');
+
+  const err = document.getElementById('sesionError');
+  if (err) err.classList.remove('show');
+}
+
+// Cerrar modal
+function cerrarModalNuevaSesion() {
+  const m = document.getElementById('modalNuevaSesion');
+  if (m) m.classList.remove('activo');
+  _sesionTempAsignaciones = {};
+}
+
+// Recalcular páginas y refrescar la lista de usuarios con rangos
+async function actualizarInfoPaginas() {
+  const info = document.getElementById('sesionPaginasInfo');
+  const contAsig = document.getElementById('sesionAsignaciones');
+  if (!info || !contAsig) return;
+
+  // Detectar qué sucursal está seleccionada
+  const sel = document.getElementById('sesionSucursal');
+  const sucId = sel ? sel.value : sucursalActual;
+
+  // Contar productos de esa sucursal
+  const slot = inventariosPorSucursal[sucId];
+  const total = slot && slot.base ? slot.base.length : 0;
+
+  if (!total) {
+    info.innerHTML = '⚠️ Esa sucursal no tiene inventario cargado. Cárgalo primero.';
+    contAsig.innerHTML = '';
+    return;
+  }
+
+  const tamPag = parseInt(document.getElementById('sesionPaginaTamano').value) || 200;
+  const numPaginas = Math.ceil(total / tamPag);
+  info.innerHTML = `📄 <b>${total}</b> productos · <b>${numPaginas}</b> páginas de <b>${tamPag}</b> cada una`;
+
+  // Lista de usuarios con permiso de inventario
+  const usuariosValidos = Object.entries(usuarios).filter(([user, u]) => {
+    return u.permisos && u.permisos.inventario && (u.sucursalesPermitidas || []).includes(sucId);
+  });
+
+  if (!usuariosValidos.length) {
+    contAsig.innerHTML = '<p class="small">No hay usuarios con permiso de inventario en esta sucursal.</p>';
+    return;
+  }
+
+  contAsig.innerHTML = usuariosValidos.map(([user, u]) => {
+    const asig = _sesionTempAsignaciones[user] || {};
+    const ini = asig.inicio || '';
+    const fin = asig.fin || '';
+    return `<div style="background:#fafafa; padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid #eee;">
+      <div style="font-weight:bold; color:#1a3a6b; margin-bottom:6px;">👤 ${u.nombre || user} <span class="small">@${user}</span></div>
+      <div class="fila">
+        <div style="flex:1;">
+          <label class="small">Página inicio</label>
+          <input type="number" min="1" max="${numPaginas}" value="${ini}" 
+                 onchange="actualizarAsignacion('${user}', 'inicio', this.value)"
+                 placeholder="1">
+        </div>
+        <div style="flex:1;">
+          <label class="small">Página fin</label>
+          <input type="number" min="1" max="${numPaginas}" value="${fin}"
+                 onchange="actualizarAsignacion('${user}', 'fin', this.value)"
+                 placeholder="${numPaginas}">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Guardar en memoria la asignación
+function actualizarAsignacion(user, campo, valor) {
+  if (!_sesionTempAsignaciones[user]) _sesionTempAsignaciones[user] = {};
+  _sesionTempAsignaciones[user][campo] = parseInt(valor) || 0;
+}
+
+// Crear la sesión en Supabase
+async function guardarNuevaSesion() {
+  const err = document.getElementById('sesionError');
+  if (err) err.classList.remove('show');
+
+  const nombre = (document.getElementById('sesionNombre').value || '').trim();
+  const sel = document.getElementById('sesionSucursal');
+  const sucId = sel ? sel.value : sucursalActual;
+  const tamPag = parseInt(document.getElementById('sesionPaginaTamano').value) || 200;
+
+  if (!nombre) { mostrarErrorSesion('Pon un nombre a la sesión.'); return; }
+  if (!sucId) { mostrarErrorSesion('Selecciona una sucursal.'); return; }
+  if (tamPag < 50 || tamPag > 500) { mostrarErrorSesion('El tamaño de página debe ser entre 50 y 500.'); return; }
+
+  const slot = inventariosPorSucursal[sucId];
+  if (!slot || !slot.base || !slot.base.length) {
+    mostrarErrorSesion('Esa sucursal no tiene inventario cargado.');
+    return;
+  }
+
+  // Validar asignaciones
+  const numPaginas = Math.ceil(slot.base.length / tamPag);
+  const asignacionesFinales = {};
+  let totalAsignadas = 0;
+  for (const [user, asig] of Object.entries(_sesionTempAsignaciones)) {
+    const ini = asig.inicio || 0;
+    const fin = asig.fin || 0;
+    if (!ini || !fin) continue;
+    if (ini < 1 || fin > numPaginas || ini > fin) {
+      mostrarErrorSesion(`El rango de ${user} es inválido (páginas 1 a ${numPaginas}).`);
+      return;
+    }
+    asignacionesFinales[user] = { inicio: ini, fin: fin };
+    totalAsignadas++;
+  }
+
+  if (!totalAsignadas) {
+    mostrarErrorSesion('Asigna al menos un rango a algún usuario.');
+    return;
+  }
+
+  if (!supabaseClient) { mostrarErrorSesion('Supabase no configurado.'); return; }
+
+  try {
+    toast('💾 Creando sesión...');
+    const payload = {
+      nombre: nombre,
+      sucursal_id: sucId,
+      estado: 'borrador',
+      creada_por: usuarioLogueado,
+      asignaciones: asignacionesFinales,
+      total_productos: slot.base.length,
+      pagina_tamano: tamPag,
+      snapshot_base: slot.base // Congelamos el Excel al momento de crear
+    };
+
+    const { data, error } = await supabaseClient
+      .from('sesiones_conteo')
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creando sesión:', error);
+      mostrarErrorSesion('Error al crear: ' + error.message);
+      return;
+    }
+
+    toast('✅ Sesión creada');
+    cerrarModalNuevaSesion();
+    await cargarListaSesiones();
+  } catch (e) {
+    console.error(e);
+    mostrarErrorSesion('Error inesperado: ' + e.message);
+  }
+}
+
+function mostrarErrorSesion(msg) {
+  const err = document.getElementById('sesionError');
+  if (err) { err.textContent = msg; err.classList.add('show'); }
+  feedbackError();
+}
+
+// Cargar la lista de sesiones desde Supabase
+async function cargarListaSesiones() {
+  const cont = document.getElementById('listaSesiones');
+  if (!cont) return;
+  if (!supabaseClient) { cont.innerHTML = '<p class="small">Supabase no configurado.</p>'; return; }
+
+  cont.innerHTML = '⏳ Cargando sesiones...';
+  try {
+    const { data, error } = await supabaseClient
+      .from('sesiones_conteo')
+      .select('*')
+      .order('fecha_creacion', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      cont.innerHTML = '<p class="small" style="color:#c0392b;">Error: ' + error.message + '</p>';
+      return;
+    }
+
+    sesionesActuales = data || [];
+    renderSesiones();
+  } catch (e) {
+    cont.innerHTML = '<p class="small" style="color:#c0392b;">Error: ' + e.message + '</p>';
+  }
+}
+
+// Renderizar la lista
+function renderSesiones() {
+  const cont = document.getElementById('listaSesiones');
+  if (!cont) return;
+
+  if (!sesionesActuales.length) {
+    cont.innerHTML = '<p class="small" style="text-align:center; padding:14px;">Sin sesiones creadas todavía.</p>';
+    return;
+  }
+
+  const colorEstado = {
+    'borrador': '#7f8c8d',
+    'abierta': '#1e8449',
+    'cerrada': '#1a3a6b'
+  };
+
+  cont.innerHTML = sesionesActuales.map(s => {
+    const suc = getSucursal(s.sucursal_id);
+    const asignados = Object.keys(s.asignaciones || {}).length;
+    const color = colorEstado[s.estado] || '#666';
+    return `<div style="background:#fafafa; padding:10px; border-radius:8px; margin-bottom:8px; border-left:4px solid ${color};">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:bold; color:#1a3a6b;">${s.nombre}</div>
+          <div class="small" style="margin-top:2px;">
+            🏢 ${suc ? suc.nombre : s.sucursal_id} · 
+            <span style="color:${color}; font-weight:bold;">${s.estado.toUpperCase()}</span>
+          </div>
+          <div class="small" style="margin-top:2px;">
+            📦 ${s.total_productos} prods · 
+            👥 ${asignados} asignados · 
+            📄 pág. de ${s.pagina_tamano}
+          </div>
+          <div class="small" style="margin-top:2px; color:#888;">
+            Creada: ${fmtFecha(s.fecha_creacion)} por @${s.creada_por}
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="eliminarSesion('${s.id}', '${s.nombre.replace(/'/g, "\\'")}')">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Eliminar una sesión (pide contraseña de admin)
+function eliminarSesion(id, nombre) {
+  pedirConfirmacionPassAdmin('🗑 Eliminar sesión',
+    `¿Eliminar la sesión <b>${nombre}</b>?<br><br>Se borrarán también todos los conteos asociados. Esta acción no se puede deshacer.`,
+    async () => {
+      if (!supabaseClient) return;
+      try {
+        const { error } = await supabaseClient
+          .from('sesiones_conteo')
+          .delete()
+          .eq('id', id);
+        if (error) { alert('Error: ' + error.message); return; }
+        toast('🗑 Sesión eliminada');
+        await cargarListaSesiones();
+      } catch (e) { alert('Error: ' + e.message); }
+    });
+}
+// ═══════════════════════════════════════════════════════════════
 // SUPABASE — INVENTARIOS (FASE 5)
 // Estrategia: base se sube 1 vez (~1 MB), estado se sube cada 3s (~5 KB)
 // Polling cada 15s para detectar cambios de otros dispositivos
@@ -2353,6 +2640,13 @@ function aplicarVisibilidadAdmin() {
   if (pE) pE.style.display = esAdmin ? 'block' : 'none';
   if (pS) pS.style.display = esAdmin ? 'block' : 'none';
   if (pR) pR.style.display = esAdmin ? 'block' : 'none';
+  // 📋 Panel de Sesiones: visible para cualquier usuario con permiso Ajustes
+  const pSes = document.getElementById('panelSesiones');
+  if (pSes) {
+    const u = usuarios[usuarioLogueado];
+    const tieneAjustes = u && u.permisos && u.permisos.ajustes;
+    pSes.style.display = tieneAjustes ? 'block' : 'none';
+  }
 }
 function cambiarPestana(t) {
   const u = usuarios[usuarioLogueado];
@@ -2365,7 +2659,7 @@ function cambiarPestana(t) {
     if (p) p.style.display = (x === t) ? 'block' : 'none';
   });
   if (t === 'vincular') setTimeout(() => { const i = document.getElementById('inputCodigo'); if (i) i.focus(); }, 100);
-  if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); actualizarEstadoSupabase(); aplicarVisibilidadAdmin(); }
+   if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); actualizarEstadoSupabase(); aplicarVisibilidadAdmin(); cargarListaSesiones(); }
   if (t === 'inventario') { renderInvTopStats(); actualizarUIInventario(); renderInventario(); actualizarSucursalNombreEnVistas(); }
   if (t === 'baseDatos') { renderManuales(); renderBaseDatosStats(); }
   guardarEstado();
