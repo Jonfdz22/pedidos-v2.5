@@ -442,6 +442,30 @@
     </div>
     <div id="invResultados"></div>
   </div>
+  <div class="panel" id="invMiZonaPanel" style="display:none; border:2px solid #1e8449;">
+    <h3>📊 Mi Zona en la Sesión</h3>
+    <div class="fila" style="margin-bottom:8px;">
+      <button class="verde" style="flex:1; font-size:12px;" onclick="filtroZona='todos'; renderMiZona();">📋 Todos</button>
+      <button class="amarillo" style="flex:1; font-size:12px;" onclick="filtroZona='pendientes'; renderMiZona();">⏳ Pendientes</button>
+      <button class="gris" style="flex:1; font-size:12px;" onclick="filtroZona='contados'; renderMiZona();">✅ Contados</button>
+    </div>
+    <input type="text" id="invMiZonaFiltro" placeholder="Buscar en mi zona…" oninput="renderMiZona()">
+    <div id="invMiZonaStats" class="small" style="margin:8px 0;"></div>
+    <div id="invMiZonaTabla" class="tabla-scroll" style="max-height:400px;">
+      <table>
+        <thead><tr>
+          <th>Estado</th>
+          <th>SKU</th>
+          <th>Descripción</th>
+          <th style="text-align:right;">Sistema</th>
+          <th style="text-align:right;">Contado</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="invMiZonaTbody"></tbody>
+      </table>
+    </div>
+  </div>
+ 
   <div class="panel" id="invPanelResumen" style="display:none;">
     <h3>3 · Resumen del conteo</h3>
     <div class="inv-stats" id="invStats"></div>
@@ -1756,6 +1780,12 @@ async function subirTodoALaNube() {           // ← LO NUEVO
 let sesionesActuales = [];
 let _sesionTempAsignaciones = {}; // { usuario: {inicio, fin} }
 
+// 🆕 Estado de sesión activa del usuario actual
+let sesionActivaUsuario = null; // objeto sesión completo
+let misPaginasAsignadas = [];   // array de números de página asignadas
+let misSkusAsignados = [];      // array de SKUs que puede contar
+let filtroZona = 'todos';       // 'todos' | 'pendientes' | 'contados'
+
 // Detectar si estamos en PC o celular (para saber dispositivo)
 function detectarDispositivo() {
   const ua = navigator.userAgent || '';
@@ -2131,7 +2161,6 @@ async function cargarListaSesiones() {
   }
 }
 
-// 🆕 Renderiza el banner de sesión arriba de Inventario
 function renderBannerSesion() {
   const estado = document.getElementById('invSesionEstado');
   const acciones = document.getElementById('invSesionAcciones');
@@ -2140,7 +2169,46 @@ function renderBannerSesion() {
   const u = usuarios[usuarioLogueado];
   const puedeCrear = u && u.permisos && u.permisos.ajustes;
 
-  // Buscar sesión activa en esta sucursal (borrador o abierta)
+  // 🔹 CASO 1: El usuario YA está en una sesión
+  if (sesionActivaUsuario) {
+    const s = sesionActivaUsuario;
+    const miAsig = (s.asignaciones || {})[usuarioLogueado] || {};
+    const totalContados = contarSkusDeMiZona();
+    const total = misSkusAsignados.length;
+    const pct = total ? Math.round((totalContados / total) * 100) : 0;
+
+    estado.innerHTML = `
+      <div style="font-size:15px; font-weight:bold; color:#1a3a6b;">📋 ${s.nombre}</div>
+      <div class="small" style="margin-top:4px;">
+        <span style="color:#1e8449; font-weight:bold;">● ESTÁS DENTRO</span>
+      </div>
+      <div style="margin-top:8px; background:white; padding:10px; border-radius:8px; border:1px solid #cce5ff;">
+        <div class="small" style="font-weight:bold; color:#1a3a6b;">
+          📄 Tus páginas: <b>${miAsig.inicio}-${miAsig.fin}</b>
+        </div>
+        <div class="small" style="margin-top:4px;">
+          ✅ Contados: <b>${totalContados}</b> · ⏳ Faltan: <b>${total - totalContados}</b>
+        </div>
+        <div style="margin-top:6px; background:#e3f2fd; border-radius:4px; height:8px; overflow:hidden;">
+          <div style="background:#1e8449; height:100%; width:${pct}%; transition:width .3s;"></div>
+        </div>
+        <div class="small" style="margin-top:2px; text-align:right; color:#666;">${pct}% completado</div>
+      </div>`;
+
+    acciones.innerHTML = `
+      <button class="verde" style="width:100%; margin-bottom:6px;" onclick="renderMiZona(); document.getElementById('invMiZonaPanel').scrollIntoView({behavior:'smooth'});">📊 Ver mi lista</button>
+      <button class="gris" style="width:100%; font-size:12px;" onclick="salirDeSesion()">🚪 Salir de la sesión</button>`;
+
+    // Mostrar panel de mi zona
+    const panelZona = document.getElementById('invMiZonaPanel');
+    if (panelZona) panelZona.style.display = 'block';
+    return;
+  }
+
+  // 🔹 CASO 2: No está en sesión, hay sesión abierta/borrador en la sucursal
+  const panelZona = document.getElementById('invMiZonaPanel');
+  if (panelZona) panelZona.style.display = 'none';
+
   const sesionActiva = sesionesActuales.find(s =>
     s.sucursal_id === sucursalActual && (s.estado === 'borrador' || s.estado === 'abierta')
   );
@@ -2159,6 +2227,7 @@ function renderBannerSesion() {
   const asignados = Object.keys(sesionActiva.asignaciones || {}).length;
   const colorEstado = sesionActiva.estado === 'abierta' ? '#1e8449' : '#e67e22';
   const textoEstado = sesionActiva.estado === 'abierta' ? 'ABIERTA' : 'BORRADOR';
+  const miAsig = (sesionActiva.asignaciones || {})[usuarioLogueado];
 
   estado.innerHTML = `
     <div style="font-size:15px; font-weight:bold; color:#1a3a6b;">${sesionActiva.nombre}</div>
@@ -2169,13 +2238,12 @@ function renderBannerSesion() {
     </div>
     <div class="small" style="margin-top:4px; color:#666;">
       Creada por @${sesionActiva.creada_por} · ${fmtFecha(sesionActiva.fecha_creacion)}
-    </div>`;
+    </div>
+    ${miAsig ? `<div class="small" style="margin-top:6px; padding:6px 8px; background:#e8f5e9; border-radius:6px; color:#0d4d26; font-weight:bold;">📄 Tú: páginas ${miAsig.inicio}-${miAsig.fin}</div>` : '<div class="small" style="margin-top:6px; color:#c0392b;">⚠️ No tienes páginas asignadas</div>'}`;
 
-  // Botones según estado y permisos
   let botonesHTML = '';
   if (sesionActiva.estado === 'abierta') {
-    // Usuario puede unirse si tiene permiso de inventario
-    if (u && u.permisos && u.permisos.inventario) {
+    if (u && u.permisos && u.permisos.inventario && miAsig) {
       botonesHTML += `<button class="verde" style="width:100%; margin-bottom:6px;" onclick="unirseASesion('${sesionActiva.id}')">👥 Unirse a la sesión</button>`;
     }
   }
@@ -2188,9 +2256,155 @@ function renderBannerSesion() {
   acciones.innerHTML = botonesHTML;
 }
 
-// 🆕 Placeholder: unirse a sesión (se completa en Sesión 3)
-function unirseASesion(id) {
-  toast('⏳ Función en construcción (próxima sesión)', 'warn');
+// 🆕 Contar cuántos SKUs de mi zona ya tienen conteo (por mí o por otros)
+function contarSkusDeMiZona() {
+  if (!misSkusAsignados.length) return 0;
+  const slot = inventariosPorSucursal[sucursalActual];
+  if (!slot || !slot.conteo) return 0;
+  let contados = 0;
+  misSkusAsignados.forEach(sku => {
+    if (slot.conteo[sku] !== undefined) contados++;
+  });
+  return contados;
+}
+//***************************************************************************************************************************************yo
+ // 🆕 Renderiza la lista de productos de mi zona
+function renderMiZona() {
+  const panel = document.getElementById('invMiZonaPanel');
+  if (!panel) return;
+  if (!sesionActivaUsuario) { panel.style.display = 'none'; return; }
+
+  const tbody = document.getElementById('invMiZonaTbody');
+  const stats = document.getElementById('invMiZonaStats');
+  if (!tbody) return;
+
+  const slot = inventariosPorSucursal[sucursalActual];
+  const snapshot = sesionActivaUsuario.snapshot_base || [];
+  const conteo = (slot && slot.conteo) || {};
+
+  // Filtrar mis SKUs según filtro
+  const filtroTexto = (document.getElementById('invMiZonaFiltro')?.value || '').toLowerCase().trim();
+
+  let misProductos = snapshot.filter(p => misSkusAsignados.includes(p.sku));
+
+  // Stats
+  const total = misProductos.length;
+  const contados = misProductos.filter(p => conteo[p.sku] !== undefined).length;
+  const pendientes = total - contados;
+
+  // Filtrar por estado
+  if (filtroZona === 'pendientes') misProductos = misProductos.filter(p => conteo[p.sku] === undefined);
+  else if (filtroZona === 'contados') misProductos = misProductos.filter(p => conteo[p.sku] !== undefined);
+
+  // Filtrar por texto
+  if (filtroTexto) {
+    misProductos = misProductos.filter(p =>
+      p.sku.toLowerCase().includes(filtroTexto) ||
+      (p.descripcion || '').toLowerCase().includes(filtroTexto)
+    );
+  }
+
+  stats.innerHTML = `
+    <b>${total}</b> productos en mi zona · 
+    <span style="color:#1e8449;">✅ ${contados} contados</span> · 
+    <span style="color:#e67e22;">⏳ ${pendientes} pendientes</span>
+    ${filtroTexto || filtroZona !== 'todos' ? ` · Mostrando <b>${misProductos.length}</b>` : ''}`;
+
+  if (!misProductos.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="small" style="text-align:center; padding:20px;">Sin productos para mostrar</td></tr>';
+    return;
+  }
+
+  // Limitar a 500 para no colgar el DOM
+  const visibles = misProductos.slice(0, 500);
+
+  tbody.innerHTML = visibles.map(p => {
+    const c = conteo[p.sku];
+    const contado = c !== undefined;
+    const chip = contado
+      ? `<span class="chip-counted">✅ ${c}</span>`
+      : `<span class="chip-pending">⏳</span>`;
+    const claseExis = (p.exis || 0) < 0 ? 'neg-num' : '';
+    const rowStyle = contado ? 'background:#f0fdf4;' : '';
+    return `<tr style="${rowStyle}">
+      <td style="text-align:center;">${chip}</td>
+      <td style="font-family:monospace;">${p.sku}</td>
+      <td class="small">${p.descripcion || ''}</td>
+      <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis || 0}</td>
+      <td style="text-align:right; font-family:monospace; font-weight:bold;">${contado ? c : '—'}</td>
+      <td><button class="verde" style="padding:4px 8px; font-size:11px;" onclick="abrirModalConteoDesdeZona('${p.sku.replace(/'/g, "\\'")}')">${contado ? '✏️' : '➕'}</button></td>
+    </tr>`;
+  }).join('');
+
+  if (misProductos.length > 500) {
+    tbody.innerHTML += `<tr><td colspan="6" class="small" style="text-align:center; padding:10px; background:#fff3e0;">Mostrando los primeros 500 de ${misProductos.length}. Usa el filtro para acotar.</td></tr>`;
+  }
+}
+
+// 🆕 Abrir modal de conteo desde la lista de mi zona
+function abrirModalConteoDesdeZona(sku) {
+  const slot = inventariosPorSucursal[sucursalActual];
+  const snapshot = sesionActivaUsuario?.snapshot_base || [];
+  const prod = snapshot.find(p => p.sku === sku) || (slot && slot.base.find(p => p.sku === sku));
+  if (!prod) { toast('❌ Producto no encontrado', 'error'); return; }
+  abrirModalConteo(prod);
+}
+
+//****************************************************************************************************************************************yo
+
+// 🆕 Unirse a una sesión abierta
+async function unirseASesion(id) {
+  if (!supabaseClient) return;
+  const sesion = sesionesActuales.find(s => s.id === id);
+  if (!sesion) { toast('❌ Sesión no encontrada', 'error'); return; }
+  if (sesion.estado !== 'abierta') { toast('⚠️ La sesión no está abierta', 'warn'); return; }
+
+  // Verificar que el usuario tenga asignación
+  const miAsignacion = (sesion.asignaciones || {})[usuarioLogueado];
+  if (!miAsignacion) {
+    toast('⚠️ No tienes páginas asignadas en esta sesión', 'warn');
+    alert('No tienes páginas asignadas en esta sesión.\n\nPide al administrador que te asigne un rango.');
+    return;
+  }
+
+  sesionActivaUsuario = sesion;
+
+  // Calcular mis páginas
+  const ini = miAsignacion.inicio || 0;
+  const fin = miAsignacion.fin || 0;
+  misPaginasAsignadas = [];
+  for (let p = ini; p <= fin; p++) misPaginasAsignadas.push(p);
+
+  // Calcular mis SKUs según snapshot_base y tamaño de página
+  const snapshot = sesion.snapshot_base || [];
+  const tamPag = sesion.pagina_tamano || 200;
+  const inicio = (ini - 1) * tamPag;
+  const finIdx = Math.min(fin * tamPag, snapshot.length);
+  misSkusAsignados = snapshot.slice(inicio, finIdx).map(p => p.sku);
+
+  toast(`✅ Te uniste: páginas ${ini}-${fin} (${misSkusAsignados.length} productos)`);
+  feedbackExito();
+  renderBannerSesion();
+  renderMiZona();
+  actualizarUIInventario();
+}
+
+// 🆕 Salir de la sesión (solo del lado del cliente, no cierra la sesión oficial)
+function salirDeSesion() {
+  if (!confirm('¿Salir de la sesión? Puedes volver a unirte cuando quieras.')) return;
+  sesionActivaUsuario = null;
+  misPaginasAsignadas = [];
+  misSkusAsignados = [];
+  toast('👋 Saliste de la sesión');
+  renderBannerSesion();
+  renderMiZona();
+  actualizarUIInventario();
+}
+
+// 🆕 Verifica si un SKU está dentro de mi zona
+function skuEstaEnMiZona(sku) {
+  if (!misSkusAsignados.length) return false;
+  return misSkusAsignados.includes(sku);
 }
 
 // 🆕 Cambiar estado de la sesión a "abierta"
@@ -2886,7 +3100,7 @@ function cambiarPestana(t) {
   });
   if (t === 'vincular') setTimeout(() => { const i = document.getElementById('inputCodigo'); if (i) i.focus(); }, 100);
   if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); actualizarEstadoSupabase(); aplicarVisibilidadAdmin(); }
-  if (t === 'inventario') { renderBannerSesion(); }
+  if (t === 'inventario') { renderBannerSesion(); if (sesionActivaUsuario) renderMiZona(); }
   if (t === 'inventario') { renderInvTopStats(); actualizarUIInventario(); renderInventario(); actualizarSucursalNombreEnVistas(); }
   if (t === 'baseDatos') { renderManuales(); renderBaseDatosStats(); }
   guardarEstado();
@@ -3632,6 +3846,7 @@ function escanearPorPieza(codigo) {
   toast(`✔ ${p.sku} = ${nuevo}/${ajustado}`, 'big');
   renderInvTopStats();
   renderInventario();
+  if (sesionActivaUsuario) { renderMiZona(); renderBannerSesion(); }
 }
 function confirmarSuperaTotal() {
   if (!superaTotalPendiente) return;
@@ -4066,6 +4281,7 @@ function confirmarConteo() {
   const m = document.getElementById('modalConteo'); if (m) m.classList.remove('activo');
   renderInvTopStats();
   renderInventario();
+  if (sesionActivaUsuario) { renderMiZona(); renderBannerSesion(); }
   if (bi) { bi.focus(); setTimeout(() => bi.select(), 50); }
 }
 function quitarConteoActual() {
