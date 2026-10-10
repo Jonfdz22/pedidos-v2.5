@@ -1785,6 +1785,7 @@ let sesionActivaUsuario = null; // objeto sesión completo
 let misPaginasAsignadas = [];   // array de números de página asignadas
 let misSkusAsignados = [];      // array de SKUs que puede contar
 let filtroZona = 'todos';       // 'todos' | 'pendientes' | 'contados'
+let conteosIndividualesCache = []; // cache de aportaciones de la sesión activa
 
 // Detectar si estamos en PC o celular (para saber dispositivo)
 function detectarDispositivo() {
@@ -2350,6 +2351,131 @@ function abrirModalConteoDesdeZona(sku) {
   abrirModalConteo(prod);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// CONTEOS INDIVIDUALES (Sesión 3.2)
+// Cada aportación se guarda como fila separada → NO se pisan
+// ═══════════════════════════════════════════════════════════════
+
+// Detectar si es PC/Celular para guardar el campo dispositivo
+function detectarDispositivoLocal() {
+  const ua = navigator.userAgent || '';
+  if (/iPad|iPhone|iPod/.test(ua)) return 'iOS';
+  if (/Android/i.test(ua)) return 'Android';
+  return 'PC';
+}
+
+// Registrar una aportación individual en Supabase
+async function registrarConteoIndividual(sesionId, sku, cantidad, modo) {
+  // modo: 'reemplazar' | 'sumar'
+  if (!supabaseClient) return false;
+  try {
+    // Si el mismo usuario ya contó este SKU, primero borramos su aportación anterior
+    // (para que sea reemplazo limpio, no acumulación silenciosa)
+    if (modo === 'reemplazar') {
+      await supabaseClient.from('conteos_individuales')
+        .delete()
+        .eq('sesion_id', sesionId)
+        .eq('usuario', usuarioLogueado)
+        .eq('sku', sku);
+    }
+
+    const { error } = await supabaseClient.from('conteos_individuales').insert({
+      sesion_id: sesionId,
+      sku: sku,
+      usuario: usuarioLogueado,
+      cantidad: cantidad,
+      dispositivo: detectarDispositivoLocal()
+    });
+    if (error) { console.error('Error registrando conteo:', error); return false; }
+    console.log(`✅ Aportación registrada: ${sku}=${cantidad} (${modo}) por @${usuarioLogueado}`);
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+// Bajar TODAS las aportaciones de una sesión
+async function bajarConteosIndividuales(sesionId) {
+  if (!supabaseClient) return [];
+  try {
+    const { data, error } = await supabaseClient
+      .from('conteos_individuales')
+      .select('*')
+      .eq('sesion_id', sesionId)
+      .order('timestamp', { ascending: true });
+    if (error) { console.error('Error bajando conteos:', error); return []; }
+    return data || [];
+  } catch(e) { console.error(e); return []; }
+}
+
+// Suma aportaciones por SKU y aplica al slot local
+// Estrategia:
+//   - Si un SKU tiene aportes de 1 sola persona → ese valor
+//   - Si tiene aportes de varias personas → SUMA de todos (colaborativo)
+//   - Ignora aportes borrados (marcados con cantidad -1 o similar, si aplica)
+async function aplicarConteosIndividuales(sesionId) {
+  const aportes = await bajarConteosIndividuales(sesionId);
+  conteosIndividualesCache = aportes;
+
+  const slot = inventariosPorSucursal[sucursalActual];
+  if (!slot) return;
+
+  // Agrupar por SKU
+  const porSku = {};
+  aportes.forEach(a => {
+    if (!porSku[a.sku]) porSku[a.sku] = [];
+    porSku[a.sku].push(a);
+  });
+
+  // Para cada SKU: si es 1 aporte → ese valor. Si son varios → suma
+  // (más adelante se puede cambiar a "preguntar antes de sumar")
+  const nuevoConteo = {};
+  Object.entries(porSku).forEach(([sku, lista]) => {
+    // Tomar el valor más reciente por usuario (si el mismo usuario aportó varias veces)
+    const porUsuario = {};
+    lista.forEach(a => { porUsuario[a.usuario] = a.cantidad; });
+    // Sumar los valores únicos por usuario
+    const total = Object.values(porUsuario).reduce((s, v) => s + v, 0);
+    nuevoConteo[sku] = total;
+  });
+
+  slot.conteo = nuevoConteo;
+
+  // Guardar horas y usuarios (el más reciente por SKU)
+  if (!slot.horaConteoPorSku) slot.horaConteoPorSku = {};
+  if (!slot.usuarioConteoPorSku) slot.usuarioConteoPorSku = {};
+  Object.entries(porSku).forEach(([sku, lista]) => {
+    const ultimo = lista[lista.length - 1];
+    slot.horaConteoPorSku[sku] = ultimo.timestamp;
+    // Si hay varias personas, mostrar nombres unidos
+    const usuarios = [...new Set(lista.map(a => a.usuario))];
+    slot.usuarioConteoPorSku[sku] = usuarios.length === 1
+      ? usuarios[0]
+      : usuarios.join('+');
+  });
+
+  guardarInventarios();
+  actualizarInventarioActual();
+  renderInvTopStats();
+  renderInventario();
+  if (sesionActivaUsuario) { renderMiZona(); renderBannerSesion(); }
+  console.log(`✅ Conteos aplicados: ${Object.keys(nuevoConteo).length} SKUs`);
+}
+
+// Cuenta aportes de un SKU (para saber si alguien más ya contó)
+function aportesDeSku(sku) {
+  return conteosIndividualesCache.filter(a => a.sku === sku);
+}
+
+// Verifica si YO ya conté este SKU
+function yoYaConteSku(sku) {
+  return conteosIndividualesCache.some(a => a.sku === sku && a.usuario === usuarioLogueado);
+}
+
+// Verifica si OTRO usuario ya contó este SKU
+function otroYaConto(sku) {
+  return conteosIndividualesCache.some(a => a.sku === sku && a.usuario !== usuarioLogueado);
+}
+
+
 //****************************************************************************************************************************************yo
 
 // 🆕 Unirse a una sesión abierta
@@ -2384,6 +2510,12 @@ async function unirseASesion(id) {
 
   toast(`✅ Te uniste: páginas ${ini}-${fin} (${misSkusAsignados.length} productos)`);
   feedbackExito();
+
+  // 🆕 Bajar aportaciones actuales y aplicarlas
+  toast('⏳ Cargando aportaciones de la sesión...');
+  await aplicarConteosIndividuales(sesion.id);
+  iniciarPollingConteos();
+
   renderBannerSesion();
   renderMiZona();
   actualizarUIInventario();
@@ -2392,9 +2524,11 @@ async function unirseASesion(id) {
 // 🆕 Salir de la sesión (solo del lado del cliente, no cierra la sesión oficial)
 function salirDeSesion() {
   if (!confirm('¿Salir de la sesión? Puedes volver a unirte cuando quieras.')) return;
+  detenerPollingConteos();
   sesionActivaUsuario = null;
   misPaginasAsignadas = [];
   misSkusAsignados = [];
+  conteosIndividualesCache = [];
   toast('👋 Saliste de la sesión');
   renderBannerSesion();
   renderMiZona();
@@ -2405,6 +2539,57 @@ function salirDeSesion() {
 function skuEstaEnMiZona(sku) {
   if (!misSkusAsignados.length) return false;
   return misSkusAsignados.includes(sku);
+}
+
+// 🆕 Polling: revisa cada 15s si hay aportaciones nuevas en la sesión activa
+let _pollingConteos = null;
+let _lastConteoId = null;
+function iniciarPollingConteos() {
+  detenerPollingConteos();
+  _pollingConteos = setInterval(async () => {
+    if (!supabaseClient || !sesionActivaUsuario) return;
+    try {
+      const { data } = await supabaseClient
+        .from('conteos_individuales')
+        .select('id')
+        .eq('sesion_id', sesionActivaUsuario.id)
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const ultimoId = data?.id;
+      if (ultimoId && ultimoId !== _lastConteoId) {
+        if (_lastConteoId !== null) {
+          // Cambió: aplicar
+          await aplicarConteosIndividuales(sesionActivaUsuario.id);
+          toast('🔄 Conteos actualizados desde otro dispositivo', 'warn');
+        }
+        _lastConteoId = ultimoId;
+      }
+    } catch(e) { console.error('Polling conteos:', e); }
+  }, 15000);
+  console.log('✅ Polling de conteos iniciado (cada 15s)');
+}
+
+function detenerPollingConteos() {
+  if (_pollingConteos) { clearInterval(_pollingConteos); _pollingConteos = null; }
+  _lastConteoId = null;
+}
+ 
+ // 🆕 Verifica si un SKU puede ser contado por mí
+// - Si no hay sesión: cualquiera (comportamiento viejo)
+// - Si hay sesión y soy admin: cualquiera
+// - Si hay sesión y NO soy admin: solo mi zona
+function puedoContarSku(sku) {
+  if (!sesionActivaUsuario) return { ok: true, razon: null };
+  const u = usuarios[usuarioLogueado];
+  if (u && u.permisos && u.permisos.ajustes) return { ok: true, razon: null };
+  if (skuEstaEnMiZona(sku)) return { ok: true, razon: null };
+  // Fuera de zona
+  const miAsig = (sesionActivaUsuario.asignaciones || {})[usuarioLogueado] || {};
+  return {
+    ok: false,
+    razon: `Este producto no es de tu zona (páginas ${miAsig.inicio || '?'}-${miAsig.fin || '?'}).`
+  };
 }
 
 // 🆕 Cambiar estado de la sesión a "abierta"
@@ -3818,8 +4003,17 @@ function escanearPorPieza(codigo) {
     if (candidatos.length === 1) p = candidatos[0];
     else if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, 'inventario'); return; }
   }
-  if (!p) p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
+   if (!p) p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
   if (!p) { feedbackError(); toast('❌ No encontrado: ' + codigo, 'error'); return; }
+
+  // 🆕 Bloqueo de zona
+  const permiso = puedoContarSku(p.sku);
+  if (!permiso.ok) {
+    feedbackError();
+    toast('⛔ ' + permiso.razon, 'error');
+    return;
+  }
+
   const actual = inventarioConteo[p.sku] || 0;
   const nuevo = actual + 1;
   const esperado = p.exis;
@@ -4247,8 +4441,40 @@ function abrirModalConteo(p) {
     ${vendido > 0 ? '<div class="small" style="color:#e67e22; margin-top:4px;">Ajustado por ventas: <b>' + ajustado + '</b></div>' : ''}
     ${p.exis < 0 ? '<div class="small" style="color:#c0392b; font-weight:bold;">⚠️ NEGATIVO</div>' : ''}
     ${contado !== undefined ? '<div class="small" style="margin-top:6px; color:#1e8449;">Contado antes: <b>' + contado + '</b></div>' : ''}`;
-  const inp = document.getElementById('inputConteo');
+   const inp = document.getElementById('inputConteo');
   if (inp) inp.value = contado !== undefined ? contado : '';
+
+  // 🆕 Si hay sesión activa y otros ya contaron, mostrar desglose
+  if (sesionActivaUsuario) {
+    const aportes = aportesDeSku(p.sku);
+    if (aportes.length) {
+      const desglose = aportes.map(a =>
+        `<div style="display:flex; justify-content:space-between; font-size:12px; padding:2px 0;">
+          <span>👤 @${a.usuario} ${a.usuario === usuarioLogueado ? '(tú)' : ''}</span>
+          <b>${a.cantidad}</b>
+        </div>`
+      ).join('');
+      const sumaTotal = Object.values(aportes.reduce((acc, a) => {
+        acc[a.usuario] = a.cantidad; // solo el último por usuario
+        return acc;
+      }, {})).reduce((s, v) => s + v, 0);
+
+      const divDesglose = document.createElement('div');
+      divDesglose.style.cssText = 'background:#fff3e0; padding:10px; border-radius:8px; margin-bottom:12px; border-left:4px solid #e67e22;';
+      divDesglose.innerHTML = `
+        <div style="font-weight:bold; font-size:12px; color:#7a3d00; margin-bottom:6px;">
+          📊 Aportaciones en esta sesión:
+        </div>
+        ${desglose}
+        <div style="border-top:1px solid #e67e22; margin-top:6px; padding-top:6px; display:flex; justify-content:space-between; font-weight:bold;">
+          <span>Total:</span><span>${sumaTotal}</span>
+        </div>`;
+
+      // Insertar antes del input
+      const parent = inp.parentNode;
+      parent.insertBefore(divDesglose, inp);
+    }
+  }
   const bqcw = document.getElementById('btnQuitarConteoWrap'); if (bqcw) bqcw.style.display = contado !== undefined ? 'block' : 'none';
   const m = document.getElementById('modalConteo'); if (m) m.classList.add('activo');
   setTimeout(() => { if (inp) { inp.focus(); inp.select(); } }, 100);
@@ -4259,20 +4485,53 @@ function cerrarModalConteo() {
   const inp = document.getElementById('invBusqueda');
   if (inp) { inp.focus(); setTimeout(() => { if (inp.value) inp.select(); }, 50); }
 }
-function confirmarConteo() {
+async function confirmarConteo() {
   if (!invProductoActual) return;
   const inp = document.getElementById('inputConteo');
   const cant = Math.max(0, parseInt(inp ? inp.value : 0) || 0);
   const p = invProductoActual;
-  const ajustadoActual = p.exis - totalVendidoDeSku(p.sku);
-  inventarioConteo[p.sku] = cant;
-  setHoraConteoPorSku(p.sku, new Date().toISOString());
-  setUsuarioConteoPorSku(p.sku, usuarioLogueado);
-   setAjustadoCongelado(p.sku, ajustadoActual);
-  setVentaPostConteo(p.sku, false);
-  invUltimoSku = p.sku;
-  persistirInventarioActual();
-  sincronizarInventarioAuto();
+
+  // 🆕 Verificar que puedo contar este SKU
+  const permiso = puedoContarSku(p.sku);
+  if (!permiso.ok) {
+    feedbackError();
+    alert('⛔ ' + permiso.razon);
+    return;
+  }
+
+  // 🆕 Si hay sesión activa y OTRO ya contó, preguntar
+  if (sesionActivaUsuario && otroYaConto(p.sku)) {
+    const aportes = aportesDeSku(p.sku);
+    const otros = aportes.filter(a => a.usuario !== usuarioLogueado);
+    const resumen = otros.map(a => `👤 @${a.usuario}: ${a.cantidad}`).join('\n');
+
+    const opcion = confirm(
+      `⚠️ Este SKU ya fue contado por otro usuario:\n\n` +
+      `${resumen}\n\n` +
+      `Tú estás contando: ${cant}\n\n` +
+      `[Aceptar] = SUMAR tu conteo (${otros.reduce((s,a)=>s+a.cantidad,0)} + ${cant})\n` +
+      `[Cancelar] = REEMPLAZAR (queda ${cant})`
+    );
+    const modo = opcion ? 'sumar' : 'reemplazar';
+    await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, modo);
+    await aplicarConteosIndividuales(sesionActivaUsuario.id);
+  } else if (sesionActivaUsuario) {
+    // Es el primero (o soy yo el único): reemplazar limpio
+    await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, 'reemplazar');
+    await aplicarConteosIndividuales(sesionActivaUsuario.id);
+  } else {
+    // Sin sesión: comportamiento viejo
+    const ajustadoActual = p.exis - totalVendidoDeSku(p.sku);
+    inventarioConteo[p.sku] = cant;
+    setHoraConteoPorSku(p.sku, new Date().toISOString());
+    setUsuarioConteoPorSku(p.sku, usuarioLogueado);
+    setAjustadoCongelado(p.sku, ajustadoActual);
+    setVentaPostConteo(p.sku, false);
+    invUltimoSku = p.sku;
+    persistirInventarioActual();
+    sincronizarInventarioAuto();
+  }
+
   feedbackExito();
   toast(`✔ ${p.sku} = ${cant}`);
   const bi = document.getElementById('invBusqueda');
