@@ -5008,10 +5008,7 @@ function exportarInventario() {
 const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const tieneBarcodeDetector = 'BarcodeDetector' in window;
 
- function _esIOSReal() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-}
+
 
 function abrirCamaraNativaIOS() {
   const input = document.createElement('input');
@@ -5055,77 +5052,35 @@ function abrirCamaraNativaIOS() {
 }
 
 async function abrirCamara(origen) {
-    camaraOrigen = origen;
-    
-    // ⚡ iOS: usar cámara nativa (getUserMedia está bloqueado por Apple)
-    if (_esIOSReal()) {
-      abrirCamaraNativaIOS();
-      return;
-    }
-    
-    // Android / Desktop: usar html5-qrcode normal
-    const m = document.getElementById('modalCamara'); 
-    if (m) m.classList.add('activo');
-    const cont = document.getElementById('reader');
-    if (!cont) return;
-    cont.innerHTML = '';
-
-    // Función que se ejecuta cuando se detecta un código con éxito
-    const onScanSuccess = (decodedText, decodedResult) => {
-        // Detener el escáner para que no siga leyendo
-        if (window.html5QrCode) {
-            window.html5QrCode.stop().then(() => {
-                console.log("Escáner detenido.");
-            }).catch(err => {
-                console.error("Error al detener el escáner. ", err);
-            });
-        }
-        
-        // Vibrar y procesar el código, igual que antes
-        vibrar(80);
-        cerrarCamara(); // Cierra el modal y libera la cámara
-
-        // Retraso para que el cierre se sienta bien
-        setTimeout(() => {
-            if (camaraOrigen === 'vincular') { 
-                setVal('inputCodigo', decodedText); 
-                capturarCodigo(); 
-            }
-            else if (camaraOrigen === 'inventario') { 
-                if (modoEscanearPz) escanearPorPieza(decodedText); 
-                else procesarCodigoInv(decodedText); 
-            }
-            else { 
-                procesarCodigoEnPedido(decodedText); 
-            }
-        }, 200);
-    };
-
-    // Función que se ejecuta si hay un error en la lectura (no hacemos nada)
-    const onScanFailure = (error) => {
-        // console.warn(`Código no detectado: ${error}`);
-    };
-
-    try {
-        window.html5QrCode = new Html5Qrcode("reader");
-        const config = { 
-            fps: 10, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0 
-        };
-        
-        await window.html5QrCode.start(
-            { facingMode: "environment" }, 
-            config, 
-            onScanSuccess, 
-            onScanFailure
-        );
-
-    } catch (err) {
-        console.error("No se pudo iniciar el escáner:", err);
-        alert('No se pudo abrir la cámara. Asegúrate de dar los permisos necesarios en los ajustes de tu navegador o dispositivo.');
-        cerrarCamara();
-    }
+  camaraOrigen = origen;
+  const m = document.getElementById('modalCamara'); if (m) m.classList.add('activo');
+  const cont = document.getElementById('reader');
+  if (!cont) return;
+  cont.innerHTML = '';
+  const video = document.createElement('video');
+  video.setAttribute('playsinline', 'true');
+  video.setAttribute('autoplay', 'true');
+  video.setAttribute('muted', 'true');
+  video.style.cssText = 'width:100%; border-radius:10px; background:#000; display:block;';
+  cont.appendChild(video);
+  const status = document.createElement('div');
+  status.id = 'scanStatus';
+  status.style.cssText = 'margin-top:8px; font-size:12px; color:#1a5fbf; font-weight:bold; text-align:center;';
+  status.textContent = '⏳ Iniciando cámara…';
+  cont.appendChild(status);
+  try {
+    camaraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+    video.srcObject = camaraStream;
+    await video.play();
+    status.textContent = '🔍 Apunta al código…';
+    if (tieneBarcodeDetector && !esIOS) iniciarBarcodeDetector(video, status);
+    else if (typeof ZXing !== 'undefined') iniciarZXing(video, status);
+    else status.textContent = '⚠️ Este navegador no soporta lectura de códigos';
+  } catch (err) {
+    console.error(err);
+    alert('No se pudo abrir la cámara:\n' + (err.message || err));
+    cerrarCamara();
+  }
 }
 function iniciarBarcodeDetector(video, status) {
   try {
@@ -5151,22 +5106,11 @@ function iniciarZXing(video, status) {
   } catch (e) { status.textContent = '⚠️ Error al iniciar el lector'; }
 }
 function cerrarCamara() {
-    if (window.html5QrCode) {
-        try {
-            // Detiene la cámara y limpia el área
-            window.html5QrCode.stop().then(() => {
-                window.html5QrCode.clear();
-                window.html5QrCode = null;
-            }).catch(err => {
-                console.error("Error al cerrar la cámara:", err);
-            });
-        } catch (e) {
-            console.error(e);
-            window.html5QrCode = null;
-        }
-    }
-    const m = document.getElementById('modalCamara'); 
-    if (m) m.classList.remove('activo');
+  if (camaraLoop) { clearInterval(camaraLoop); camaraLoop = null; }
+  if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
+  if (camaraStream) { camaraStream.getTracks().forEach(t => t.stop()); camaraStream = null; }
+  const m = document.getElementById('modalCamara'); if (m) m.classList.remove('activo');
+  const cont = document.getElementById('reader'); if (cont) cont.innerHTML = '';
 }
 function onCamaraDetecta(codigo) {
   const c = String(codigo).toUpperCase().trim();
