@@ -2,7 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a3a6b">
 <title>FC-Relma — Pedidos · Inventario · Vínculos</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -1805,7 +1807,7 @@ async function abrirModalNuevaSesion() {
   // Llenar select de sucursales
   const sel = document.getElementById('sesionSucursal');
   if (sel) {
-    sel.innerHTML = sucursales.map(s => `<option value="${s.id}">${s.nombre}</option>`).join('');
+    sel.innerHTML = sucursales.map(s => `<option value="${s.id}">${esc(s.nombre)}</option>`).join('');
     if (sucursalActual) sel.value = sucursalActual;
   }
 
@@ -2179,7 +2181,7 @@ function renderBannerSesion() {
     const pct = total ? Math.round((totalContados / total) * 100) : 0;
 
     estado.innerHTML = `
-      <div style="font-size:15px; font-weight:bold; color:#1a3a6b;">📋 ${s.nombre}</div>
+      <div style="font-size:15px; font-weight:bold; color:#1a3a6b;">📋 ${esc(s.nombre)}</div>
       <div class="small" style="margin-top:4px;">
         <span style="color:#1e8449; font-weight:bold;">● ESTÁS DENTRO</span>
       </div>
@@ -2329,8 +2331,8 @@ function renderMiZona() {
     const rowStyle = contado ? 'background:#f0fdf4;' : '';
     return `<tr style="${rowStyle}">
       <td style="text-align:center;">${chip}</td>
-      <td style="font-family:monospace;">${p.sku}</td>
-      <td class="small">${p.descripcion || ''}</td>
+      <td style="font-family:monospace;">${esc(p.sku)}</td>
+      <td class="small">${esc(p.descripcion)}</td>
       <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis || 0}</td>
       <td style="text-align:right; font-family:monospace; font-weight:bold;">${contado ? c : '—'}</td>
       <td><button class="verde" style="padding:4px 8px; font-size:11px;" onclick="abrirModalConteoDesdeZona('${p.sku.replace(/'/g, "\\'")}')">${contado ? '✏️' : '➕'}</button></td>
@@ -2365,31 +2367,49 @@ function detectarDispositivoLocal() {
 }
 
 // Registrar una aportación individual en Supabase
-async function registrarConteoIndividual(sesionId, sku, cantidad, modo) {
-  // modo: 'reemplazar' | 'sumar'
-  if (!supabaseClient) return false;
+/* ===== Cola offline de conteos (mejora) ===== */
+const KEY_COLA_CONTEOS = 'fc_cola_conteos_v1';
+function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function _colaConteos(){ try{ return JSON.parse(localStorage.getItem(KEY_COLA_CONTEOS)||'[]'); }catch(e){ return []; } }
+function _guardarCola(c){ try{ localStorage.setItem(KEY_COLA_CONTEOS, JSON.stringify(c)); }catch(e){} }
+function _esErrorRed(e){ return !navigator.onLine || /fetch|network|failed|timeout/i.test(String((e&&e.message)||e)); }
+async function _enviarConteo(r){
+  if (r.modo === 'reemplazar') {
+    const d = await supabaseClient.from('conteos_individuales').delete()
+      .eq('sesion_id', r.sesionId).eq('usuario', r.usuario).eq('sku', r.sku);
+    if (d.error) throw d.error;
+  }
+  const { error } = await supabaseClient.from('conteos_individuales').insert({
+    sesion_id: r.sesionId, sku: r.sku, usuario: r.usuario, cantidad: r.cantidad, dispositivo: r.dispositivo });
+  if (error) throw error;
+}
+let _vaciando = false;
+async function vaciarColaConteos(){
+  if (_vaciando || !supabaseClient || !navigator.onLine) return;
+  _vaciando = true;
   try {
-    // Si el mismo usuario ya contó este SKU, primero borramos su aportación anterior
-    // (para que sea reemplazo limpio, no acumulación silenciosa)
-    if (modo === 'reemplazar') {
-      await supabaseClient.from('conteos_individuales')
-        .delete()
-        .eq('sesion_id', sesionId)
-        .eq('usuario', usuarioLogueado)
-        .eq('sku', sku);
+    let c = _colaConteos(), enviados = 0;
+    while (c.length) {
+      try { await _enviarConteo(c[0]); c.shift(); _guardarCola(c); enviados++; }
+      catch(e){ if (!_esErrorRed(e)) { console.error('Conteo descartado de la cola:', e); c.shift(); _guardarCola(c); } else break; }
     }
+    if (enviados) toast('✓ ' + enviados + ' conteo(s) pendientes sincronizados');
+  } finally { _vaciando = false; }
+}
+window.addEventListener('online', vaciarColaConteos);
+setInterval(vaciarColaConteos, 15000);
 
-    const { error } = await supabaseClient.from('conteos_individuales').insert({
-      sesion_id: sesionId,
-      sku: sku,
-      usuario: usuarioLogueado,
-      cantidad: cantidad,
-      dispositivo: detectarDispositivoLocal()
-    });
-    if (error) { console.error('Error registrando conteo:', error); return false; }
-    console.log(`✅ Aportación registrada: ${sku}=${cantidad} (${modo}) por @${usuarioLogueado}`);
+async function registrarConteoIndividual(sesionId, sku, cantidad, modo) {
+  // modo: 'reemplazar' | 'sumar'. Si no hay red, el conteo queda en cola local y se sube solo.
+  const r = { sesionId, sku, cantidad, modo, usuario: usuarioLogueado, dispositivo: detectarDispositivoLocal() };
+  if (!supabaseClient) { const c=_colaConteos(); c.push(r); _guardarCola(c); toast('Sin conexión: conteo guardado en el equipo','warn'); return true; }
+  try {
+    await _enviarConteo(r);
     return true;
-  } catch(e) { console.error(e); return false; }
+  } catch(e) {
+    if (_esErrorRed(e)) { const c=_colaConteos(); c.push(r); _guardarCola(c); toast('Sin conexión: conteo guardado en el equipo','warn'); return true; }
+    console.error('Error registrando conteo:', e); return false;
+  }
 }
 
 // Bajar TODAS las aportaciones de una sesión
@@ -2430,10 +2450,7 @@ async function aplicarConteosIndividuales(sesionId) {
   const nuevoConteo = {};
   Object.entries(porSku).forEach(([sku, lista]) => {
     // Tomar el valor más reciente por usuario (si el mismo usuario aportó varias veces)
-    const porUsuario = {};
-    lista.forEach(a => { porUsuario[a.usuario] = a.cantidad; });
-    // Sumar los valores únicos por usuario
-    const total = Object.values(porUsuario).reduce((s, v) => s + v, 0);
+    const total = lista.reduce((s, a) => s + (Number(a.cantidad) || 0), 0);
     nuevoConteo[sku] = total;
   });
 
@@ -2630,7 +2647,7 @@ function renderSesiones() {
     return `<div style="background:#fafafa; padding:10px; border-radius:8px; margin-bottom:8px; border-left:4px solid ${color};">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
         <div style="flex:1; min-width:0;">
-          <div style="font-weight:bold; color:#1a3a6b;">${s.nombre}</div>
+          <div style="font-weight:bold; color:#1a3a6b;">${esc(s.nombre)}</div>
           <div class="small" style="margin-top:2px;">
             🏢 ${suc ? suc.nombre : s.sucursal_id} · 
             <span style="color:${color}; font-weight:bold;">${s.estado.toUpperCase()}</span>
@@ -2896,11 +2913,15 @@ function intentarLogin() {
   const err = document.getElementById('loginError');
   if (err) err.classList.remove('show');
   if (!u || !p) { if (err) { err.textContent = 'Ingresa usuario y contraseña'; err.classList.add('show'); } return; }
+  if (Date.now() < (window._bloqLogin || 0)) { if (err) { err.textContent = 'Demasiados intentos. Espera ' + Math.ceil((window._bloqLogin - Date.now()) / 1000) + ' s'; err.classList.add('show'); } return; }
   const usuario = usuarios[u];
   if (!usuario || hashPassword(p) !== usuario.hash) {
+    window._intentosLogin = (window._intentosLogin || 0) + 1;
+    if (window._intentosLogin >= 5) { window._bloqLogin = Date.now() + 60000; window._intentosLogin = 0; }
     if (err) { err.textContent = 'Usuario o contraseña incorrectos'; err.classList.add('show'); }
     return;
   }
+  window._intentosLogin = 0;
   usuarioLogueado = u;
   const permitidas = usuario.sucursalesPermitidas || [];
   if (!permitidas.length) { if (err) { err.textContent = 'Sin sucursales asignadas.'; err.classList.add('show'); } usuarioLogueado = null; return; }
@@ -2910,7 +2931,7 @@ function intentarLogin() {
   guardarSesion(u);
   entrarApp();
   if (usuario.primerLogin) {
-    setTimeout(() => { if (confirm('¿Cambiar contraseña por defecto ahora?')) abrirModalCambiarMiPassword(); }, 400);
+    setTimeout(() => { toast('Cambia tu contraseña por defecto','warn'); abrirModalCambiarMiPassword(); }, 400);
   }
 }
 
@@ -3007,8 +3028,8 @@ function abrirMenuSucursal() {
     const activa = id === sucursalActual;
     return `<div class="dropdown-item ${activa ? 'activo' : ''}" onclick="cambiarSucursal('${id}')">
       <div class="info"><span class="icono">🏢</span>
-        <div><div class="texto">${s.nombre}</div>
-        ${s.abrev !== s.nombre ? '<div class="subtexto">' + s.abrev + '</div>' : ''}</div>
+        <div><div class="texto">${esc(s.nombre)}</div>
+        ${s.abrev !== s.nombre ? '<div class="subtexto">' +esc(s.abrev)+ '</div>' : ''}</div>
       </div>
       ${activa ? '<span class="check">✓</span>' : ''}
     </div>`;
@@ -3326,7 +3347,7 @@ function renderSucursalesUsuario(seleccionadas) {
     const checked = seleccionadas.includes(s.id) ? 'checked' : '';
     return `<div class="sucursal-check">
       <input type="checkbox" id="suc_${s.id}" value="${s.id}" ${checked}>
-      <label for="suc_${s.id}">${s.nombre} <span class="small">(${s.abrev})</span></label>
+      <label for="suc_${s.id}">${esc(s.nombre)} <span class="small">(${esc(s.abrev)})</span></label>
     </div>`;
   }).join('');
 }
@@ -3443,8 +3464,8 @@ function renderSucursales() {
   if (!u || !u.permisos.ajustes) { cont.innerHTML = '<p class="small">Solo el admin.</p>'; return; }
   cont.innerHTML = sucursales.map(s => `
     <div class="sucursal-row">
-      <div class="info"><div class="nombre">${s.nombre}</div>
-        <div class="abrev">Abrev: ${s.abrev}</div></div>
+      <div class="info"><div class="nombre">${esc(s.nombre)}</div>
+        <div class="abrev">Abrev: ${esc(s.abrev)}</div></div>
       <div class="acciones">
         <button onclick="abrirModalSucursal('${s.id}')">✏️</button>
         <button class="rojo" onclick="eliminarSucursal('${s.id}')">🗑</button>
@@ -3492,7 +3513,7 @@ function eliminarSucursal(id) {
   if (!usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔ Solo el admin.'); return; }
   const s = getSucursal(id);
   pedirConfirmacionPassAdmin('🗑 Eliminar sucursal',
-    `¿Eliminar la sucursal <b>${s.nombre}</b>?`,
+    `¿Eliminar la sucursal <b>${esc(s.nombre)}</b>?`,
     () => {
       sucursales = sucursales.filter(x => x.id !== id);
       delete inventariosPorSucursal[id]; delete ventasPorSucursal[id];
@@ -3943,7 +3964,7 @@ async function cargarExcelInventario(file, modoCarga) {
     persistirInventarioActual();
     sincronizarBaseAuto();
     sincronizarInventarioAuto();
-    const msg = `✔ <b>${inventarioBase.length}</b> productos (${s.nombre})`;
+    const msg = `✔ <b>${inventarioBase.length}</b> productos (${esc(s.nombre)})`;
     if (info) info.innerHTML = msg;
     if (infoBD) infoBD.innerHTML = msg;
     const bow = document.getElementById('invBtnOlvidarWrap'); if (bow) bow.style.display = 'block';
@@ -4023,7 +4044,7 @@ function escanearPorPieza(codigo) {
     feedbackAlerta();
     superaTotalPendiente = { producto: p, cantidadNueva: nuevo, ajustado, cantidadAnterior: actual };
     const el = document.getElementById('superaTotalInfo');
-    if (el) el.innerHTML = `<b>${p.sku}</b><br>${p.descripcion}<br><br>Ya tienes <b>${actual}</b> contado(s) de un total esperado de <b>${ajustado}</b>.<br>Estás intentando guardar <b>${nuevo}</b>.<br><br>¿Es correcto?`;
+    if (el) el.innerHTML = `<b>${esc(p.sku)}</b><br>${esc(p.descripcion)}<br><br>Ya tienes <b>${actual}</b> contado(s) de un total esperado de <b>${ajustado}</b>.<br>Estás intentando guardar <b>${nuevo}</b>.<br><br>¿Es correcto?`;
     const m = document.getElementById('modalSuperaTotal'); if (m) m.classList.add('activo');
     return;
   }
@@ -4094,7 +4115,7 @@ function buscarProductoParaVenta() {
   if (!res.length) { cont.innerHTML = '<p class="small">Sin resultados.</p>'; return; }
   cont.innerHTML = '<table><thead><tr><th>SKU</th><th>Descripción</th><th>Exis</th><th></th></tr></thead><tbody>' +
     res.map(p => `<tr class="resultado" onclick="seleccionarParaVenta('${p.sku.replace(/'/g, "\\'")}')">
-      <td>${p.sku}</td><td>${p.descripcion || ''}</td>
+      <td>${esc(p.sku)}</td><td>${esc(p.descripcion)}</td>
       <td style="text-align:right; font-family:monospace;">${p.exis}</td>
       <td style="text-align:center;">→</td></tr>`).join('') + '</tbody></table>';
 }
@@ -4126,8 +4147,8 @@ function seleccionarParaVenta(sku) {
 
   const vi = document.getElementById('ventaInfo');
   if (vi) vi.innerHTML = `
-    <div style="font-weight:bold; color:#1a3a6b; font-size:15px;">${p.sku}</div>
-    <div class="small" style="margin-top:4px;">${p.descripcion || ''}</div>
+    <div style="font-weight:bold; color:#1a3a6b; font-size:15px;">${esc(p.sku)}</div>
+    <div class="small" style="margin-top:4px;">${esc(p.descripcion)}</div>
     <div class="small" style="margin-top:6px;">Exis: <b>${p.exis}</b> · Vendido hoy: <b>${vendido}</b></div>
     ${yaContado ? '<div class="small" style="margin-top:6px; color:#1e8449;">✅ Ya contado (' + contado + ')</div>' : '<div class="small" style="margin-top:6px; color:#e67e22;">⚠️ Aún no contado</div>'}`;
 
@@ -4225,7 +4246,7 @@ function eliminarTodasLasVentas() {
   const s = getSucursalActual();
   const totalPiezas = ventas.reduce((sum, v) => sum + v.cantidad, 0);
   pedirConfirmacionPassAdmin('🗑 Borrar TODAS las ventas',
-    `⚠️ Vas a borrar <b>${ventas.length}</b> venta(s) de <b>${s.nombre}</b>.<br><br>
+    `⚠️ Vas a borrar <b>${ventas.length}</b> venta(s) de <b>${esc(s.nombre)}</b>.<br><br>
      Total de piezas vendidas: <b>${totalPiezas}</b><br><br>
      Esta acción NO se puede deshacer.`,
     () => {
@@ -4287,8 +4308,8 @@ function renderManuales() {
   });
   if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" class="small" style="text-align:center; padding:20px;">Sin productos manuales</td></tr>'; return; }
   tb.innerHTML = lista.map(p => `
-    <tr><td style="font-family:monospace;">${p.sku}</td>
-      <td class="small">${p.descripcion || ''}</td>
+    <tr><td style="font-family:monospace;">${esc(p.sku)}</td>
+      <td class="small">${esc(p.descripcion)}</td>
       <td class="small">@${p.creadoPor || '—'}</td>
       <td class="small">${p.sucursal ? (getSucursal(p.sucursal)?.abrev || p.sucursal) : '—'}</td>
       <td class="small">${fmtFecha(p.fecha)}</td>
@@ -4325,7 +4346,7 @@ function invBuscar() {
       const claseExis = p.exis < 0 ? 'neg-num' : '';
       const badgeManual = p.manual ? ' <span class="badge badge-manual">🆕</span>' : '';
       return `<tr class="resultado" data-idx="${i}" onclick="invSeleccionar(${i})">
-        <td>${p.sku}${badgeManual}${chip}${chipHora}</td><td>${p.descripcion || ''}</td>
+        <td>${esc(p.sku)}${badgeManual}${chip}${chipHora}</td><td>${esc(p.descripcion)}</td>
         <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}</td>
         <td style="text-align:center;">→</td></tr>`;
     }).join('') + '</tbody></table>';
@@ -4429,8 +4450,8 @@ function abrirModalConteo(p) {
   const ajustado = getAjustadoDeSku(p.sku, p);
   const cip = document.getElementById('conteoInfoProducto');
   if (cip) cip.innerHTML = `
-    <div style="font-weight:bold; font-size:15px; color:#1a3a6b;">${p.sku}</div>
-    <div class="small" style="margin-top:4px;">${p.descripcion || ''}</div>
+    <div style="font-weight:bold; font-size:15px; color:#1a3a6b;">${esc(p.sku)}</div>
+    <div class="small" style="margin-top:4px;">${esc(p.descripcion)}</div>
     ${fechaBase ? '<div class="small" style="margin-top:4px; color:#8e24aa;">📸 Referencia: ' + fmtFecha(fechaBase) + '</div>' : ''}
     ${vendido > 0 ? '<div class="small" style="margin-top:4px; color:#e67e22;">🛒 Vendido hoy: ' + vendido + '</div>' : ''}`;
   const claseExis = p.exis < 0 ? 'color:#c0392b;' : 'color:#1a3a6b;';
@@ -4546,7 +4567,7 @@ async function confirmarConteo() {
 function quitarConteoActual() {
   if (!invProductoActual) return;
   const p = invProductoActual;
-  if (!confirm(`¿Quitar el conteo de este producto?\n\n${p.sku}\n${p.descripcion || ''}`)) return;
+  if (!confirm(`¿Quitar el conteo de este producto?\n\n${p.sku}\n${esc(p.descripcion)}`)) return;
   delete inventarioConteo[p.sku];
   if (inventariosPorSucursal[sucursalActual] && inventariosPorSucursal[sucursalActual].horaConteoPorSku) delete inventariosPorSucursal[sucursalActual].horaConteoPorSku[p.sku];
   if (inventariosPorSucursal[sucursalActual] && inventariosPorSucursal[sucursalActual].usuarioConteoPorSku) delete inventariosPorSucursal[sucursalActual].usuarioConteoPorSku[p.sku];
@@ -4650,8 +4671,8 @@ function renderInventario() {
     const conto = usuariosConteo[p.sku] || '—';
     const alerta = ventasPostC[p.sku] ? ' <span title="Tuvo venta después del conteo. Verifica." style="color:#e67e22; font-weight:bold;">⚠️</span>' : '';
     return `<tr class="${claseRow}">
-      <td style="font-family:monospace;">${p.sku}${badgeManual}${alerta}</td>
-      <td class="small">${p.descripcion || ''}</td>
+      <td style="font-family:monospace;">${esc(p.sku)}${badgeManual}${alerta}</td>
+      <td class="small">${esc(p.descripcion)}</td>
       <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}</td>
       <td style="text-align:right; font-family:monospace;">${vendido || 0}</td>
       <td style="text-align:right; font-family:monospace;">${ajustado}</td>
@@ -4965,7 +4986,7 @@ function mostrarElegirProducto(codigo, productosArr, contexto) {
     const exist = getExistencias(p.sku);
     const existTxt = (exist !== null) ? `Exist: ${exist}` : 'Sin datos';
     return `<div class="opcion-producto" onclick="elegirProductoDeLista('${p.sku.replace(/'/g, "\\'")}')">
-      <div class="sku">📦 ${p.sku}</div><div class="desc">${p.descripcion || ''}</div>
+      <div class="sku">📦 ${esc(p.sku)}</div><div class="desc">${esc(p.descripcion)}</div>
       <div class="meta">${badgeFuente(p.fuente || 'Sistema')} · ${existTxt} · $${(p.precio || 0).toFixed(2)}</div>
     </div>`;
   }).join('');
@@ -5032,7 +5053,7 @@ function buscar() {
         }
       }
       return `<tr class="resultado" data-idx="${i}" onclick="seleccionar(${i})">
-        <td>${p.sku}${exisTxt}</td><td>${p.descripcion}</td>
+        <td>${esc(p.sku)}${exisTxt}</td><td>${esc(p.descripcion)}</td>
         <td>$${(p.precio || 0).toFixed(2)}</td><td>${badgeFuente(p.fuente)}</td></tr>`;
     }).join('') + '</tbody></table>';
   indiceSel = 0;
@@ -5075,8 +5096,8 @@ function abrirModalCantidad(p) {
   const ip = document.getElementById('infoProducto');
   if (ip) ip.innerHTML = `
     <div class="modal-cant-header">
-      <div class="modal-cant-sku">${p.sku}</div>
-      <div class="modal-cant-desc">${p.descripcion}</div>
+      <div class="modal-cant-sku">${esc(p.sku)}</div>
+      <div class="modal-cant-desc">${esc(p.descripcion)}</div>
       <div><span class="badge ${claseUM(p.um)}">${p.um}</span>
         <span style="color:#1a5fbf; font-weight:bold; margin-left:8px;">$${(p.precio || 0).toFixed(2)}</span></div>
     </div>
@@ -5238,7 +5259,7 @@ function buscarVincularRapido() {
       let celda;
       if (yaEsta) celda = `<div class="estado-ok">✔ Ya vinculado</div>`;
       else celda = `<button class="verde" style="padding:6px 10px; font-size:12px;" onclick="asignarVincularRapido('${p.sku.replace(/'/g, "\\'")}')">🔗 Agregar</button>`;
-      return `<tr class="resultado ${yaEsta ? 'ya-vinculado' : ''}"><td>${p.sku}</td><td>${p.descripcion}</td><td style="text-align:center;">${celda}</td></tr>`;
+      return `<tr class="resultado ${yaEsta ? 'ya-vinculado' : ''}"><td>${esc(p.sku)}</td><td>${esc(p.descripcion)}</td><td style="text-align:center;">${celda}</td></tr>`;
     }).join('') + '</tbody></table>';
 }
 function asignarVincularRapido(sku) {
@@ -5255,7 +5276,7 @@ function asignarVincularRapido(sku) {
   const m = document.getElementById('modalVincularRapido'); if (m) m.classList.remove('activo');
   const prod = buscarProductoPorSku(sku);
   const ed = document.getElementById('exitoFullscreenDetalle');
-  if (ed) ed.innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${codigo}</div><div style="opacity:.8; font-size:13px;">VINCULADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9; margin-top:6px;">' + prod.descripcion + '</div>' : ''}`;
+  if (ed) ed.innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${esc(codigo)}</div><div style="opacity:.8; font-size:13px;">VINCULADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9; margin-top:6px;">' +esc(prod.descripcion)+ '</div>' : ''}`;
   const ef = document.getElementById('exitoFullscreen'); if (ef) ef.classList.add('show');
   const ctx = contextoVincularRapido;
   setTimeout(() => {
@@ -5287,8 +5308,8 @@ function capturarCodigo() {
       const prod = buscarProductoPorSku(it.sku);
       return `<div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:8px; border-radius:6px; margin-top:4px;">
         <div style="font-family:monospace;">
-          <div style="font-size:14px; font-weight:bold; color:#1a3a6b;">${it.sku}</div>
-          ${prod ? '<div style="font-size:11px; color:#666;">' + prod.descripcion + '</div>' : ''}
+          <div style="font-size:14px; font-weight:bold; color:#1a3a6b;">${esc(it.sku)}</div>
+          ${prod ? '<div style="font-size:11px; color:#666;">' +esc(prod.descripcion)+ '</div>' : ''}
           <div style="font-size:10px; color:#888;">@${it.creadoPor || '—'} · ${it.sucursal || '—'} · ${fmtFecha(it.fecha)}</div>
         </div>
         <button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="quitarSkuDeCodigo('${codigo.replace(/'/g, "\\'")}', '${it.sku.replace(/'/g, "\\'")}')">🗑</button></div>`;
@@ -5366,7 +5387,7 @@ function buscarParaVincular() {
       let celda;
       if (yaEsta) celda = `<div class="estado-ok">✔ Ya en este código</div>`;
       else celda = `<button class="verde" style="padding:6px 10px; font-size:12px;" onclick="guardarVinculo('${p.sku.replace(/'/g, "\\'")}')">🔗 Asignar</button>`;
-      return `<tr class="resultado ${yaEsta ? 'ya-vinculado' : ''}"><td>${p.sku}</td><td>${p.descripcion}</td><td style="text-align:center;">${celda}</td></tr>`;
+      return `<tr class="resultado ${yaEsta ? 'ya-vinculado' : ''}"><td>${esc(p.sku)}</td><td>${esc(p.descripcion)}</td><td style="text-align:center;">${celda}</td></tr>`;
     }).join('') + '</tbody></table>';
 }
 function guardarVinculo(sku) {
@@ -5382,7 +5403,7 @@ function guardarVinculo(sku) {
   sincronizarVinculosAuto();
   const prod = buscarProductoPorSku(sku);
   const ed = document.getElementById('exitoFullscreenDetalle');
-  if (ed) ed.innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${codigo}</div><div style="opacity:.8; font-size:13px;">AGREGADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9;">' + prod.descripcion + '</div>' : ''}<div style="font-size:11px; opacity:.9; margin-top:8px;">@${usuarioLogueado}</div>`;
+  if (ed) ed.innerHTML = `<div style="opacity:.8; font-size:13px;">CÓDIGO</div><div style="font-size:18px; margin:8px 0;">${esc(codigo)}</div><div style="opacity:.8; font-size:13px;">AGREGADO A</div><div style="font-size:18px; font-weight:bold; margin-top:8px;">${sku}</div>${prod ? '<div style="font-size:12px; opacity:.9;">' +esc(prod.descripcion)+ '</div>' : ''}<div style="font-size:11px; opacity:.9; margin-top:8px;">@${usuarioLogueado}</div>`;
   const ef = document.getElementById('exitoFullscreen'); if (ef) ef.classList.add('show');
   setTimeout(() => {
     const ef2 = document.getElementById('exitoFullscreen'); if (ef2) ef2.classList.remove('show');
@@ -5598,7 +5619,7 @@ function renderPedido() {
       const existTxt = (exist !== null) ? exist : '—';
       const totalPz = p.cantidad + (exist !== null ? exist : 0);
       const claseExist = (exist !== null && exist < 0) ? 'color:#c0392b; font-weight:bold;' : '';
-      return `<tr><td>${p.sku}</td><td>${p.descripcion} ${ob}</td>
+      return `<tr><td>${esc(p.sku)}</td><td>${esc(p.descripcion)} ${ob}</td>
         <td><input class="cant" type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)"></td>
         <td style="text-align:center; font-family:monospace; ${claseExist}">${existTxt}</td>
         <td style="text-align:center; font-family:monospace; font-weight:bold; color:#1a3a6b;">${totalPz}</td>
@@ -5619,9 +5640,9 @@ function renderPedido() {
       const totalPz = p.cantidad + (exist !== null ? exist : 0);
       const estiloExist = (exist !== null && exist < 0) ? 'color:#c0392b; font-weight:bold; background:#fee;' : '';
       return `<div class="pedido-card">
-        <div class="pedido-card-top"><div class="pedido-card-sku">${p.sku}</div>
+        <div class="pedido-card-top"><div class="pedido-card-sku">${esc(p.sku)}</div>
           <button class="btn-x" onclick="eliminar(${idxOriginal})">X</button></div>
-        <div class="pedido-card-desc">${p.descripcion} ${ob}</div>
+        <div class="pedido-card-desc">${esc(p.descripcion)} ${ob}</div>
         <div class="pedido-card-row">
           <div class="pedido-card-field"><label>Pido</label>
             <input type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)"></div>
@@ -5755,5 +5776,24 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.addEventListener('click', () => { getAudioCtx(); }, { once: true });
 });
 </script>
+<style>
+button{min-height:40px} input,select,textarea{font-size:16px} :focus-visible{outline:2px solid #1a3a6b;outline-offset:2px}
+body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+#estadoRed{position:fixed;left:8px;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:60;font:600 11px system-ui,sans-serif;padding:5px 10px;border-radius:99px;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.2)}
+#estadoRed.ok{color:#15803d}#estadoRed.sync{color:#b45309}#estadoRed.off{color:#b91c1c}
+</style>
+<script>
+(function(){
+ const APP_VERSION='2.1.0';
+ const pill=document.createElement('div');pill.id='estadoRed';document.body.appendChild(pill);
+ function upd(){let n=0;try{n=JSON.parse(localStorage.getItem('fc_cola_conteos_v1')||'[]').length}catch(e){}
+  const on=navigator.onLine;pill.className=on&&!n?'ok':(on?'sync':'off');
+  pill.textContent=(on?'● En línea':'● Sin conexión')+(n?' · '+n+' por sincronizar':'');pill.title='FC-Relma v'+APP_VERSION}
+ ['online','offline'].forEach(e=>window.addEventListener(e,upd));setInterval(upd,4000);upd();
+ let last=0;function err(m){const t=Date.now();if(t-last<5000)return;last=t;console.error(m);try{toast('⚠️ Ocurrió un error. Si se repite, avisa al administrador.','error')}catch(e){}}
+ window.addEventListener('error',e=>err(e.message));window.addEventListener('unhandledrejection',e=>err(e.reason));
+})();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}</script>
 </body>
 </html>
