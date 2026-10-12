@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a3a6b">
 <title>FC-Relma — Pedidos · Inventario · Vínculos</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-<script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3.11.0/dist/email.min.js"></script>
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -278,9 +279,7 @@
     <div class="login-error" id="loginError"></div>
     <button type="button" class="gris" style="width:100%; margin-top:10px; font-size:13px;"
             onclick="abrirRecuperar()">🆘 Olvidé mi contraseña</button>
-    <p class="small" style="text-align:center; margin-top:20px;">
-      Usuario default: <b>admin</b> / <b>admin123</b>
-    </p>
+    
   </div>
 </div>
 
@@ -861,6 +860,7 @@
     <label class="small" style="display:block; margin-top:10px;">Correo</label><input type="email" id="userEmail">
     <label class="small" style="display:block; margin-top:10px;" id="labelUserPassword">Contraseña</label>
     <input type="password" id="userPassword">
+    <div class="permiso-check" style="border:2px solid #e67e22;border-radius:8px;padding:8px;margin-top:12px;background:#fff7ed"><input type="checkbox" id="esAdminUsuario"><label for="esAdminUsuario" style="color:#7a4a00"><b>👑 Es administrador</b> <span class="small">(marca todos los permisos)</span></label></div>
     <label class="small" style="display:block; margin-top:14px;">Pestañas permitidas</label>
     <div class="permiso-check"><input type="checkbox" id="permPedido" checked><label for="permPedido">🛒 Pedido</label></div>
     <div class="permiso-check"><input type="checkbox" id="permInventario"><label for="permInventario">📦 Inventario</label></div>
@@ -2401,6 +2401,7 @@ setInterval(vaciarColaConteos, 15000);
 
 async function registrarConteoIndividual(sesionId, sku, cantidad, modo) {
   // modo: 'reemplazar' | 'sumar'. Si no hay red, el conteo queda en cola local y se sube solo.
+  { const se = sesionesActuales.find(x => x.id === sesionId); if (se && se.estado === 'cerrada') { toast('🔒 La sesión está cerrada','error'); return false; } }
   const r = { sesionId, sku, cantidad, modo, usuario: usuarioLogueado, dispositivo: detectarDispositivoLocal() };
   if (!supabaseClient) { const c=_colaConteos(); c.push(r); _guardarCola(c); toast('Sin conexión: conteo guardado en el equipo','warn'); return true; }
   try {
@@ -2623,6 +2624,150 @@ async function abrirSesion(id) {
     await cargarListaSesiones();
   } catch (e) { alert('Error: ' + e.message); }
 }
+
+/* ===== SESIÓN 3.3: terminé mi zona · estatus · cierre · reportes ===== */
+function _esAdminSesion(){ const u = usuarios[usuarioLogueado]; return usuarioLogueado === 'admin' || !!(u && u.permisos && u.permisos.ajustes); }
+async function _asigFresca(id){ const { data, error } = await supabaseClient.from('sesiones_conteo').select('asignaciones').eq('id', id).single(); if (error) throw error; return data.asignaciones || {}; }
+async function marcarTerminado(){
+  const s = sesionActivaUsuario; if (!s || !supabaseClient) return;
+  try {
+    const asig = await _asigFresca(s.id); const mia = { ...(asig[usuarioLogueado] || {}) };
+    if (!mia.terminado && !confirm('¿Avisar que terminaste tu zona?')) return;
+    mia.terminado = !mia.terminado; asig[usuarioLogueado] = mia;
+    const { error } = await supabaseClient.from('sesiones_conteo').update({ asignaciones: asig }).eq('id', s.id);
+    if (error) throw error;
+    s.asignaciones = asig; toast(mia.terminado ? '✅ Avisaste que terminaste tu zona' : '↩️ Zona reabierta'); renderBannerSesion();
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+function _exSku(p){ return Number(p.exis ?? p.existencia ?? p.exist) || 0; }
+async function toggleDashboard(id){
+  const box = document.getElementById('invDashSesion'); if (!box) return;
+  if (box.style.display === 'block') { box.style.display = 'none'; return; }
+  box.style.display = 'block'; box.innerHTML = '⏳ Cargando…';
+  try {
+    await cargarListaSesiones();
+    const s = sesionesActuales.find(x => x.id === id); if (!s) { box.textContent = 'Sesión no encontrada'; return; }
+    const ap = await bajarConteosIndividuales(id), snap = s.snapshot_base || [], tam = s.pagina_tamano || 200;
+    const hechos = new Set(ap.map(a => a.sku));
+    const filas = Object.entries(s.asignaciones || {}).map(([u, a]) => {
+      const skus = snap.slice((a.inicio - 1) * tam, Math.min(a.fin * tam, snap.length)).map(x => x.sku);
+      const c = skus.filter(k => hechos.has(k)).length, pct = skus.length ? Math.round(c / skus.length * 100) : 0;
+      return `<tr><td>${esc(u)} ${a.terminado ? '✅' : ''}</td><td>${a.inicio}-${a.fin}</td><td>${c}/${skus.length}</td><td><b>${pct}%</b></td></tr>`;
+    }).join('');
+    const tot = snap.length, pt = tot ? Math.round(hechos.size / tot * 100) : 0;
+    box.innerHTML = `<div style="background:#fff;border:1px solid #cce5ff;border-radius:8px;padding:8px;overflow-x:auto"><div class="small"><b>Total sesión:</b> ${hechos.size}/${tot} (${pt}%)</div><table style="width:100%;font-size:12px;margin-top:6px"><tr><th align="left">Usuario</th><th align="left">Págs.</th><th align="left">Contados</th><th align="left">%</th></tr>${filas}</table></div>`;
+  } catch (e) { box.textContent = 'Error: ' + e.message; }
+}
+async function reporteSesion(id, prelim){
+  const s = sesionesActuales.find(x => x.id === id) || sesionActivaUsuario; if (!s) return;
+  const ap = await bajarConteosIndividuales(s.id), snap = s.snapshot_base || [], por = {};
+  ap.forEach(a => { (por[a.sku] = por[a.sku] || []).push(a); });
+  const res = snap.map(p => { const l = por[p.sku] || [], t = l.reduce((x, a) => x + (Number(a.cantidad) || 0), 0), ex = _exSku(p);
+    return [p.sku, p.descripcion || '', ex, l.length ? t : '', l.length ? t - ex : '', [...new Set(l.map(a => a.usuario))].join(', ')]; });
+  const wb = XLSX.utils.book_new(), add = (n, aoa) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), n);
+  const top = [[(prelim ? '⚠ PRELIMINAR · ' : '') + 'Sesión: ' + s.nombre], ['Generado', new Date().toLocaleString('es-MX')], [prelim ? 'PRELIMINAR — la sesión sigue abierta, los datos pueden cambiar' : 'Reporte final'], []];
+  add('Resumen', [...top, ['Productos', snap.length], ['Contados', res.filter(r => r[3] !== '').length], ['Faltantes', res.filter(r => r[3] === '').length], ['Con diferencia', res.filter(r => r[4] !== '' && r[4] !== 0).length], [], ['SKU', 'Descripción', 'Sistema', 'Contado', 'Diferencia', 'Contadores'], ...res]);
+  const us = {}; ap.forEach(a => { const u = us[a.usuario] = us[a.usuario] || { n: 0, q: 0 }; u.n++; u.q += Number(a.cantidad) || 0; });
+  add('Por usuario', [['Usuario', 'Aportaciones', 'Unidades', 'Terminó su zona'], ...Object.entries(us).map(([u, v]) => [u, v.n, v.q, ((s.asignaciones || {})[u] || {}).terminado ? 'Sí' : 'No'])]);
+  add('Faltantes', [['SKU', 'Descripción', 'Sistema'], ...res.filter(r => r[3] === '').map(r => [r[0], r[1], r[2]])]);
+  add('Aportaciones', [['Fecha', 'SKU', 'Usuario', 'Cantidad', 'Dispositivo'], ...ap.map(a => [new Date(a.timestamp).toLocaleString('es-MX'), a.sku, a.usuario, a.cantidad, a.dispositivo || ''])]);
+  XLSX.writeFile(wb, (prelim ? 'PRELIMINAR_' : 'FINAL_') + 'sesion_' + String(s.nombre).replace(/[^A-Za-z0-9]/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+async function cerrarSesionConteo(id){
+  if (!_esAdminSesion() || !supabaseClient) return;
+  try {
+    await cargarListaSesiones(); const s = sesionesActuales.find(x => x.id === id); if (!s) return;
+    const ap = await bajarConteosIndividuales(id), hechos = new Set(ap.map(a => a.sku)), snap = s.snapshot_base || [];
+    const falt = snap.filter(p => !hechos.has(p.sku)).length;
+    if (falt && !confirm('⚠️ Faltan ' + falt + ' de ' + snap.length + ' productos por contar.\n¿Quieres cerrar de todos modos?')) return;
+    if (confirm('¿Descargar el reporte PRELIMINAR antes de cerrar?')) await reporteSesion(id, true);
+    if (!confirm('¿Cerrar la sesión definitivamente? Nadie podrá seguir contando.')) return;
+    const { error } = await supabaseClient.from('sesiones_conteo').update({ estado: 'cerrada', fecha_cierre: new Date().toISOString() }).eq('id', id);
+    if (error) throw error;
+    toast('🔒 Sesión cerrada'); await cargarListaSesiones(); await reporteSesion(id, false); renderBannerSesion();
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+function _extraBanner(){
+  const a = document.getElementById('invSesionAcciones'); if (!a) return;
+  const s = sesionActivaUsuario || sesionesActuales.find(x => x.sucursal_id === sucursalActual && (x.estado === 'borrador' || x.estado === 'abierta')); if (!s) return;
+  let h2 = '';
+  if (sesionActivaUsuario) { const t = ((s.asignaciones || {})[usuarioLogueado] || {}).terminado; h2 += `<button class="verde" style="width:100%;margin-top:6px" onclick="marcarTerminado()">${t ? '↩️ Reabrir mi zona' : '✅ Terminé mi zona'}</button>`; }
+  if (_esAdminSesion() && s.estado === 'abierta') h2 += `<button class="gris" style="width:100%;margin-top:6px" onclick="toggleDashboard('${s.id}')">📊 Ver estatus</button><div id="invDashSesion" style="display:none;margin-top:6px"></div><button class="gris" style="width:100%;margin-top:6px" onclick="reporteSesion('${s.id}',true)">📥 Reporte preliminar</button><button class="gris" style="width:100%;margin-top:6px" onclick="reasignarSesion('${s.id}')">🔁 Reasignar páginas</button><button class="gris" style="width:100%;margin-top:6px;color:#c0392b;font-weight:bold" onclick="cerrarSesionConteo('${s.id}')">🔒 Cerrar sesión de conteo</button>`;
+  a.insertAdjacentHTML('beforeend', h2);
+}
+function _ciego(){ return !!(sesionActivaUsuario && !_esAdminSesion()); }
+function _vExis(p){ return _ciego() ? '•••' : p.exis; }
+/* ===== A) Administradores ===== */
+const _PERM_IDS = ['permPedido','permInventario','permVincular','permBaseDatos','permAjustes'];
+document.addEventListener('change', e => { if (e.target && e.target.id === 'esAdminUsuario') _PERM_IDS.forEach(id => { const c = document.getElementById(id); if (c) c.checked = e.target.checked; }); });
+const _abrirMU = abrirModalUsuario;
+abrirModalUsuario = function(u){ _abrirMU(u); const c = document.getElementById('esAdminUsuario'); if (c) c.checked = _PERM_IDS.every(id => document.getElementById(id).checked); };
+const _guardarU = guardarUsuario;
+guardarUsuario = function(){
+  const ed = modoEdicionUsuario && usuarios[modoEdicionUsuario];
+  if (ed && ed.permisos.ajustes && !document.getElementById('permAjustes').checked && Object.values(usuarios).filter(v => v.permisos.ajustes).length <= 1) { alert('No puedes quitar al último administrador.'); return; }
+  _guardarU();
+};
+const _renderU = renderUsuarios;
+renderUsuarios = function(){
+  _renderU(); const cont = document.getElementById('listaUsuarios'); if (!cont) return;
+  const nAdm = Object.values(usuarios).filter(v => v.permisos.ajustes).length;
+  cont.querySelectorAll('.usuario-row').forEach(row => {
+    const b = row.querySelector('button[onclick^="abrirModalUsuario"]'); if (!b) return;
+    const user = b.getAttribute('onclick').match(/'([^']+)'/)[1], u = usuarios[user]; if (!u) return;
+    const adm = !!u.permisos.ajustes;
+    if (adm) { row.style.border = '2px solid #e67e22'; const n = row.querySelector('.nombre'); if (n) n.insertAdjacentHTML('beforeend', ' <span style="background:#e67e22;color:#fff;border-radius:6px;padding:1px 6px;font-size:11px">👑 ADMIN</span>'); }
+    const ac = row.querySelector('.acciones'); if (ac) ac.insertAdjacentHTML('afterbegin', `<button onclick="alternarAdmin('${user}')" ${adm && nAdm <= 1 ? 'disabled' : ''}>${adm ? '👑➖' : '👑➕'}</button>`);
+  });
+};
+function alternarAdmin(user){
+  const u = usuarios[user]; if (!u) return;
+  if (u.permisos.ajustes) {
+    if (Object.values(usuarios).filter(v => v.permisos.ajustes).length <= 1) { alert('No puedes quitar al último administrador.'); return; }
+    if (!confirm('¿Quitar permisos de administrador a @' + user + '? Conservará Pedido e Inventario.')) return;
+    u.permisos = { pedido: true, inventario: true, vincular: false, baseDatos: false, ajustes: false };
+  } else {
+    if (!confirm('¿Dar permisos de administrador a @' + user + '?')) return;
+    u.permisos = { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true };
+  }
+  guardarUsuarios(); renderUsuarios(); if (user === usuarioLogueado) aplicarPermisos(); toast('👑 Permisos actualizados');
+}
+/* ===== F) Reasignar páginas (solo no contadas) ===== */
+async function reasignarSesion(id){
+  if (!_esAdminSesion() || !supabaseClient) return;
+  await cargarListaSesiones(); const s = sesionesActuales.find(x => x.id === id); if (!s) return;
+  const ap = await bajarConteosIndividuales(id), snap = s.snapshot_base || [], tam = s.pagina_tamano || 200, tp = Math.max(1, Math.ceil(snap.length / tam));
+  const hechos = new Set(ap.map(a => a.sku)), conPagina = {}; snap.forEach((p, i) => { if (hechos.has(p.sku)) conPagina[Math.floor(i / tam) + 1] = 1; });
+  const asig = s.asignaciones || {}, nombres = [...new Set([...Object.keys(asig), ...Object.entries(usuarios).filter(([k, v]) => v.permisos.inventario).map(([k]) => k)])];
+  const ov = document.createElement('div'); ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:12px';
+  ov.innerHTML = `<div style="background:#fff;border-radius:12px;padding:14px;width:100%;max-width:420px;max-height:85vh;overflow:auto"><h3 style="margin:0 0 4px">🔁 Reasignar páginas</h3><div class="small">Total: ${tp} páginas de ${tam}. Las páginas con conteos no se pueden mover. Deja vacío para quitar la zona.</div>`
+    + nombres.map(u => { const a = asig[u] || {}; return `<div style="display:flex;gap:6px;align-items:center;margin:8px 0"><b style="flex:1;font-size:13px">@${esc(u)}</b><input type="number" min="1" max="${tp}" data-u="${esc(u)}" data-k="i" value="${a.inicio || ''}" style="width:62px"> – <input type="number" min="1" max="${tp}" data-u="${esc(u)}" data-k="f" value="${a.fin || ''}" style="width:62px"></div>`; }).join('')
+    + `<div id="rsErr" style="color:#c0392b;font-size:13px;min-height:18px"></div><div style="display:flex;gap:8px"><button class="gris" style="flex:1" id="rsCancel">Cancelar</button><button class="verde" style="flex:1" id="rsOk">Guardar</button></div></div>`;
+  document.body.appendChild(ov);
+  const err = m => { ov.querySelector('#rsErr').textContent = m; };
+  ov.querySelector('#rsCancel').onclick = () => ov.remove();
+  ov.querySelector('#rsOk').onclick = async () => {
+    const nu = {}; ov.querySelectorAll('[data-u]').forEach(i => { const u = i.dataset.u; (nu[u] = nu[u] || {})[i.dataset.k] = parseInt(i.value); });
+    const res = {}, cub = new Array(tp + 1).fill(null);
+    for (const [u, v] of Object.entries(nu)) {
+      if (isNaN(v.i) && isNaN(v.f)) continue;
+      if (isNaN(v.i) || isNaN(v.f) || v.i < 1 || v.f > tp || v.i > v.f) { err('Rango inválido para @' + u); return; }
+      for (let q = v.i; q <= v.f; q++) { if (cub[q]) { err('Página ' + q + ' traslapada entre @' + cub[q] + ' y @' + u); return; } cub[q] = u; }
+      res[u] = { ...(asig[u] || {}), inicio: v.i, fin: v.f };
+    }
+    for (let q = 1; q <= tp; q++) {
+      if (!cub[q]) { err('La página ' + q + ' quedó sin asignar'); return; }
+      if (conPagina[q]) { const d = Object.entries(asig).find(([k, a]) => q >= a.inicio && q <= a.fin); if (d && cub[q] !== d[0]) { err('La página ' + q + ' ya tiene conteos y no se puede mover'); return; } }
+    }
+    try {
+      const { error } = await supabaseClient.from('sesiones_conteo').update({ asignaciones: res }).eq('id', id);
+      if (error) throw error;
+      ov.remove(); toast('✅ Páginas reasignadas. Cada usuario debe salir y volver a unirse a la sesión.'); await cargarListaSesiones(); renderBannerSesion();
+    } catch (e) { err('Error: ' + e.message); }
+  };
+}
+const _renderBannerBase = renderBannerSesion;
+renderBannerSesion = function(){ _renderBannerBase(); try { _extraBanner(); } catch (e) { console.error(e); } };
 
 // Renderizar la lista
 function renderSesiones() {
@@ -3327,9 +3472,9 @@ function renderUsuarios() {
     const sucs = (u.sucursalesPermitidas || []).map(id => getSucursal(id)?.abrev || id).join(', ');
     return `<div class="usuario-row">
       <div class="info">
-        <div class="nombre">${u.nombre || user} ${soyYo ? '(tú)' : ''}</div>
+        <div class="nombre">${esc(u.nombre || user)} ${soyYo ? '(tú)' : ''}</div>
         <div class="small" style="font-family:monospace;">@${user}</div>
-        ${u.email ? '<div class="small">📧 ' + u.email + '</div>' : ''}
+        ${u.email ? '<div class="small">📧 ' + esc(u.email) + '</div>' : ''}
         <div class="small">Pestañas: ${chips || '—'}</div>
         <div class="small">🏢 ${sucs || '—'}</div>
       </div>
@@ -4044,7 +4189,7 @@ function escanearPorPieza(codigo) {
     feedbackAlerta();
     superaTotalPendiente = { producto: p, cantidadNueva: nuevo, ajustado, cantidadAnterior: actual };
     const el = document.getElementById('superaTotalInfo');
-    if (el) el.innerHTML = `<b>${esc(p.sku)}</b><br>${esc(p.descripcion)}<br><br>Ya tienes <b>${actual}</b> contado(s) de un total esperado de <b>${ajustado}</b>.<br>Estás intentando guardar <b>${nuevo}</b>.<br><br>¿Es correcto?`;
+    if (el) el.innerHTML = `<b>${esc(p.sku)}</b><br>${esc(p.descripcion)}<br><br>Ya tienes <b>${actual}</b> contado(s) ${_ciego() ? '' : 'de un total esperado de <b>' + ajustado + '</b>'}.<br>Estás intentando guardar <b>${nuevo}</b>.<br><br>¿Es correcto?`;
     const m = document.getElementById('modalSuperaTotal'); if (m) m.classList.add('activo');
     return;
   }
@@ -4116,7 +4261,7 @@ function buscarProductoParaVenta() {
   cont.innerHTML = '<table><thead><tr><th>SKU</th><th>Descripción</th><th>Exis</th><th></th></tr></thead><tbody>' +
     res.map(p => `<tr class="resultado" onclick="seleccionarParaVenta('${p.sku.replace(/'/g, "\\'")}')">
       <td>${esc(p.sku)}</td><td>${esc(p.descripcion)}</td>
-      <td style="text-align:right; font-family:monospace;">${p.exis}</td>
+      <td style="text-align:right; font-family:monospace;">${_vExis(p)}</td>
       <td style="text-align:center;">→</td></tr>`).join('') + '</tbody></table>';
 }
 function teclaVenta(e) {
@@ -4149,7 +4294,7 @@ function seleccionarParaVenta(sku) {
   if (vi) vi.innerHTML = `
     <div style="font-weight:bold; color:#1a3a6b; font-size:15px;">${esc(p.sku)}</div>
     <div class="small" style="margin-top:4px;">${esc(p.descripcion)}</div>
-    <div class="small" style="margin-top:6px;">Exis: <b>${p.exis}</b> · Vendido hoy: <b>${vendido}</b></div>
+    <div class="small" style="margin-top:6px;">Exis: <b>${_vExis(p)}</b> · Vendido hoy: <b>${vendido}</b></div>
     ${yaContado ? '<div class="small" style="margin-top:6px; color:#1e8449;">✅ Ya contado (' + contado + ')</div>' : '<div class="small" style="margin-top:6px; color:#e67e22;">⚠️ Aún no contado</div>'}`;
 
   const vca = document.getElementById('ventaCuadradoAviso');
@@ -4347,7 +4492,7 @@ function invBuscar() {
       const badgeManual = p.manual ? ' <span class="badge badge-manual">🆕</span>' : '';
       return `<tr class="resultado" data-idx="${i}" onclick="invSeleccionar(${i})">
         <td>${esc(p.sku)}${badgeManual}${chip}${chipHora}</td><td>${esc(p.descripcion)}</td>
-        <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}</td>
+        <td style="text-align:right; font-family:monospace;" class="${claseExis}">${_vExis(p)}</td>
         <td style="text-align:center;">→</td></tr>`;
     }).join('') + '</tbody></table>';
   invIndiceSel = 0;
@@ -4458,7 +4603,7 @@ function abrirModalConteo(p) {
   const cs = document.getElementById('conteoSistema');
   if (cs) cs.innerHTML = `
     <div class="small" style="color:#666;">SISTEMA DICE QUE HAY</div>
-    <div style="font-size:32px; font-weight:bold; ${claseExis}">${p.exis}</div>
+    <div style="font-size:32px; font-weight:bold; ${claseExis}">${_vExis(p)}</div>
     ${vendido > 0 ? '<div class="small" style="color:#e67e22; margin-top:4px;">Ajustado por ventas: <b>' + ajustado + '</b></div>' : ''}
     ${p.exis < 0 ? '<div class="small" style="color:#c0392b; font-weight:bold;">⚠️ NEGATIVO</div>' : ''}
     ${contado !== undefined ? '<div class="small" style="margin-top:6px; color:#1e8449;">Contado antes: <b>' + contado + '</b></div>' : ''}`;
@@ -4673,7 +4818,7 @@ function renderInventario() {
     return `<tr class="${claseRow}">
       <td style="font-family:monospace;">${esc(p.sku)}${badgeManual}${alerta}</td>
       <td class="small">${esc(p.descripcion)}</td>
-      <td style="text-align:right; font-family:monospace;" class="${claseExis}">${p.exis}</td>
+      <td style="text-align:right; font-family:monospace;" class="${claseExis}">${_vExis(p)}</td>
       <td style="text-align:right; font-family:monospace;">${vendido || 0}</td>
       <td style="text-align:right; font-family:monospace;">${ajustado}</td>
       <td style="text-align:right; font-family:monospace; font-weight:bold;">${c}</td>
@@ -5784,7 +5929,7 @@ body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area
 </style>
 <script>
 (function(){
- const APP_VERSION='2.1.0';
+ const APP_VERSION='2.4.0';
  const pill=document.createElement('div');pill.id='estadoRed';document.body.appendChild(pill);
  function upd(){let n=0;try{n=JSON.parse(localStorage.getItem('fc_cola_conteos_v1')||'[]').length}catch(e){}
   const on=navigator.onLine;pill.className=on&&!n?'ok':(on?'sync':'off');
@@ -5794,6 +5939,7 @@ body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area
  window.addEventListener('error',e=>err(e.message));window.addEventListener('unhandledrejection',e=>err(e.reason));
 })();
 </script>
+
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}</script>
 </body>
 </html>
