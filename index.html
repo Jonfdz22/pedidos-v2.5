@@ -2695,8 +2695,8 @@ function _extraBanner(){
   if (_esAdminSesion() && s.estado === 'abierta') h2 += `<button class="gris" style="width:100%;margin-top:6px" onclick="toggleDashboard('${s.id}')">📊 Ver estatus</button><div id="invDashSesion" style="display:none;margin-top:6px"></div><button class="gris" style="width:100%;margin-top:6px" onclick="reporteSesion('${s.id}',true)">📥 Reporte preliminar</button><button class="gris" style="width:100%;margin-top:6px" onclick="reasignarSesion('${s.id}')">🔁 Reasignar páginas</button><button class="gris" style="width:100%;margin-top:6px;color:#c0392b;font-weight:bold" onclick="cerrarSesionConteo('${s.id}')">🔒 Cerrar sesión de conteo</button>`;
   a.insertAdjacentHTML('beforeend', h2);
 }
-function _ciego(){ return !!(sesionActivaUsuario && !_esAdminSesion()); }
-function _vExis(p){ return _ciego() ? '•••' : p.exis; }
+ function _ciego(){ return false; }
+function _vExis(p){ return p.exis; }
 /* ===== A) Administradores ===== */
 const _PERM_IDS = ['permPedido','permInventario','permVincular','permBaseDatos','permAjustes'];
 document.addEventListener('change', e => { if (e.target && e.target.id === 'esAdminUsuario') _PERM_IDS.forEach(id => { const c = document.getElementById(id); if (c) c.checked = e.target.checked; }); });
@@ -4189,7 +4189,7 @@ function escanearPorPieza(codigo) {
     feedbackAlerta();
     superaTotalPendiente = { producto: p, cantidadNueva: nuevo, ajustado, cantidadAnterior: actual };
     const el = document.getElementById('superaTotalInfo');
-    if (el) el.innerHTML = `<b>${esc(p.sku)}</b><br>${esc(p.descripcion)}<br><br>Ya tienes <b>${actual}</b> contado(s) ${_ciego() ? '' : 'de un total esperado de <b>' + ajustado + '</b>'}.<br>Estás intentando guardar <b>${nuevo}</b>.<br><br>¿Es correcto?`;
+    if (el) el.innerHTML = `<b>${esc(p.sku)}</b><br>${esc(p.descripcion)}<br><br>Ya tienes <b>${actual}</b> contado(s) de un total esperado de <b>${ajustado}</b>.<br>Estás intentando guardar <b>${nuevo}</b>.<br><br>¿Es correcto?`;
     const m = document.getElementById('modalSuperaTotal'); if (m) m.classList.add('activo');
     return;
   }
