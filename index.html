@@ -5008,13 +5008,67 @@ function exportarInventario() {
 const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const tieneBarcodeDetector = 'BarcodeDetector' in window;
 
+ function _esIOSReal() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function abrirCamaraNativaIOS() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.setAttribute('capture', 'environment');
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    document.body.removeChild(input);
+    if (!file) return;
+    
+    toast('⏳ Procesando imagen...');
+    try {
+      const reader = new ZXing.BrowserMultiFormatReader();
+      const imgUrl = URL.createObjectURL(file);
+      const result = await reader.decodeFromImageUrl(imgUrl);
+      URL.revokeObjectURL(imgUrl);
+      
+      const codigo = result.getText();
+      vibrar(80);
+      
+      if (camaraOrigen === 'vincular') { 
+        setVal('inputCodigo', codigo); 
+        capturarCodigo(); 
+      } else if (camaraOrigen === 'inventario') { 
+        if (modoEscanearPz) escanearPorPieza(codigo); 
+        else procesarCodigoInv(codigo); 
+      } else { 
+        procesarCodigoEnPedido(codigo); 
+      }
+    } catch (err) {
+      console.error('Error leyendo imagen:', err);
+      alert('No se pudo leer el código.\n\nTips:\n• Acerca la cámara al código\n• Busca buena iluminación\n• Mantén el código completo dentro de la foto\n• Evita reflejos');
+    }
+  };
+  
+  input.click();
+}
+
 async function abrirCamara(origen) {
     camaraOrigen = origen;
+    
+    // ⚡ iOS: usar cámara nativa (getUserMedia está bloqueado por Apple)
+    if (_esIOSReal()) {
+      abrirCamaraNativaIOS();
+      return;
+    }
+    
+    // Android / Desktop: usar html5-qrcode normal
     const m = document.getElementById('modalCamara'); 
     if (m) m.classList.add('activo');
     const cont = document.getElementById('reader');
     if (!cont) return;
-    cont.innerHTML = ''; // Limpiar cualquier video anterior
+    cont.innerHTML = '';
 
     // Función que se ejecuta cuando se detecta un código con éxito
     const onScanSuccess = (decodedText, decodedResult) => {
