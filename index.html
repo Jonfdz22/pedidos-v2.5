@@ -2691,7 +2691,7 @@ function _extraBanner(){
   const a = document.getElementById('invSesionAcciones'); if (!a) return;
   const s = sesionActivaUsuario || sesionesActuales.find(x => x.sucursal_id === sucursalActual && (x.estado === 'borrador' || x.estado === 'abierta')); if (!s) return;
   let h2 = '';
-  if (sesionActivaUsuario) { const t = ((s.asignaciones || {})[usuarioLogueado] || {}).terminado; h2 += `<button class="verde" style="width:100%;margin-top:6px" onclick="marcarTerminado()">${t ? '↩️ Reabrir mi zona' : '✅ Terminé mi zona'}</button>`; }
+  if (sesionActivaUsuario && s.estado !== 'cerrada') { const t = ((s.asignaciones || {})[usuarioLogueado] || {}).terminado; h2 += `<button class="verde" style="width:100%;margin-top:6px" onclick="marcarTerminado()">${t ? '↩️ Reabrir mi zona' : '✅ Terminé mi zona'}</button>`; }
   if (_esAdminSesion() && s.estado === 'abierta') h2 += `<button class="gris" style="width:100%;margin-top:6px" onclick="toggleDashboard('${s.id}')">📊 Ver estatus</button><div id="invDashSesion" style="display:none;margin-top:6px"></div><button class="gris" style="width:100%;margin-top:6px" onclick="reporteSesion('${s.id}',true)">📥 Reporte preliminar</button><button class="gris" style="width:100%;margin-top:6px" onclick="reasignarSesion('${s.id}')">🔁 Reasignar páginas</button><button class="gris" style="width:100%;margin-top:6px;color:#c0392b;font-weight:bold" onclick="cerrarSesionConteo('${s.id}')">🔒 Cerrar sesión de conteo</button>`;
   a.insertAdjacentHTML('beforeend', h2);
 }
@@ -2699,7 +2699,15 @@ function _extraBanner(){
 function _vExis(p){ return p.exis; }
 /* ===== A) Administradores ===== */
 const _PERM_IDS = ['permPedido','permInventario','permVincular','permBaseDatos','permAjustes'];
-document.addEventListener('change', e => { if (e.target && e.target.id === 'esAdminUsuario') _PERM_IDS.forEach(id => { const c = document.getElementById(id); if (c) c.checked = e.target.checked; }); });
+document.addEventListener('change', e => {
+  if (!e.target) return;
+  if (e.target.id === 'esAdminUsuario') {
+    _PERM_IDS.forEach(id => { const c = document.getElementById(id); if (c) c.checked = e.target.checked; });
+  } else if (_PERM_IDS.includes(e.target.id)) {
+    const adm = document.getElementById('esAdminUsuario');
+    if (adm) adm.checked = _PERM_IDS.every(id => { const c = document.getElementById(id); return c && c.checked; });
+  }
+});;
 const _abrirMU = abrirModalUsuario;
 abrirModalUsuario = function(u){ _abrirMU(u); const c = document.getElementById('esAdminUsuario'); if (c) c.checked = _PERM_IDS.every(id => document.getElementById(id).checked); };
 const _guardarU = guardarUsuario;
