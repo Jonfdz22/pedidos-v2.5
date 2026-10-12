@@ -5069,9 +5069,24 @@ async function abrirCamara(origen) {
   status.textContent = '⏳ Iniciando cámara…';
   cont.appendChild(status);
   try {
-    camaraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+    camaraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { min: 640, ideal: 1280 },
+        height: { min: 480, ideal: 720 },
+        focusMode: 'continuous'
+      },
+      audio: false
+    });
     video.srcObject = camaraStream;
     await video.play();
+    // Esperar a que el video tenga dimensiones reales (crítico en iOS)
+    await new Promise(resolve => {
+      if (video.videoWidth > 0) return resolve();
+      const check = () => { if (video.videoWidth > 0) resolve(); else setTimeout(check, 50); };
+      check();
+      setTimeout(resolve, 3000);
+    });
     status.textContent = '🔍 Apunta al código…';
     if (tieneBarcodeDetector && !esIOS) iniciarBarcodeDetector(video, status);
     else if (typeof ZXing !== 'undefined') iniciarZXing(video, status);
@@ -5097,16 +5112,44 @@ function iniciarBarcodeDetector(video, status) {
 function iniciarZXing(video, status) {
   try {
     const hints = new Map();
-    const formats = [ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E, ZXing.BarcodeFormat.CODABAR, ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.QR_CODE];
+    const formats = [
+      ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.CODABAR, ZXing.BarcodeFormat.ITF,
+      ZXing.BarcodeFormat.QR_CODE
+    ];
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
     hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    hints.set(ZXing.DecodeHintType.ALSO_INVERTED, true);
+
     const reader = new ZXing.BrowserMultiFormatReader(hints);
     zxingReader = reader;
-    reader.decodeFromVideoElement(video, (result, err) => { if (result) onCamaraDetecta(result.getText()); });
+
+    // En iOS, usamos decodeFromVideoElement con reintentos manuales
+    // porque la decodificación continua de ZXing falla si el video no está listo
+    let activo = true;
+    const decodificar = async () => {
+      if (!activo || !video.videoWidth) { if (activo) setTimeout(decodificar, 100); return; }
+      try {
+        const result = await reader.decodeOnceFromVideoElement(video);
+        if (result && activo) {
+          activo = false;
+          onCamaraDetecta(result.getText());
+          return;
+        }
+      } catch (e) { /* sin lectura, reintentar */ }
+      if (activo) setTimeout(decodificar, 100);
+    };
+    decodificar();
+
+    // Guardar flag para detener
+    window._zxingActivo = () => { activo = false; };
   } catch (e) { status.textContent = '⚠️ Error al iniciar el lector'; }
 }
 function cerrarCamara() {
   if (camaraLoop) { clearInterval(camaraLoop); camaraLoop = null; }
+  if (window._zxingActivo) { try { window._zxingActivo(); } catch(e) {} window._zxingActivo = null; }
   if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
   if (camaraStream) { camaraStream.getTracks().forEach(t => t.stop()); camaraStream = null; }
   const m = document.getElementById('modalCamara'); if (m) m.classList.remove('activo');
