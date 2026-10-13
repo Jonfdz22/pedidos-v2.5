@@ -3946,6 +3946,16 @@ function actualizarIndicadorOrdenInv() {
 let ventaRapidaActual = [];
 let ventaRapidaMetodo = 'efectivo';
 
+function ventaRapidaGuardar() {
+  try { localStorage.setItem('venta_rapida_actual_' + sucursalActual, JSON.stringify(ventaRapidaActual)); } catch(e) {}
+}
+function ventaRapidaCargar() {
+  try {
+    const raw = localStorage.getItem('venta_rapida_actual_' + sucursalActual);
+    ventaRapidaActual = raw ? JSON.parse(raw) : [];
+  } catch(e) { ventaRapidaActual = []; }
+}
+
 function getVentasRapidas() {
   const key = 'ventas_rapidas_' + sucursalActual;
   try { const raw = localStorage.getItem(key); if (raw) return JSON.parse(raw); } catch(e) {}
@@ -3965,6 +3975,7 @@ function guardarVentasRapidas(arr) {
 
 function ventaRapidaInit() {
   setText('ventasSucursalNombre', getSucursalActual()?.nombre || '');
+  ventaRapidaCargar();
   ventaRapidaRender();
 }
 
@@ -4002,12 +4013,60 @@ function ventaRapidaTecla(e) {
   ventaRapidaAgregar(sku);
 }
 
+function buscarPreciosDeSku(sku) {
+  const s = String(sku).toUpperCase();
+  const promo = productos.find(x => x.sku.toUpperCase() === s);
+  const sistema = inventarioBase.find(x => x.sku.toUpperCase() === s);
+  const manual = productosManuales.find(x => x.sku.toUpperCase() === s);
+  return {
+    promo: promo ? { sku: promo.sku, descripcion: promo.descripcion, precio: promo.precio || 0, um: promo.um || detectarUM(promo.sku), fuente: 'PDF' } : null,
+    sistema: sistema ? { sku: sistema.sku, descripcion: sistema.descripcion || '', precio: sistema.precio || 0, um: detectarUM(sistema.sku), fuente: 'Sistema' } : null,
+    manual: manual ? { sku: manual.sku, descripcion: manual.descripcion, precio: manual.precio || 0, um: manual.um || detectarUM(manual.sku), fuente: 'Manual' } : null
+  };
+}
+
 function ventaRapidaAgregar(sku) {
-  const p = buscarProductoPorSku(sku);
+  const precios = buscarPreciosDeSku(sku);
+  const promo = precios.promo;
+  const otro = precios.sistema || precios.manual;
+
+  // Si hay PROMO y hay otro precio distinto → preguntar
+  if (promo && otro && Math.abs(promo.precio - otro.precio) > 0.01) {
+    const usarPromo = confirm(
+      '📢 PROMOCIÓN VIGENTE\n\n' +
+      promo.sku + '\n' +
+      (promo.descripcion || '') + '\n\n' +
+      '🏷️ Promo:   $' + promo.precio.toFixed(2) + '\n' +
+      '📦 Normal:  $' + otro.precio.toFixed(2) + '\n\n' +
+      '[Aceptar]   = Aplicar PROMO ($' + promo.precio.toFixed(2) + ')\n' +
+      '[Cancelar] = Precio NORMAL ($' + otro.precio.toFixed(2) + ')'
+    );
+    const elegido = usarPromo ? promo : otro;
+    _ventaRapidaAgregarProducto(elegido, usarPromo);
+    return;
+  }
+
+  // Solo hay un precio → agregar directo
+  const p = promo || otro;
   if (!p) { feedbackError(); toast('❌ No encontrado: ' + sku, 'error'); return; }
+  _ventaRapidaAgregarProducto(p, !!promo);
+}
+
+function _ventaRapidaAgregarProducto(p, esPromo) {
   const ex = ventaRapidaActual.find(x => x.sku === p.sku);
-  if (ex) ex.cantidad++;
-  else ventaRapidaActual.push({ sku: p.sku, descripcion: p.descripcion || '', precio: p.precio || 0, cantidad: 1, um: p.um || 'PIEZA' });
+  if (ex) {
+    ex.cantidad++;
+  } else {
+    ventaRapidaActual.push({
+      sku: p.sku,
+      descripcion: p.descripcion || '',
+      precio: p.precio || 0,
+      precioOriginal: p.precio || 0,
+      cantidad: 1,
+      um: p.um || 'PIEZA',
+      promocion: !!esPromo
+    });
+  }
   feedbackExito();
   ventaRapidaRender();
   const inp = document.getElementById('ventaRapidaBusqueda');
@@ -4031,7 +4090,7 @@ function ventaRapidaRender() {
         const original = it.precioOriginal || it.precio;
         const tieneDescuento = it.precio < original;
         const estiloPrecio = tieneDescuento ? 'background:#fff3e0; border:1px solid #e67e22;' : '';
-        const avisoDesc = tieneDescuento ? `<div class="small" style="color:#e67e22; font-size:10px;">ant. $${original.toFixed(2)}</div>` : '';
+             const avisoDesc = (tieneDescuento ? `<div class="small" style="color:#e67e22; font-size:10px;">ant. $${original.toFixed(2)}</div>` : '') + (it.promocion ? `<div class="small" style="color:#1e8449; font-size:10px; font-weight:bold;">🏷️ PROMO</div>` : '');
         return `<tr>
           <td style="font-family:monospace; font-size:11px;">${esc(it.sku)}</td>
           <td class="small">${esc(it.descripcion)}${avisoDesc}</td>
@@ -4046,6 +4105,7 @@ function ventaRapidaRender() {
       }).join('') + '</tbody></table></div>';
   }
   if (tot) tot.textContent = '$' + total.toFixed(2);
+  ventaRapidaGuardar();
   ventaRapidaRenderHistorial();
 }
 
@@ -4094,6 +4154,7 @@ function ventaRapidaCancelar() {
   if (!ventaRapidaActual.length) return;
   if (!confirm('¿Cancelar la venta actual? Se perderán ' + ventaRapidaActual.length + ' producto(s).')) return;
   ventaRapidaActual = [];
+  ventaRapidaGuardar();
   ventaRapidaRender();
   toast('🗑 Venta cancelada');
 }
@@ -4191,6 +4252,7 @@ function ventaConfirmar() {
   cerrarModalVentaCobrar();
   ventaMostrarTicket(venta);
   ventaRapidaActual = [];
+  ventaRapidaGuardar();
   ventaRapidaRender();
 }
 
@@ -5607,7 +5669,10 @@ function onCamaraDetecta(codigo) {
   setTimeout(() => {
     if (camaraOrigen === 'vincular') { setVal('inputCodigo', c); capturarCodigo(); }
     else if (camaraOrigen === 'inventario') { if (modoEscanearPz) escanearPorPieza(c); else procesarCodigoInv(c); }
-    else if (camaraOrigen === 'ventas') { ventaRapidaAgregar(c); }
+    else if (camaraOrigen === 'ventas') {
+      const items = skusDeCodigo(c);
+      ventaRapidaAgregar(items.length >= 1 ? items[0].sku : c);
+    }
     else { procesarCodigoEnPedido(c); }
   }, 200);
 }
