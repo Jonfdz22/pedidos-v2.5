@@ -300,6 +300,7 @@
       <button class="tab" id="tabInventario" onclick="cambiarPestana('inventario')">📦 Inventario</button>
       <button class="tab" id="tabVincular" onclick="cambiarPestana('vincular')">🔗 Vincular</button>
       <button class="tab" id="tabBaseDatos" onclick="cambiarPestana('baseDatos')">🗄️ Base de datos</button>
+      <button class="tab" id="tabVentas" onclick="cambiarPestana('ventas')">💰 Ventas</button>
       <button class="tab" id="tabAjustes" onclick="cambiarPestana('ajustes')">⚙️ Ajustes</button>
     </div>
   </div>
@@ -565,6 +566,40 @@
         <tbody></tbody>
       </table>
     </div>
+  </div>
+</div>
+
+ <div id="pestanaVentas" style="display:none;">
+  <div class="panel">
+    <h3>🛒 Venta rápida — <span id="ventasSucursalNombre"></span></h3>
+    <div class="fila">
+      <input type="text" id="ventaRapidaBusqueda" placeholder="Escanea o busca SKU/descripción…"
+             oninput="ventaRapidaBuscar()" onkeydown="ventaRapidaTecla(event)">
+      <button class="camara" onclick="abrirCamara('ventas')">📷</button>
+    </div>
+    <div id="ventaRapidaResultados" style="margin-top:8px;"></div>
+  </div>
+
+  <div class="panel">
+    <h3>🧾 Ticket actual (<span id="ventaRapidaContador">0</span>)</h3>
+    <div id="ventaRapidaTabla"></div>
+    <div style="background:#e8f5e9; padding:14px; border-radius:8px; margin-top:10px; text-align:right;">
+      <div class="small">TOTAL:</div>
+      <div style="font-size:32px; font-weight:bold; color:#1e8449;" id="ventaRapidaTotal">$0.00</div>
+    </div>
+    <div class="fila" style="margin-top:10px;">
+      <button class="verde" style="flex:1; font-size:16px; padding:14px;" onclick="ventaRapidaCobrar()">💰 Cobrar</button>
+      <button class="rojo" onclick="ventaRapidaCancelar()">🗑</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>📊 Ventas de hoy (<span id="ventaRapidaHistContador">0</span>) · Total: $<span id="ventaRapidaHistTotal">0.00</span></h3>
+    <div class="fila" style="margin-bottom:8px;">
+      <button class="verde" style="flex:1; font-size:12px;" onclick="ventaRapidaExportar()">📥 Exportar Excel</button>
+      <button class="gris" style="flex:1; font-size:12px;" onclick="ventaRapidaRenderHistorial()">🔄 Refrescar</button>
+    </div>
+    <div id="ventaRapidaHistorial" class="tabla-scroll" style="max-height:400px;"></div>
   </div>
 </div>
 
@@ -849,6 +884,53 @@
     <input type="email" id="mcCorreoNuevo">
     <button class="verde" style="width:100%; margin-top:10px;" onclick="cambiarMiCorreo()">💾 Cambiar correo</button>
     <button class="gris" style="width:100%; margin-top:20px;" onclick="document.getElementById('modalMiCuenta').classList.remove('activo')">Cerrar</button>
+  </div>
+</div>
+
+ <div class="modal-bg" id="modalVentaCobrar">
+  <div class="modal">
+    <h3>💰 Cobrar venta</h3>
+    <div style="background:#e8f5e9; padding:16px; border-radius:8px; text-align:center; margin-bottom:14px;">
+      <div class="small">TOTAL A PAGAR</div>
+      <div style="font-size:40px; font-weight:bold; color:#1e8449;" id="cobrarTotal">$0.00</div>
+    </div>
+    <label class="small">Método de pago</label>
+    <div class="fila" style="margin-top:6px;">
+      <button class="verde" style="flex:1; font-size:12px;" id="btnPagoEfectivo" onclick="ventaSetMetodo('efectivo')">💵 Efectivo</button>
+      <button class="gris" style="flex:1; font-size:12px;" id="btnPagoTarjeta" onclick="ventaSetMetodo('tarjeta')">💳 Tarjeta</button>
+      <button class="gris" style="flex:1; font-size:12px;" id="btnPagoTransf" onclick="ventaSetMetodo('transferencia')">🏦 Transf.</button>
+    </div>
+    <div id="ventaEfectivoWrap" style="margin-top:14px;">
+      <label class="small">Monto recibido</label>
+      <input type="number" id="cobrarRecibido" class="cant-grande" value="" min="0" placeholder="0"
+             oninput="ventaRecalcularCambio()" onkeydown="if(event.key==='Enter'){event.preventDefault();ventaConfirmar();}">
+      <div style="margin-top:10px; background:#fff3e0; padding:12px; border-radius:8px; text-align:center;">
+        <div class="small">CAMBIO</div>
+        <div style="font-size:28px; font-weight:bold; color:#e67e22;" id="cobrarCambio">$0.00</div>
+      </div>
+      <div class="fila" style="margin-top:10px; flex-wrap:wrap; gap:6px;">
+        <button class="gris" style="flex:1; min-width:60px; font-size:12px;" onclick="ventaBillete(50)">$50</button>
+        <button class="gris" style="flex:1; min-width:60px; font-size:12px;" onclick="ventaBillete(100)">$100</button>
+        <button class="gris" style="flex:1; min-width:60px; font-size:12px;" onclick="ventaBillete(200)">$200</button>
+        <button class="gris" style="flex:1; min-width:60px; font-size:12px;" onclick="ventaBillete(500)">$500</button>
+        <button class="gris" style="flex:1; min-width:60px; font-size:12px;" onclick="ventaBillete(1000)">$1000</button>
+      </div>
+    </div>
+    <div class="fila" style="margin-top:16px;">
+      <button class="verde" style="flex:1; padding:14px; font-size:16px;" onclick="ventaConfirmar()">✅ Confirmar venta</button>
+      <button class="gris" onclick="cerrarModalVentaCobrar()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalVentaTicket">
+  <div class="modal">
+    <h3>✅ Venta registrada</h3>
+    <div id="ventaTicketContenido" style="font-family:monospace; font-size:12px; background:#f9f9f9; padding:14px; border-radius:8px; white-space:pre-wrap; max-height:50vh; overflow-y:auto;"></div>
+    <div class="fila" style="margin-top:14px;">
+      <button class="verde" style="flex:1;" onclick="ventaCopiarTicket()">📋 Copiar</button>
+      <button class="gris" onclick="cerrarModalVentaTicket()">Cerrar</button>
+    </div>
   </div>
 </div>
 
@@ -3429,8 +3511,9 @@ function aplicarPermisos() {
   const tabV = document.getElementById('tabVincular'); if (tabV) tabV.style.display = u.permisos.vincular ? 'inline-block' : 'none';
   const tabB = document.getElementById('tabBaseDatos'); if (tabB) tabB.style.display = u.permisos.baseDatos ? 'inline-block' : 'none';
   const tabA = document.getElementById('tabAjustes'); if (tabA) tabA.style.display = u.permisos.ajustes ? 'inline-block' : 'none';
+  const tabVent = document.getElementById('tabVentas'); if (tabVent) tabVent.style.display = 'inline-block';
   if (!u.permisos[tabActual]) {
-    const disp = ['pedido','inventario','vincular','baseDatos','ajustes'].filter(t => u.permisos[t]);
+  const disp = ['pedido','inventario','vincular','baseDatos','ventas','ajustes'].filter(t => t === 'ventas' || u.permisos[t]);
     cambiarPestana(disp[0] || 'pedido');
   }
   if (u.permisos.ajustes) renderUsuarios();
@@ -3451,7 +3534,7 @@ function cambiarPestana(t) {
   const u = usuarios[usuarioLogueado];
   if (u && !u.permisos[t]) { toast('⛔ Sin permiso', 'error'); return; }
   tabActual = t;
-  ['pedido','inventario','vincular','baseDatos','ajustes'].forEach(x => {
+  ['pedido','inventario','vincular','baseDatos','ventas','ajustes'].forEach(x => {
     const tab = document.getElementById('tab' + x.charAt(0).toUpperCase() + x.slice(1));
     if (tab) tab.classList.toggle('activo', x === t);
     const p = document.getElementById('pestana' + x.charAt(0).toUpperCase() + x.slice(1));
@@ -3461,6 +3544,7 @@ function cambiarPestana(t) {
   if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); actualizarEstadoSupabase(); aplicarVisibilidadAdmin(); }
   if (t === 'inventario') { renderBannerSesion(); if (sesionActivaUsuario) renderMiZona(); }
   if (t === 'inventario') { renderInvTopStats(); actualizarUIInventario(); renderInventario(); actualizarSucursalNombreEnVistas(); }
+  if (t === 'ventas') { ventaRapidaInit(); }
   if (t === 'baseDatos') { renderManuales(); renderBaseDatosStats(); }
   guardarEstado();
 }
@@ -3844,6 +3928,273 @@ function actualizarIndicadorOrdenInv() {
   const el = document.querySelector(`.ord-ind[data-tabla="inv"][data-col="${ordenInventario.columna}"]`);
   if (el) el.textContent = ordenInventario.dir === 'asc' ? '▲' : '▼';
 }
+
+/* ============ VENTAS RÁPIDAS (modo emergencia) ============ */
+let ventaRapidaActual = [];
+let ventaRapidaMetodo = 'efectivo';
+
+function getVentasRapidas() {
+  const key = 'ventas_rapidas_' + sucursalActual;
+  try { const raw = localStorage.getItem(key); if (raw) return JSON.parse(raw); } catch(e) {}
+  return [];
+}
+function guardarVentasRapidas(arr) {
+  const key = 'ventas_rapidas_' + sucursalActual;
+  try { localStorage.setItem(key, JSON.stringify(arr)); } catch(e) {}
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+    supabaseClient.from('app_data').upsert({
+      section: 'ventas_rapidas_' + sucursalActual,
+      data: arr,
+      updated_at: new Date().toISOString()
+    }).then(()=>{}).catch(()=>{});
+  }
+}
+
+function ventaRapidaInit() {
+  setText('ventasSucursalNombre', getSucursalActual()?.nombre || '');
+  ventaRapidaRender();
+}
+
+function ventaRapidaBuscar() {
+  const inp = document.getElementById('ventaRapidaBusqueda');
+  const q = inp ? inp.value.toLowerCase().trim() : '';
+  const cont = document.getElementById('ventaRapidaResultados');
+  if (!cont) return;
+  if (!q) { cont.innerHTML = ''; return; }
+  const todos = new Map();
+  inventarioBase.forEach(p => todos.set(p.sku.toUpperCase(), { sku: p.sku, descripcion: p.descripcion || '', precio: p.precio || 0, um: detectarUM(p.sku), fuente: 'Sistema' }));
+  productos.forEach(p => { const k = p.sku.toUpperCase(); if (!todos.has(k)) todos.set(k, { ...p, fuente: 'PDF' }); });
+  productosManuales.forEach(p => { const k = p.sku.toUpperCase(); if (!todos.has(k)) todos.set(k, { ...p, fuente: 'Manual' }); });
+  const arr = Array.from(todos.values());
+  const filtrados = arr.filter(p => p.sku.toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q)).slice(0, 20);
+  if (!filtrados.length) { cont.innerHTML = '<p class="small">Sin resultados.</p>'; return; }
+  cont.innerHTML = '<table><thead><tr><th>SKU</th><th>Descripción</th><th>Precio</th><th></th></tr></thead><tbody>' +
+    filtrados.map(p => `<tr class="resultado" onclick="ventaRapidaAgregar('${p.sku.replace(/'/g, "\\'")}')">
+      <td style="font-family:monospace; font-size:12px;">${esc(p.sku)}</td>
+      <td class="small">${esc(p.descripcion || '')}</td>
+      <td style="text-align:right;">$${(p.precio||0).toFixed(2)}</td>
+      <td style="text-align:center;">→</td></tr>`).join('') + '</tbody></table>';
+}
+
+function ventaRapidaTecla(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const inp = document.getElementById('ventaRapidaBusqueda');
+  const q = inp ? inp.value.trim().toUpperCase() : '';
+  if (!q) return;
+  inp.value = '';
+  const items = skusDeCodigo(q);
+  let sku = q;
+  if (items.length >= 1) sku = items[0].sku;
+  ventaRapidaAgregar(sku);
+}
+
+function ventaRapidaAgregar(sku) {
+  const p = buscarProductoPorSku(sku);
+  if (!p) { feedbackError(); toast('❌ No encontrado: ' + sku, 'error'); return; }
+  const ex = ventaRapidaActual.find(x => x.sku === p.sku);
+  if (ex) ex.cantidad++;
+  else ventaRapidaActual.push({ sku: p.sku, descripcion: p.descripcion || '', precio: p.precio || 0, cantidad: 1, um: p.um || 'PIEZA' });
+  feedbackExito();
+  ventaRapidaRender();
+  const inp = document.getElementById('ventaRapidaBusqueda');
+  if (inp) inp.focus();
+}
+
+function ventaRapidaRender() {
+  const tabla = document.getElementById('ventaRapidaTabla');
+  const cont = document.getElementById('ventaRapidaContador');
+  const tot = document.getElementById('ventaRapidaTotal');
+  if (!tabla) return;
+  if (cont) cont.textContent = ventaRapidaActual.length;
+  let total = 0;
+  if (!ventaRapidaActual.length) {
+    tabla.innerHTML = '<p class="small" style="text-align:center; padding:20px;">Escanea o busca un producto para empezar.</p>';
+  } else {
+    tabla.innerHTML = '<div class="tabla-scroll" style="max-height:400px;"><table><thead><tr><th>SKU</th><th>Desc.</th><th>Cant</th><th>Precio</th><th>Importe</th><th></th></tr></thead><tbody>' +
+      ventaRapidaActual.map((it, i) => {
+        const imp = it.cantidad * it.precio;
+        total += imp;
+        return `<tr>
+          <td style="font-family:monospace; font-size:11px;">${esc(it.sku)}</td>
+          <td class="small">${esc(it.descripcion)}</td>
+          <td><input type="number" min="1" value="${it.cantidad}" style="width:56px; text-align:center; font-weight:bold;" onchange="ventaRapidaCambiarCant(${i}, this.value)"></td>
+          <td style="text-align:right;">$${it.precio.toFixed(2)}</td>
+          <td style="text-align:right; font-weight:bold;">$${imp.toFixed(2)}</td>
+          <td><button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="ventaRapidaEliminar(${i})">✕</button></td>
+        </tr>`;
+      }).join('') + '</tbody></table></div>';
+  }
+  if (tot) tot.textContent = '$' + total.toFixed(2);
+  ventaRapidaRenderHistorial();
+}
+
+function ventaRapidaCambiarCant(i, v) {
+  const c = Math.max(1, parseInt(v) || 1);
+  ventaRapidaActual[i].cantidad = c;
+  ventaRapidaRender();
+}
+
+function ventaRapidaEliminar(i) { ventaRapidaActual.splice(i, 1); ventaRapidaRender(); }
+
+function ventaRapidaCancelar() {
+  if (!ventaRapidaActual.length) return;
+  if (!confirm('¿Cancelar la venta actual? Se perderán ' + ventaRapidaActual.length + ' producto(s).')) return;
+  ventaRapidaActual = [];
+  ventaRapidaRender();
+  toast('🗑 Venta cancelada');
+}
+
+function ventaRapidaCobrar() {
+  if (!ventaRapidaActual.length) { toast('Ticket vacío', 'warn'); return; }
+  const total = ventaRapidaActual.reduce((s, it) => s + it.cantidad * it.precio, 0);
+  document.getElementById('cobrarTotal').textContent = '$' + total.toFixed(2);
+  ventaRapidaMetodo = 'efectivo';
+  document.getElementById('btnPagoEfectivo').className = 'verde';
+  document.getElementById('btnPagoTarjeta').className = 'gris';
+  document.getElementById('btnPagoTransf').className = 'gris';
+  document.getElementById('ventaEfectivoWrap').style.display = 'block';
+  document.getElementById('cobrarRecibido').value = '';
+  document.getElementById('cobrarCambio').textContent = '$0.00';
+  const m = document.getElementById('modalVentaCobrar'); if (m) m.classList.add('activo');
+  setTimeout(() => { const inp = document.getElementById('cobrarRecibido'); if (inp) inp.focus(); }, 100);
+}
+
+function ventaSetMetodo(metodo) {
+  ventaRapidaMetodo = metodo;
+  document.getElementById('btnPagoEfectivo').className = metodo === 'efectivo' ? 'verde' : 'gris';
+  document.getElementById('btnPagoTarjeta').className = metodo === 'tarjeta' ? 'verde' : 'gris';
+  document.getElementById('btnPagoTransf').className = metodo === 'transferencia' ? 'verde' : 'gris';
+  document.getElementById('ventaEfectivoWrap').style.display = metodo === 'efectivo' ? 'block' : 'none';
+}
+
+function ventaBillete(monto) {
+  const inp = document.getElementById('cobrarRecibido');
+  if (inp) { inp.value = monto; ventaRecalcularCambio(); }
+}
+
+function ventaRecalcularCambio() {
+  const total = ventaRapidaActual.reduce((s, it) => s + it.cantidad * it.precio, 0);
+  const rec = parseFloat(document.getElementById('cobrarRecibido').value) || 0;
+  const cambio = Math.max(0, rec - total);
+  document.getElementById('cobrarCambio').textContent = '$' + cambio.toFixed(2);
+}
+
+function cerrarModalVentaCobrar() { const m = document.getElementById('modalVentaCobrar'); if (m) m.classList.remove('activo'); }
+
+function ventaConfirmar() {
+  const total = ventaRapidaActual.reduce((s, it) => s + it.cantidad * it.precio, 0);
+  const rec = ventaRapidaMetodo === 'efectivo' ? (parseFloat(document.getElementById('cobrarRecibido').value) || 0) : total;
+  if (ventaRapidaMetodo === 'efectivo' && rec < total) { alert('El monto recibido (' + rec.toFixed(2) + ') es menor al total (' + total.toFixed(2) + ').'); return; }
+  const cambio = Math.max(0, rec - total);
+  const fecha = new Date();
+  const ventas = getVentasRapidas();
+  const hoy = fecha.toISOString().slice(0,10);
+  const delDia = ventas.filter(v => v.fecha.slice(0,10) === hoy);
+  const folio = 'V' + hoy.replace(/-/g,'') + '-' + String(delDia.length + 1).padStart(3, '0');
+  const venta = {
+    folio, fecha: fecha.toISOString(), usuario: usuarioLogueado, sucursal: sucursalActual,
+    items: ventaRapidaActual.map(it => ({ ...it })),
+    total, metodo: ventaRapidaMetodo, recibido: rec, cambio
+  };
+  ventas.push(venta);
+  guardarVentasRapidas(ventas);
+  feedbackExito();
+  toast('✅ ' + folio + ' guardada', 'big');
+  cerrarModalVentaCobrar();
+  ventaMostrarTicket(venta);
+  ventaRapidaActual = [];
+  ventaRapidaRender();
+}
+
+function ventaMostrarTicket(v) {
+  const s = getSucursal(v.sucursal);
+  const lineas = v.items.map(it => `${it.sku}  x${it.cantidad}  $${(it.cantidad*it.precio).toFixed(2)}`).join('\n');
+  const txt =
+`═══════════════════════════════
+        ${nombreEmpresa}
+      ${s ? s.nombre : v.sucursal}
+═══════════════════════════════
+Ticket:    ${v.folio}
+Fecha:     ${new Date(v.fecha).toLocaleString('es-MX')}
+Vendedor:  @${v.usuario}
+───────────────────────────────
+${lineas}
+───────────────────────────────
+TOTAL:     $${v.total.toFixed(2)}
+Método:    ${v.metodo.toUpperCase()}
+${v.metodo === 'efectivo' ? 'Recibido:  $' + v.recibido.toFixed(2) + '\nCambio:    $' + v.cambio.toFixed(2) : ''}
+═══════════════════════════════
+       ¡Gracias por su compra!`;
+  document.getElementById('ventaTicketContenido').textContent = txt;
+  const m = document.getElementById('modalVentaTicket'); if (m) m.classList.add('activo');
+}
+
+function cerrarModalVentaTicket() { const m = document.getElementById('modalVentaTicket'); if (m) m.classList.remove('activo'); }
+
+function ventaCopiarTicket() {
+  const txt = document.getElementById('ventaTicketContenido').textContent;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(() => toast('📋 Ticket copiado')).catch(() => toast('No se pudo copiar', 'error'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('📋 Ticket copiado'); } catch(e) { toast('No se pudo copiar', 'error'); }
+    document.body.removeChild(ta);
+  }
+}
+
+function ventaRapidaRenderHistorial() {
+  const cont = document.getElementById('ventaRapidaHistorial');
+  const hist = document.getElementById('ventaRapidaHistContador');
+  const histTot = document.getElementById('ventaRapidaHistTotal');
+  if (!cont) return;
+  const hoy = new Date().toISOString().slice(0,10);
+  const ventas = getVentasRapidas().filter(v => v.fecha.slice(0,10) === hoy);
+  const totalDia = ventas.reduce((s, v) => s + v.total, 0);
+  if (hist) hist.textContent = ventas.length;
+  if (histTot) histTot.textContent = totalDia.toFixed(2);
+  if (!ventas.length) { cont.innerHTML = '<p class="small" style="text-align:center; padding:14px;">Sin ventas hoy.</p>'; return; }
+  cont.innerHTML = '<table><thead><tr><th>Folio</th><th>Hora</th><th>Art.</th><th>Total</th><th>Pago</th><th></th></tr></thead><tbody>' +
+    ventas.slice().reverse().map(v => `<tr>
+      <td style="font-family:monospace; font-size:11px;">${v.folio}</td>
+      <td class="small">${new Date(v.fecha).toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'})}</td>
+      <td>${v.items.length}</td>
+      <td style="text-align:right; font-weight:bold;">$${v.total.toFixed(2)}</td>
+      <td class="small">${v.metodo}</td>
+      <td><button class="gris" style="padding:4px 8px; font-size:11px;" onclick="ventaVerTicket('${v.folio}')">👁</button></td>
+    </tr>`).join('') + '</tbody></table>';
+}
+
+function ventaVerTicket(folio) {
+  const v = getVentasRapidas().find(x => x.folio === folio);
+  if (v) ventaMostrarTicket(v);
+}
+
+function ventaRapidaExportar() {
+  const hoy = new Date().toISOString().slice(0,10);
+  const ventas = getVentasRapidas().filter(v => v.fecha.slice(0,10) === hoy);
+  if (!ventas.length) { alert('No hay ventas hoy.'); return; }
+  const aoa = [['Folio','Fecha','Hora','SKU','Descripción','Cantidad','Precio','Importe','Vendedor','Método','Total venta']];
+  ventas.forEach(v => {
+    v.items.forEach(it => {
+      aoa.push([
+        v.folio,
+        new Date(v.fecha).toLocaleDateString('es-MX'),
+        new Date(v.fecha).toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'}),
+        it.sku, it.descripcion || '', it.cantidad, it.precio, it.cantidad * it.precio,
+        '@' + v.usuario, v.metodo, v.total
+      ]);
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:16},{wch:12},{wch:10},{wch:16},{wch:35},{wch:10},{wch:10},{wch:12},{wch:14},{wch:14},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Ventas');
+  XLSX.writeFile(wb, `ventas_${sucursalActual}_${hoy}.xlsx`);
+  toast('📥 Descargado');
+}
+ 
 </script>
 <script>
 /* ============ PERSISTENCIA ============ */
@@ -5120,6 +5471,7 @@ function onCamaraDetecta(codigo) {
   setTimeout(() => {
     if (camaraOrigen === 'vincular') { setVal('inputCodigo', c); capturarCodigo(); }
     else if (camaraOrigen === 'inventario') { if (modoEscanearPz) escanearPorPieza(c); else procesarCodigoInv(c); }
+    else if (camaraOrigen === 'ventas') { ventaRapidaAgregar(c); }
     else { procesarCodigoEnPedido(c); }
   }, 200);
 }
