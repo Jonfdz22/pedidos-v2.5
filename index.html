@@ -593,10 +593,9 @@
     </div>
   </div>
 
-  <div class="panel">
-  <div class="panel">
+   <div class="panel">
     <h3>📊 Ventas de hoy (<span id="ventaRapidaHistContador">0</span>)</h3>
-
+    
     <div style="background:linear-gradient(135deg,#e8f5e9 0%,#c8e6c9 100%); padding:12px; border-radius:10px; text-align:center; margin-bottom:12px; border:1px solid #a5d6a7;">
       <div class="small" style="font-weight:bold; color:#2e7d32;">TOTAL DEL DÍA</div>
       <div style="font-size:28px; font-weight:bold; color:#1e8449; margin-top:2px;">$<span id="ventaRapidaHistTotal">0.00</span></div>
@@ -620,6 +619,7 @@
     <h3>🔒 Cierres de caja recientes</h3>
     <div id="ventaCierresPanel"></div>
   </div>
+</div>
 </div>
 
 <div id="pestanaAjustes" style="display:none;">
@@ -4259,12 +4259,9 @@ function ventaBillete(monto) {
   if (inp) { inp.value = monto; ventaRecalcularCambio(); }
 }
 
+function cerrarModalVentaCobrar() { const m = document.getElementById('modalVentaCobrar'); if (m) m.classList.remove('activo'); }
+
 function ventaConfirmar() {
-  const total = redondearPrecio(ventaRapidaActual.reduce((s, it) => s + it.cantidad * it.precio, 0));
-  const rec = parseFloat(document.getElementById('cobrarRecibido').value) || 0;
-  const cambio = Math.max(0, rec - total);
-  document.getElementById('cobrarCambio').textContent = '$' + cambio.toFixed(2);
-}
 
 function cerrarModalVentaCobrar() { const m = document.getElementById('modalVentaCobrar'); if (m) m.classList.remove('activo'); }
 
@@ -5806,46 +5803,7 @@ const tieneBarcodeDetector = 'BarcodeDetector' in window;
 
 
 
-function abrirCamaraNativaIOS() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.setAttribute('capture', 'environment');
-  input.style.display = 'none';
-  document.body.appendChild(input);
-  
-  input.onchange = async (e) => {
-    const file = e.target.files[0];
-    document.body.removeChild(input);
-    if (!file) return;
-    
-    toast('⏳ Procesando imagen...');
-    try {
-      const reader = new ZXing.BrowserMultiFormatReader();
-      const imgUrl = URL.createObjectURL(file);
-      const result = await reader.decodeFromImageUrl(imgUrl);
-      URL.revokeObjectURL(imgUrl);
-      
-      const codigo = result.getText();
-      vibrar(80);
-      
-      if (camaraOrigen === 'vincular') { 
-        setVal('inputCodigo', codigo); 
-        capturarCodigo(); 
-      } else if (camaraOrigen === 'inventario') { 
-        if (modoEscanearPz) escanearPorPieza(codigo); 
-        else procesarCodigoInv(codigo); 
-      } else { 
-        procesarCodigoEnPedido(codigo); 
-      }
-    } catch (err) {
-      console.error('Error leyendo imagen:', err);
-      alert('No se pudo leer el código.\n\nTips:\n• Acerca la cámara al código\n• Busca buena iluminación\n• Mantén el código completo dentro de la foto\n• Evita reflejos');
-    }
-  };
-  
-  input.click();
-}
+
 
 async function abrirCamara(origen) {
   camaraOrigen = origen;
