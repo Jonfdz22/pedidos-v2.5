@@ -599,7 +599,12 @@
       <button class="verde" style="flex:1; font-size:12px;" onclick="ventaRapidaExportar()">📥 Exportar Excel</button>
       <button class="gris" style="flex:1; font-size:12px;" onclick="ventaRapidaRenderHistorial()">🔄 Refrescar</button>
     </div>
-    <div id="ventaRapidaHistorial" class="tabla-scroll" style="max-height:400px;"></div>
+     <div id="ventaRapidaHistorial" class="tabla-scroll" style="max-height:400px;"></div>
+  </div>
+
+  <div class="panel" style="border:2px solid #e67e22;">
+    <h3>🔴 Créditos pendientes</h3>
+    <div id="ventaCreditosPanel"></div>
   </div>
 </div>
 
@@ -895,11 +900,19 @@
       <div style="font-size:40px; font-weight:bold; color:#1e8449;" id="cobrarTotal">$0.00</div>
     </div>
     <label class="small">Método de pago</label>
-    <div class="fila" style="margin-top:6px;">
-      <button class="verde" style="flex:1; font-size:12px;" id="btnPagoEfectivo" onclick="ventaSetMetodo('efectivo')">💵 Efectivo</button>
-      <button class="gris" style="flex:1; font-size:12px;" id="btnPagoTarjeta" onclick="ventaSetMetodo('tarjeta')">💳 Tarjeta</button>
-      <button class="gris" style="flex:1; font-size:12px;" id="btnPagoTransf" onclick="ventaSetMetodo('transferencia')">🏦 Transf.</button>
+       <div class="fila" style="margin-top:6px; flex-wrap:wrap; gap:6px;">
+      <button class="verde" style="flex:1; min-width:70px; font-size:12px;" id="btnPagoEfectivo" onclick="ventaSetMetodo('efectivo')">💵 Efectivo</button>
+      <button class="gris" style="flex:1; min-width:70px; font-size:12px;" id="btnPagoTarjeta" onclick="ventaSetMetodo('tarjeta')">💳 Tarjeta</button>
+      <button class="gris" style="flex:1; min-width:70px; font-size:12px;" id="btnPagoTransf" onclick="ventaSetMetodo('transferencia')">🏦 Transf.</button>
+      <button class="gris" style="flex:1; min-width:70px; font-size:12px;" id="btnPagoCredito" onclick="ventaSetMetodo('credito')">📝 Crédito</button>
     </div>
+    <div id="ventaCreditoWrap" style="display:none; margin-top:14px; background:#fff3e0; padding:12px; border-radius:8px; border-left:4px solid #e67e22;">
+      <label class="small" style="font-weight:bold;">👤 Cliente (obligatorio)</label>
+      <input type="text" id="cobrarClienteNombre" list="listaClientesDatalist" placeholder="Nombre del cliente…" autocomplete="off">
+      <datalist id="listaClientesDatalist"></datalist>
+      <div class="small" style="margin-top:6px; color:#7a3d00;">📝 Se guardará como PENDIENTE de pago.</div>
+    </div>
+   
     <div id="ventaEfectivoWrap" style="margin-top:14px;">
       <label class="small">Monto recibido</label>
       <input type="number" id="cobrarRecibido" class="cant-grande" value="" min="0" placeholder="0"
@@ -3532,7 +3545,7 @@ function aplicarVisibilidadAdmin() {
 }
 function cambiarPestana(t) {
   const u = usuarios[usuarioLogueado];
-  if (u && !u.permisos[t]) { toast('⛔ Sin permiso', 'error'); return; }
+  if (t !== 'ventas' && u && !u.permisos[t]) { toast('⛔ Sin permiso', 'error'); return; }
   tabActual = t;
   ['pedido','inventario','vincular','baseDatos','ventas','ajustes'].forEach(x => {
     const tab = document.getElementById('tab' + x.charAt(0).toUpperCase() + x.slice(1));
@@ -4011,17 +4024,24 @@ function ventaRapidaRender() {
   if (!ventaRapidaActual.length) {
     tabla.innerHTML = '<p class="small" style="text-align:center; padding:20px;">Escanea o busca un producto para empezar.</p>';
   } else {
-    tabla.innerHTML = '<div class="tabla-scroll" style="max-height:400px;"><table><thead><tr><th>SKU</th><th>Desc.</th><th>Cant</th><th>Precio</th><th>Importe</th><th></th></tr></thead><tbody>' +
+       tabla.innerHTML = '<div class="tabla-scroll" style="max-height:400px;"><table><thead><tr><th>SKU</th><th>Desc.</th><th>Cant</th><th>Precio</th><th>Importe</th><th></th></tr></thead><tbody>' +
       ventaRapidaActual.map((it, i) => {
         const imp = it.cantidad * it.precio;
         total += imp;
+        const original = it.precioOriginal || it.precio;
+        const tieneDescuento = it.precio < original;
+        const estiloPrecio = tieneDescuento ? 'background:#fff3e0; border:1px solid #e67e22;' : '';
+        const avisoDesc = tieneDescuento ? `<div class="small" style="color:#e67e22; font-size:10px;">ant. $${original.toFixed(2)}</div>` : '';
         return `<tr>
           <td style="font-family:monospace; font-size:11px;">${esc(it.sku)}</td>
-          <td class="small">${esc(it.descripcion)}</td>
+          <td class="small">${esc(it.descripcion)}${avisoDesc}</td>
           <td><input type="number" min="1" value="${it.cantidad}" style="width:56px; text-align:center; font-weight:bold;" onchange="ventaRapidaCambiarCant(${i}, this.value)"></td>
-          <td style="text-align:right;">$${it.precio.toFixed(2)}</td>
+          <td><input type="number" step="0.01" min="0" value="${it.precio.toFixed(2)}" style="width:70px; text-align:right; font-weight:bold; ${estiloPrecio}" onchange="ventaRapidaCambiarPrecio(${i}, this.value)"></td>
           <td style="text-align:right; font-weight:bold;">$${imp.toFixed(2)}</td>
-          <td><button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="ventaRapidaEliminar(${i})">✕</button></td>
+          <td style="white-space:nowrap;">
+            <button class="amarillo" style="padding:4px 6px; font-size:11px;" onclick="ventaRapidaDescuento(${i})" title="Descuento">%</button>
+            <button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="ventaRapidaEliminar(${i})">✕</button>
+          </td>
         </tr>`;
       }).join('') + '</tbody></table></div>';
   }
@@ -4029,6 +4049,39 @@ function ventaRapidaRender() {
   ventaRapidaRenderHistorial();
 }
 
+function ventaRapidaDescuento(i) {
+  const it = ventaRapidaActual[i];
+  if (!it) return;
+  const original = it.precioOriginal || it.precio;
+  const pct = prompt(
+    '💸 Descuento para ' + it.sku + '\n\n' +
+    'Precio actual: $' + original.toFixed(2) + '\n\n' +
+    'Escribe el PORCENTAJE de descuento (ej: 10 = 10%):',
+    ''
+  );
+  if (!pct) return;
+  const n = parseFloat(pct);
+  if (isNaN(n) || n < 0 || n > 100) { alert('Porcentaje inválido (0-100).'); return; }
+  const descuento = original * (n / 100);
+  it.precioOriginal = original;
+  it.precio = Math.max(0, original - descuento);
+  ventaRapidaRender();
+  toast('💸 -' + n + '% = $' + descuento.toFixed(2) + ' de descuento', 'warn');
+}
+ 
+function ventaRapidaCambiarPrecio(i, v) {
+  const nuevo = parseFloat(v) || 0;
+  if (nuevo < 0) { alert('Precio inválido.'); return; }
+  const it = ventaRapidaActual[i];
+  if (!it) return;
+  if (!it.precioOriginal) it.precioOriginal = it.precio;
+  it.precio = nuevo;
+  ventaRapidaRender();
+  if (nuevo < it.precioOriginal) {
+    toast('💸 Descuento aplicado: $' + (it.precioOriginal - nuevo).toFixed(2), 'warn');
+  }
+}
+ 
 function ventaRapidaCambiarCant(i, v) {
   const c = Math.max(1, parseInt(v) || 1);
   ventaRapidaActual[i].cantidad = c;
@@ -4056,6 +4109,9 @@ function ventaRapidaCobrar() {
   document.getElementById('ventaEfectivoWrap').style.display = 'block';
   document.getElementById('cobrarRecibido').value = '';
   document.getElementById('cobrarCambio').textContent = '$0.00';
+  const cc = document.getElementById('cobrarClienteNombre'); if (cc) cc.value = '';
+  const vcw = document.getElementById('ventaCreditoWrap'); if (vcw) vcw.style.display = 'none';
+  ventaActualizarListaClientes();
   const m = document.getElementById('modalVentaCobrar'); if (m) m.classList.add('activo');
   setTimeout(() => { const inp = document.getElementById('cobrarRecibido'); if (inp) inp.focus(); }, 100);
 }
@@ -4065,9 +4121,32 @@ function ventaSetMetodo(metodo) {
   document.getElementById('btnPagoEfectivo').className = metodo === 'efectivo' ? 'verde' : 'gris';
   document.getElementById('btnPagoTarjeta').className = metodo === 'tarjeta' ? 'verde' : 'gris';
   document.getElementById('btnPagoTransf').className = metodo === 'transferencia' ? 'verde' : 'gris';
+  document.getElementById('btnPagoCredito').className = metodo === 'credito' ? 'verde' : 'gris';
   document.getElementById('ventaEfectivoWrap').style.display = metodo === 'efectivo' ? 'block' : 'none';
+  document.getElementById('ventaCreditoWrap').style.display = metodo === 'credito' ? 'block' : 'none';
+  if (metodo === 'credito') {
+    ventaActualizarListaClientes();
+    setTimeout(() => { const inp = document.getElementById('cobrarClienteNombre'); if (inp) inp.focus(); }, 100);
+  }
 }
-
+function ventaActualizarListaClientes() {
+  const dl = document.getElementById('listaClientesDatalist');
+  if (!dl) return;
+  const clientes = getClientesCredito();
+  dl.innerHTML = clientes.map(c => `<option value="${esc(c)}">`).join('');
+}
+function getClientesCredito() {
+  try { const raw = localStorage.getItem('clientes_credito'); if (raw) return JSON.parse(raw); } catch(e) {}
+  return [];
+}
+function guardarClienteCredito(nombre) {
+  if (!nombre) return;
+  const clientes = getClientesCredito();
+  if (!clientes.includes(nombre)) {
+    clientes.push(nombre);
+    try { localStorage.setItem('clientes_credito', JSON.stringify(clientes)); } catch(e) {}
+  }
+}
 function ventaBillete(monto) {
   const inp = document.getElementById('cobrarRecibido');
   if (inp) { inp.value = monto; ventaRecalcularCambio(); }
@@ -4086,6 +4165,12 @@ function ventaConfirmar() {
   const total = ventaRapidaActual.reduce((s, it) => s + it.cantidad * it.precio, 0);
   const rec = ventaRapidaMetodo === 'efectivo' ? (parseFloat(document.getElementById('cobrarRecibido').value) || 0) : total;
   if (ventaRapidaMetodo === 'efectivo' && rec < total) { alert('El monto recibido (' + rec.toFixed(2) + ') es menor al total (' + total.toFixed(2) + ').'); return; }
+  let cliente = '';
+  if (ventaRapidaMetodo === 'credito') {
+    cliente = (document.getElementById('cobrarClienteNombre').value || '').trim();
+    if (!cliente) { alert('Para venta a crédito, escribe el nombre del cliente.'); return; }
+    guardarClienteCredito(cliente);
+  }
   const cambio = Math.max(0, rec - total);
   const fecha = new Date();
   const ventas = getVentasRapidas();
@@ -4095,7 +4180,9 @@ function ventaConfirmar() {
   const venta = {
     folio, fecha: fecha.toISOString(), usuario: usuarioLogueado, sucursal: sucursalActual,
     items: ventaRapidaActual.map(it => ({ ...it })),
-    total, metodo: ventaRapidaMetodo, recibido: rec, cambio
+    total, metodo: ventaRapidaMetodo, recibido: rec, cambio,
+    cliente: cliente || null,
+    pagado: ventaRapidaMetodo !== 'credito'
   };
   ventas.push(venta);
   guardarVentasRapidas(ventas);
@@ -4118,6 +4205,8 @@ function ventaMostrarTicket(v) {
 Ticket:    ${v.folio}
 Fecha:     ${new Date(v.fecha).toLocaleString('es-MX')}
 Vendedor:  @${v.usuario}
+${v.cliente ? 'Cliente:   ' + v.cliente + (v.metodo === 'credito' ? '  [CRÉDITO]' : '') : ''}
+───────────────────────────────
 ───────────────────────────────
 ${lineas}
 ───────────────────────────────
@@ -4156,14 +4245,61 @@ function ventaRapidaRenderHistorial() {
   if (histTot) histTot.textContent = totalDia.toFixed(2);
   if (!ventas.length) { cont.innerHTML = '<p class="small" style="text-align:center; padding:14px;">Sin ventas hoy.</p>'; return; }
   cont.innerHTML = '<table><thead><tr><th>Folio</th><th>Hora</th><th>Art.</th><th>Total</th><th>Pago</th><th></th></tr></thead><tbody>' +
-    ventas.slice().reverse().map(v => `<tr>
+    ventas.slice().reverse().map(v => {
+      const esCredito = v.metodo === 'credito';
+      const clienteTxt = esCredito ? '<div class="small" style="color:#e67e22; font-weight:bold;">👤 ' + esc(v.cliente || '—') + (v.pagado ? ' ✅' : ' ⏳') + '</div>' : '';
+      return `<tr>
       <td style="font-family:monospace; font-size:11px;">${v.folio}</td>
       <td class="small">${new Date(v.fecha).toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'})}</td>
       <td>${v.items.length}</td>
       <td style="text-align:right; font-weight:bold;">$${v.total.toFixed(2)}</td>
-      <td class="small">${v.metodo}</td>
+      <td class="small">${v.metodo}${clienteTxt}</td>
       <td><button class="gris" style="padding:4px 8px; font-size:11px;" onclick="ventaVerTicket('${v.folio}')">👁</button></td>
-    </tr>`).join('') + '</tbody></table>';
+    </tr>`;
+    }).join('') + '</tbody></table>';
+  ventaRapidaRenderCreditos();
+}
+function ventaRapidaRenderCreditos() {
+  const cont = document.getElementById('ventaCreditosPanel');
+  if (!cont) return;
+  const ventas = getVentasRapidas();
+  const creditos = ventas.filter(v => v.metodo === 'credito' && !v.pagado);
+  if (!creditos.length) {
+    cont.innerHTML = '<p class="small" style="text-align:center; padding:14px;">Sin créditos pendientes ✅</p>';
+    return;
+  }
+  const porCliente = {};
+  creditos.forEach(v => {
+    if (!porCliente[v.cliente]) porCliente[v.cliente] = [];
+    porCliente[v.cliente].push(v);
+  });
+  let html = '';
+  Object.entries(porCliente).forEach(([cliente, arr]) => {
+    const total = arr.reduce((s, v) => s + v.total, 0);
+    html += `<div style="background:#fff3e0; padding:10px; border-radius:8px; margin-bottom:8px; border-left:4px solid #e67e22;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div style="font-weight:bold; color:#7a3d00;">👤 ${esc(cliente)}</div>
+        <div style="font-size:18px; font-weight:bold; color:#e67e22;">$${total.toFixed(2)}</div>
+      </div>
+      <div class="small">${arr.length} venta(s) pendiente(s)</div>
+      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">`;
+    arr.forEach(v => {
+      html += `<button class="verde" style="font-size:11px; padding:6px 10px;" onclick="ventaMarcarPagado('${v.folio}')">✅ ${v.folio} · $${v.total.toFixed(2)}</button>`;
+    });
+    html += `</div></div>`;
+  });
+  cont.innerHTML = html;
+}
+function ventaMarcarPagado(folio) {
+  if (!confirm('¿Marcar el folio ' + folio + ' como PAGADO?')) return;
+  const ventas = getVentasRapidas();
+  const v = ventas.find(x => x.folio === folio);
+  if (!v) return;
+  v.pagado = true;
+  v.fechaPago = new Date().toISOString();
+  guardarVentasRapidas(ventas);
+  toast('✅ Marcado como pagado');
+  ventaRapidaRenderHistorial();
 }
 
 function ventaVerTicket(folio) {
