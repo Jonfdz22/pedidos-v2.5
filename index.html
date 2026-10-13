@@ -596,8 +596,10 @@
   <div class="panel">
     <h3>📊 Ventas de hoy (<span id="ventaRapidaHistContador">0</span>) · Total: $<span id="ventaRapidaHistTotal">0.00</span></h3>
     <div class="fila" style="margin-bottom:8px;">
-      <button class="verde" style="flex:1; font-size:12px;" onclick="ventaRapidaExportar()">📥 Exportar Excel</button>
-      <button class="gris" style="flex:1; font-size:12px;" onclick="ventaRapidaRenderHistorial()">🔄 Refrescar</button>
+     <div class="fila" style="margin-bottom:8px;">
+      <button class="verde" style="flex:1; font-size:12px;" onclick="ventaRapidaExportar()">📥 Excel</button>
+      <button class="gris" style="flex:1; font-size:12px;" onclick="ventaRapidaRenderHistorial()">🔄</button>
+      <button class="amarillo" style="flex:1; font-size:12px;" onclick="ventaAbrirCierreCaja()">🔒 Cierre</button>
     </div>
      <div id="ventaRapidaHistorial" class="tabla-scroll" style="max-height:400px;"></div>
   </div>
@@ -605,6 +607,11 @@
   <div class="panel" style="border:2px solid #e67e22;">
     <h3>🔴 Créditos pendientes</h3>
     <div id="ventaCreditosPanel"></div>
+  </div>
+
+  <div class="panel" style="border:2px solid #1a3a6b;">
+    <h3>🔒 Cierres de caja recientes</h3>
+    <div id="ventaCierresPanel"></div>
   </div>
 </div>
 
@@ -932,6 +939,26 @@
     <div class="fila" style="margin-top:16px;">
       <button class="verde" style="flex:1; padding:14px; font-size:16px;" onclick="ventaConfirmar()">✅ Confirmar venta</button>
       <button class="gris" onclick="cerrarModalVentaCobrar()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+  <div class="modal-bg" id="modalCierreCaja">
+  <div class="modal" style="max-width:600px;">
+    <h3>🔒 Cierre de caja</h3>
+    <div style="background:#e3f2fd; padding:10px; border-radius:8px; margin-bottom:12px;">
+      <div class="small"><b>Sucursal:</b> <span id="ccSucursal"></span></div>
+      <div class="small"><b>Fecha:</b> <span id="ccFecha"></span></div>
+      <div class="small"><b>Cajero:</b> @<span id="ccUsuario"></span></div>
+    </div>
+    <div id="ccResumen"></div>
+    <div style="margin-top:14px;">
+      <label class="small">Observaciones (opcional)</label>
+      <textarea id="ccObservaciones" rows="2" style="width:100%; border:1px solid #ccc; border-radius:6px; padding:8px; font-family:inherit;" placeholder="Ej: Sin novedades"></textarea>
+    </div>
+    <div class="fila" style="margin-top:14px;">
+      <button class="verde" style="flex:1; padding:14px; font-size:15px;" onclick="ventaConfirmarCierreCaja()">✅ Confirmar cierre</button>
+      <button class="gris" onclick="cerrarModalCierreCaja()">Cancelar</button>
     </div>
   </div>
 </div>
@@ -4316,10 +4343,31 @@ function ventaRapidaRenderHistorial() {
       <td>${v.items.length}</td>
       <td style="text-align:right; font-weight:bold;">$${v.total.toFixed(2)}</td>
       <td class="small">${v.metodo}${clienteTxt}</td>
-      <td><button class="gris" style="padding:4px 8px; font-size:11px;" onclick="ventaVerTicket('${v.folio}')">👁</button></td>
+         <td style="white-space:nowrap;">
+        <button class="gris" style="padding:4px 6px; font-size:11px;" onclick="ventaVerTicket('${v.folio}')">👁</button>
+        <button class="rojo" style="padding:4px 6px; font-size:11px;" onclick="ventaEliminarVenta('${v.folio}')">🗑</button>
+      </td>
     </tr>`;
     }).join('') + '</tbody></table>';
   ventaRapidaRenderCreditos();
+  ventaRapidaRenderCierres();
+}
+function ventaRapidaRenderCierres() {
+  const cont = document.getElementById('ventaCierresPanel');
+  if (!cont) return;
+  const cierres = getCierresCaja().slice().reverse().slice(0, 20);
+  if (!cierres.length) {
+    cont.innerHTML = '<p class="small" style="text-align:center; padding:14px;">Sin cierres registrados.</p>';
+    return;
+  }
+  cont.innerHTML = '<div class="tabla-scroll" style="max-height:300px;"><table><thead><tr><th>Folio</th><th>Fecha</th><th>Ventas</th><th>Total</th><th></th></tr></thead><tbody>' +
+    cierres.map(c => `<tr>
+      <td style="font-family:monospace; font-size:11px;">${c.folio}</td>
+      <td class="small">${new Date(c.fecha).toLocaleString('es-MX', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}</td>
+      <td>${c.nVentas}</td>
+      <td style="text-align:right; font-weight:bold;">$${c.total.toFixed(2)}</td>
+      <td><button class="verde" style="padding:4px 8px; font-size:11px;" onclick="ventaExportarCierre('${c.folio}')">📥</button></td>
+    </tr>`).join('') + '</tbody></table></div>';
 }
 function ventaRapidaRenderCreditos() {
   const cont = document.getElementById('ventaCreditosPanel');
@@ -4362,6 +4410,186 @@ function ventaMarcarPagado(folio) {
   guardarVentasRapidas(ventas);
   toast('✅ Marcado como pagado');
   ventaRapidaRenderHistorial();
+}
+
+function getCierresCaja() {
+  const key = 'cierres_caja_' + sucursalActual;
+  try { const raw = localStorage.getItem(key); if (raw) return JSON.parse(raw); } catch(e) {}
+  return [];
+}
+function guardarCierresCaja(arr) {
+  try { localStorage.setItem('cierres_caja_' + sucursalActual, JSON.stringify(arr)); } catch(e) {}
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+    supabaseClient.from('app_data').upsert({
+      section: 'cierres_caja_' + sucursalActual,
+      data: arr,
+      updated_at: new Date().toISOString()
+    }).then(()=>{}).catch(()=>{});
+  }
+}
+
+function calcularResumenCaja(ventas) {
+  const r = { total: 0, efectivo: 0, tarjeta: 0, transferencia: 0, credito: 0, nEfectivo: 0, nTarjeta: 0, nTransferencia: 0, nCredito: 0, creditoPagado: 0 };
+  ventas.forEach(v => {
+    r.total += v.total;
+    if (v.metodo === 'efectivo') { r.efectivo += v.total; r.nEfectivo++; }
+    else if (v.metodo === 'tarjeta') { r.tarjeta += v.total; r.nTarjeta++; }
+    else if (v.metodo === 'transferencia') { r.transferencia += v.total; r.nTransferencia++; }
+    else if (v.metodo === 'credito') { r.credito += v.total; r.nCredito++; }
+  });
+  const hoy = new Date().toISOString().slice(0,10);
+  getVentasRapidas().forEach(v => {
+    if (v.metodo === 'credito' && v.pagado && v.fechaPago && v.fechaPago.slice(0,10) === hoy) {
+      r.creditoPagado += v.total;
+    }
+  });
+  return r;
+}
+
+function ventaAbrirCierreCaja() {
+  const hoy = new Date().toISOString().slice(0,10);
+  const ventas = getVentasRapidas().filter(v => v.fecha.slice(0,10) === hoy);
+  if (!ventas.length) { alert('No hay ventas hoy.'); return; }
+  const s = getSucursalActual();
+  setText('ccSucursal', s ? s.nombre : sucursalActual);
+  setText('ccFecha', new Date().toLocaleString('es-MX'));
+  setText('ccUsuario', usuarioLogueado);
+  const r = calcularResumenCaja(ventas);
+  const html = `
+    <div style="background:#f0f7ff; padding:12px; border-radius:8px; border-left:4px solid #1a5fbf;">
+      <div style="font-weight:bold; color:#1a3a6b; margin-bottom:8px;">📊 Resumen del día</div>
+      <table style="width:100%; font-size:13px;">
+        <tr><td>Ventas totales:</td><td style="text-align:right; font-weight:bold;">${ventas.length}</td></tr>
+        <tr><td>Total vendido:</td><td style="text-align:right; font-weight:bold; color:#1e8449;">$${r.total.toFixed(2)}</td></tr>
+      </table>
+    </div>
+    <div style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div style="background:#e8f5e9; padding:10px; border-radius:8px;">
+        <div class="small">💵 EFECTIVO</div>
+        <div style="font-size:18px; font-weight:bold; color:#1e8449;">$${r.efectivo.toFixed(2)}</div>
+        <div class="small">${r.nEfectivo} venta(s)</div>
+      </div>
+      <div style="background:#e3f2fd; padding:10px; border-radius:8px;">
+        <div class="small">💳 TARJETA</div>
+        <div style="font-size:18px; font-weight:bold; color:#1a3a6b;">$${r.tarjeta.toFixed(2)}</div>
+        <div class="small">${r.nTarjeta} venta(s)</div>
+      </div>
+      <div style="background:#f3e5f5; padding:10px; border-radius:8px;">
+        <div class="small">🏦 TRANSFERENCIA</div>
+        <div style="font-size:18px; font-weight:bold; color:#6a1b9a;">$${r.transferencia.toFixed(2)}</div>
+        <div class="small">${r.nTransferencia} venta(s)</div>
+      </div>
+      <div style="background:#fff3e0; padding:10px; border-radius:8px;">
+        <div class="small">📝 CRÉDITO PEND.</div>
+        <div style="font-size:18px; font-weight:bold; color:#e67e22;">$${r.credito.toFixed(2)}</div>
+        <div class="small">${r.nCredito} venta(s)</div>
+      </div>
+    </div>
+    ${r.creditoPagado > 0 ? `<div style="margin-top:10px; background:#e8f5e9; padding:10px; border-radius:8px;">
+      <div class="small">✅ CRÉDITO COBRADO HOY</div>
+      <div style="font-size:18px; font-weight:bold; color:#1e8449;">$${r.creditoPagado.toFixed(2)}</div>
+    </div>` : ''}
+    <div style="margin-top:10px; background:#f0f0f0; padding:10px; border-radius:8px; font-size:12px;">
+      <div><b>💵 Efectivo esperado en caja:</b> $${r.efectivo.toFixed(2)}</div>
+      <div class="small" style="color:#666; margin-top:4px;">(Solo cuenta ventas en efectivo. El crédito se cobra aparte.)</div>
+    </div>`;
+  document.getElementById('ccResumen').innerHTML = html;
+  document.getElementById('ccObservaciones').value = '';
+  const m = document.getElementById('modalCierreCaja'); if (m) m.classList.add('activo');
+}
+
+function cerrarModalCierreCaja() {
+  const m = document.getElementById('modalCierreCaja'); if (m) m.classList.remove('activo');
+}
+
+function ventaConfirmarCierreCaja() {
+  const hoy = new Date().toISOString().slice(0,10);
+  const ventas = getVentasRapidas().filter(v => v.fecha.slice(0,10) === hoy);
+  if (!ventas.length) { alert('No hay ventas hoy.'); return; }
+  const r = calcularResumenCaja(ventas);
+  const obs = (document.getElementById('ccObservaciones').value || '').trim();
+  const cierresHoy = getCierresCaja().filter(c => c.fecha.slice(0,10) === hoy).length;
+  const cierre = {
+    folio: 'C' + hoy.replace(/-/g,'') + '-' + String(cierresHoy + 1).padStart(2, '0'),
+    fecha: new Date().toISOString(),
+    sucursal: sucursalActual,
+    usuario: usuarioLogueado,
+    nVentas: ventas.length,
+    total: r.total,
+    efectivo: r.efectivo, tarjeta: r.tarjeta, transferencia: r.transferencia, credito: r.credito,
+    nEfectivo: r.nEfectivo, nTarjeta: r.nTarjeta, nTransferencia: r.nTransferencia, nCredito: r.nCredito,
+    creditoPagado: r.creditoPagado,
+    observaciones: obs,
+    detalleVentas: ventas.map(v => ({ folio: v.folio, total: v.total, metodo: v.metodo, cliente: v.cliente || null }))
+  };
+  if (!confirm('¿Confirmar cierre de caja por $' + r.total.toFixed(2) + '?')) return;
+  const cierres = getCierresCaja();
+  cierres.push(cierre);
+  guardarCierresCaja(cierres);
+  cerrarModalCierreCaja();
+  feedbackExito();
+  toast('🔒 Cierre ' + cierre.folio + ' guardado', 'big');
+  ventaRapidaRenderHistorial();
+  setTimeout(() => {
+    if (confirm('¿Descargar el reporte del cierre en Excel?')) ventaExportarCierre(cierre.folio);
+  }, 400);
+}
+
+function ventaExportarCierre(folioCierre) {
+  const cierres = getCierresCaja();
+  const c = cierres.find(x => x.folio === folioCierre);
+  if (!c) { alert('Cierre no encontrado.'); return; }
+  const s = getSucursal(c.sucursal);
+  const aoa = [
+    ['CIERRE DE CAJA'],
+    ['Folio', c.folio],
+    ['Empresa', nombreEmpresa],
+    ['Sucursal', s ? s.nombre : c.sucursal],
+    ['Fecha cierre', new Date(c.fecha).toLocaleString('es-MX')],
+    ['Cajero', '@' + c.usuario],
+    [],
+    ['RESUMEN POR MÉTODO'],
+    ['Método', 'Ventas', 'Monto'],
+    ['💵 Efectivo', c.nEfectivo, c.efectivo],
+    ['💳 Tarjeta', c.nTarjeta, c.tarjeta],
+    ['🏦 Transferencia', c.nTransferencia, c.transferencia],
+    ['📝 Crédito pendiente', c.nCredito, c.credito],
+    [],
+    ['TOTAL DEL DÍA', c.nVentas, c.total],
+    [],
+    ['Crédito cobrado hoy', '', c.creditoPagado],
+    ['Efectivo esperado en caja', '', c.efectivo],
+    [],
+    ['Observaciones', c.observaciones || '—'],
+    [],
+    ['DETALLE DE VENTAS'],
+    ['Folio', 'Método', 'Cliente', 'Total']
+  ];
+  (c.detalleVentas || []).forEach(v => {
+    aoa.push([v.folio, v.metodo, v.cliente || '—', v.total]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:24},{wch:12},{wch:22},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Cierre');
+  XLSX.writeFile(wb, 'cierre_' + c.folio + '.xlsx');
+  toast('📥 Descargado');
+}
+ 
+ function ventaEliminarVenta(folio) {
+  const ventas = getVentasRapidas();
+  const idx = ventas.findIndex(v => v.folio === folio);
+  if (idx < 0) { toast('❌ Venta no encontrada', 'error'); return; }
+  const v = ventas[idx];
+  const resumen = v.items.map(it => `• ${esc(it.sku)} x${it.cantidad} = $${(it.cantidad*it.precio).toFixed(2)}`).join('<br>');
+  pedirConfirmacionPassAdmin('🗑 Eliminar venta',
+    `<b>${v.folio}</b><br>${new Date(v.fecha).toLocaleString('es-MX')}<br>@${v.usuario} · ${v.metodo.toUpperCase()}${v.cliente ? ' · 👤 ' + esc(v.cliente) : ''}<br><br>${resumen}<br><br><b>Total: $${v.total.toFixed(2)}</b><br><br>¿Eliminar esta venta? No se puede deshacer.`,
+    () => {
+      ventas.splice(idx, 1);
+      guardarVentasRapidas(ventas);
+      toast('🗑 Venta ' + folio + ' eliminada');
+      ventaRapidaRenderHistorial();
+    });
 }
 
 function ventaVerTicket(folio) {
