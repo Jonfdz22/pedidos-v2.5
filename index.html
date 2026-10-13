@@ -594,14 +594,21 @@
   </div>
 
   <div class="panel">
-    <h3>📊 Ventas de hoy (<span id="ventaRapidaHistContador">0</span>) · Total: $<span id="ventaRapidaHistTotal">0.00</span></h3>
-    <div class="fila" style="margin-bottom:8px;">
-     <div class="fila" style="margin-bottom:8px;">
-      <button class="verde" style="flex:1; font-size:12px;" onclick="ventaRapidaExportar()">📥 Excel</button>
-      <button class="gris" style="flex:1; font-size:12px;" onclick="ventaRapidaRenderHistorial()">🔄</button>
-      <button class="amarillo" style="flex:1; font-size:12px;" onclick="ventaAbrirCierreCaja()">🔒 Cierre</button>
+  <div class="panel">
+    <h3>📊 Ventas de hoy (<span id="ventaRapidaHistContador">0</span>)</h3>
+
+    <div style="background:linear-gradient(135deg,#e8f5e9 0%,#c8e6c9 100%); padding:12px; border-radius:10px; text-align:center; margin-bottom:12px; border:1px solid #a5d6a7;">
+      <div class="small" style="font-weight:bold; color:#2e7d32;">TOTAL DEL DÍA</div>
+      <div style="font-size:28px; font-weight:bold; color:#1e8449; margin-top:2px;">$<span id="ventaRapidaHistTotal">0.00</span></div>
     </div>
-     <div id="ventaRapidaHistorial" class="tabla-scroll" style="max-height:400px;"></div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
+      <button class="verde" style="padding:12px 6px; font-size:13px;" onclick="ventaRapidaExportar()">📥 Excel</button>
+      <button class="gris" style="padding:12px 6px; font-size:13px;" onclick="ventaRapidaRenderHistorial()">🔄 Refrescar</button>
+      <button class="amarillo" style="padding:12px 6px; font-size:13px;" onclick="ventaAbrirCierreCaja()">🔒 Cierre</button>
+    </div>
+
+    <div id="ventaRapidaHistorial" class="tabla-scroll" style="max-height:400px;"></div>
   </div>
 
   <div class="panel" style="border:2px solid #e67e22;">
@@ -3973,6 +3980,16 @@ function actualizarIndicadorOrdenInv() {
 let ventaRapidaActual = [];
 let ventaRapidaMetodo = 'efectivo';
 
+// ⚙️ Umbral de redondeo: si el decimal es >= 0.40 sube al siguiente peso
+// Ejemplos: 10.03→10, 10.39→10, 10.40→11, 10.99→11
+const UMBRAL_REDONDEO = 0.40;
+function redondearPrecio(p) {
+  const n = Number(p) || 0;
+  const entero = Math.floor(n);
+  const decimal = n - entero;
+  return decimal >= UMBRAL_REDONDEO ? entero + 1 : entero;
+}
+
 function ventaRapidaGuardar() {
   try { localStorage.setItem('venta_rapida_actual_' + sucursalActual, JSON.stringify(ventaRapidaActual)); } catch(e) {}
 }
@@ -4084,11 +4101,13 @@ function _ventaRapidaAgregarProducto(p, esPromo) {
   if (ex) {
     ex.cantidad++;
   } else {
+    const precioBase = p.precio || 0;
+    const precioRedondeado = redondearPrecio(precioBase);
     ventaRapidaActual.push({
       sku: p.sku,
       descripcion: p.descripcion || '',
-      precio: p.precio || 0,
-      precioOriginal: p.precio || 0,
+      precio: precioRedondeado,
+      precioOriginal: precioBase,
       cantidad: 1,
       um: p.um || 'PIEZA',
       promocion: !!esPromo
@@ -4117,7 +4136,7 @@ function ventaRapidaRender() {
         const original = it.precioOriginal || it.precio;
         const tieneDescuento = it.precio < original;
         const estiloPrecio = tieneDescuento ? 'background:#fff3e0; border:1px solid #e67e22;' : '';
-             const avisoDesc = (tieneDescuento ? `<div class="small" style="color:#e67e22; font-size:10px;">ant. $${original.toFixed(2)}</div>` : '') + (it.promocion ? `<div class="small" style="color:#1e8449; font-size:10px; font-weight:bold;">🏷️ PROMO</div>` : '');
+        const avisoDesc = (tieneDescuento ? `<div class="small" style="color:#e67e22; font-size:10px;">ant. $${original.toFixed(2)}</div>` : '') + (it.promocion ? `<div class="small" style="color:#1e8449; font-size:10px; font-weight:bold;">🏷️ PROMO</div>` : '');
         return `<tr>
           <td style="font-family:monospace; font-size:11px;">${esc(it.sku)}</td>
           <td class="small">${esc(it.descripcion)}${avisoDesc}</td>
@@ -4189,7 +4208,7 @@ function ventaRapidaCancelar() {
 function ventaRapidaCobrar() {
   if (!ventaRapidaActual.length) { toast('Ticket vacío', 'warn'); return; }
   const total = ventaRapidaActual.reduce((s, it) => s + it.cantidad * it.precio, 0);
-  document.getElementById('cobrarTotal').textContent = '$' + total.toFixed(2);
+  document.getElementById('cobrarTotal').textContent = '$' + redondearPrecio(total).toFixed(2);
   ventaRapidaMetodo = 'efectivo';
   document.getElementById('btnPagoEfectivo').className = 'verde';
   document.getElementById('btnPagoTarjeta').className = 'gris';
@@ -4240,8 +4259,8 @@ function ventaBillete(monto) {
   if (inp) { inp.value = monto; ventaRecalcularCambio(); }
 }
 
-function ventaRecalcularCambio() {
-  const total = ventaRapidaActual.reduce((s, it) => s + it.cantidad * it.precio, 0);
+function ventaConfirmar() {
+  const total = redondearPrecio(ventaRapidaActual.reduce((s, it) => s + it.cantidad * it.precio, 0));
   const rec = parseFloat(document.getElementById('cobrarRecibido').value) || 0;
   const cambio = Math.max(0, rec - total);
   document.getElementById('cobrarCambio').textContent = '$' + cambio.toFixed(2);
