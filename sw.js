@@ -1,7 +1,6 @@
-
 const C = 'fc-relma-v2';
 
-// Lista de recursos que SIEMPRE se cachean al instalar
+// Recursos que SIEMPRE se cachean al instalar
 const PRECACHE = [
   './',
   './index.html',
@@ -29,14 +28,13 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Red primero (con timeout), caché fallback. Supabase SIEMPRE por red.
+// Red primero (con timeout de 8s), caché fallback. Supabase SIEMPRE por red.
 self.addEventListener('fetch', e => {
   const r = e.request;
   if (r.method !== 'GET') return;
   const url = new URL(r.url);
   if (url.hostname.endsWith('supabase.co')) return;
 
-  // Timeout de 8s para evitar cuelgues en datos móviles lentos
   const fetchConTimeout = fetch(r, { signal: AbortSignal.timeout(8000) });
 
   e.respondWith(
