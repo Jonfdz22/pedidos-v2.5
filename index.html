@@ -595,11 +595,6 @@
 
    <div class="panel">
     <h3>📊 Ventas de hoy (<span id="ventaRapidaHistContador">0</span>)</h3>
-    
-    <div style="background:linear-gradient(135deg,#e8f5e9 0%,#c8e6c9 100%); padding:12px; border-radius:10px; text-align:center; margin-bottom:12px; border:1px solid #a5d6a7;">
-      <div class="small" style="font-weight:bold; color:#2e7d32;">TOTAL DEL DÍA</div>
-      <div style="font-size:28px; font-weight:bold; color:#1e8449; margin-top:2px;">$<span id="ventaRapidaHistTotal">0.00</span></div>
-    </div>
 
     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
       <button class="verde" style="padding:12px 6px; font-size:13px;" onclick="ventaRapidaExportar()">📥 Excel</button>
@@ -4102,13 +4097,15 @@ function _ventaRapidaAgregarProducto(p, esPromo) {
   } else {
     const precioBase = p.precio || 0;
     const precioRedondeado = redondearPrecio(precioBase);
+    const um = p.um || 'PIEZA';
+    const esGranel = (um === 'LITRO' || um === 'GALON' || um === 'CUBETA');
     ventaRapidaActual.push({
       sku: p.sku,
       descripcion: p.descripcion || '',
       precio: precioRedondeado,
       precioOriginal: precioBase,
-      cantidad: 1,
-      um: p.um || 'PIEZA',
+      cantidad: esGranel ? 0.5 : 1,
+      um: um,
       promocion: !!esPromo
     });
   }
@@ -4137,12 +4134,12 @@ function ventaRapidaRender() {
         const estiloPrecio = tieneDescuento ? 'background:#fff3e0; border:1px solid #e67e22;' : '';
         const avisoDesc = (tieneDescuento ? `<div class="small" style="color:#e67e22; font-size:10px;">ant. $${original.toFixed(2)}</div>` : '') + (it.promocion ? `<div class="small" style="color:#1e8449; font-size:10px; font-weight:bold;">🏷️ PROMO</div>` : '');
         return `<tr>
-          <td style="font-family:monospace; font-size:11px;">${esc(it.sku)}</td>
-          <td class="small">${esc(it.descripcion)}${avisoDesc}</td>
-          <td><input type="number" min="1" value="${it.cantidad}" style="width:56px; text-align:center; font-weight:bold;" onchange="ventaRapidaCambiarCant(${i}, this.value)"></td>
-          <td><input type="number" step="0.01" min="0" value="${it.precio.toFixed(2)}" style="width:70px; text-align:right; font-weight:bold; ${estiloPrecio}" onchange="ventaRapidaCambiarPrecio(${i}, this.value)"></td>
-          <td style="text-align:right; font-weight:bold;">$${imp.toFixed(2)}</td>
-          <td style="white-space:nowrap;">
+       <td style="font-family:monospace; font-size:11px;">${esc(it.sku)}</td>
+       <td class="small">${esc(it.descripcion)}${avisoDesc}<div class="small" style="color:#888; font-size:10px;">${it.um || 'PIEZA'}</div></td>
+       <td><input type="number" min="0.01" step="0.01" value="${it.cantidad}" style="width:64px; text-align:center; font-weight:bold;" onchange="ventaRapidaCambiarCant(${i}, this.value)"></td>
+       <td><input type="number" step="0.01" min="0" value="${it.precio.toFixed(2)}" style="width:70px; text-align:right; font-weight:bold; ${estiloPrecio}" onchange="ventaRapidaCambiarPrecio(${i}, this.value)"></td>
+       <td style="text-align:right; font-weight:bold;">$${imp.toFixed(2)}</td>
+       <td style="white-space:nowrap;">
             <button class="amarillo" style="padding:4px 6px; font-size:11px;" onclick="ventaRapidaDescuento(${i})" title="Descuento">%</button>
             <button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="ventaRapidaEliminar(${i})">✕</button>
           </td>
@@ -4188,8 +4185,8 @@ function ventaRapidaCambiarPrecio(i, v) {
 }
  
 function ventaRapidaCambiarCant(i, v) {
-  const c = Math.max(1, parseInt(v) || 1);
-  ventaRapidaActual[i].cantidad = c;
+  const c = Math.max(0.01, parseFloat(v) || 0.01);
+  ventaRapidaActual[i].cantidad = Math.round(c * 100) / 100;
   ventaRapidaRender();
 }
 
@@ -4253,6 +4250,18 @@ function guardarClienteCredito(nombre) {
     try { localStorage.setItem('clientes_credito', JSON.stringify(clientes)); } catch(e) {}
   }
 }
+
+ function ventaRecalcularCambio() {
+  const inp = document.getElementById('cobrarRecibido');
+  const elCambio = document.getElementById('cobrarCambio');
+  if (!inp || !elCambio) return;
+  const total = redondearPrecio(ventaRapidaActual.reduce((s, it) => s + it.cantidad * it.precio, 0));
+  const rec = parseFloat(inp.value) || 0;
+  const cambio = Math.max(0, rec - total);
+  elCambio.textContent = '$' + cambio.toFixed(2);
+  elCambio.style.color = cambio > 0 ? '#e67e22' : '#666';
+}
+ 
 function ventaBillete(monto) {
   const inp = document.getElementById('cobrarRecibido');
   if (inp) { inp.value = monto; ventaRecalcularCambio(); }
