@@ -6764,5 +6764,143 @@ body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area
 </script>
 
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}</script>
+
+<!-- FC-Relma UI refresh: capa visual compatible con las funciones existentes -->
+<style id="fc-relma-ui-refresh">
+  :root{
+    --fc-primary:#173b70;--fc-primary-2:#245aa3;--fc-accent:#e8a23a;
+    --fc-bg:#f3f6fb;--fc-card:#fff;--fc-text:#172338;--fc-muted:#68768b;
+    --fc-line:#e1e7f0;--fc-shadow:0 5px 20px rgba(25,48,82,.07);
+    --fc-radius:14px;
+  }
+  html{scroll-behavior:smooth}
+  body{
+    max-width:100%!important;margin:0!important;padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))!important;
+    background:var(--fc-bg)!important;color:var(--fc-text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased
+  }
+  #app{min-height:100vh}
+  header{
+    background:linear-gradient(115deg,#102b52 0%,#173b70 62%,#245aa3 100%)!important;
+    box-shadow:0 4px 18px rgba(16,43,82,.18);position:sticky;top:0;z-index:100
+  }
+  .header-top{padding:14px clamp(14px,3vw,34px);min-height:70px}
+  .header-btn{padding:8px 12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06)}
+  .header-btn:hover{background:rgba(255,255,255,.13)}
+  .header-btn .linea1{font-size:13px;letter-spacing:.2px}
+  .header-btn .linea2{font-size:17px;letter-spacing:.8px}
+  .tabs-scroll{background:rgba(4,20,42,.22);scrollbar-width:thin}
+  .tabs{padding:0 clamp(10px,2.5vw,30px);gap:5px}
+  .tab{padding:13px 17px 11px;font-size:13px;border-bottom-width:3px;transition:background .18s,color .18s}
+  .tab:hover{background:rgba(255,255,255,.12)}
+  .tab.activo{background:rgba(255,255,255,.16);border-bottom-color:#ffc96a}
+  #pestanaPedido,#pestanaInventario,#pestanaVincular,#pestanaBaseDatos,#pestanaVentas,#pestanaAjustes{
+    max-width:1500px;margin:20px auto 28px;padding:0 clamp(8px,1.6vw,22px)
+  }
+  .panel{
+    margin:0 0 16px!important;padding:clamp(16px,2vw,24px)!important;
+    border:1px solid var(--fc-line);border-radius:var(--fc-radius)!important;
+    box-shadow:var(--fc-shadow)!important;background:var(--fc-card);
+    transition:box-shadow .2s,border-color .2s
+  }
+  .panel:hover{border-color:#d5dfed}
+  h3{font-size:16px!important;color:var(--fc-primary)!important;letter-spacing:-.2px;margin-bottom:14px!important}
+  .small,.subtexto,.diag{color:var(--fc-muted)}
+  label.small{display:block;margin-bottom:5px}
+  input:not([type=checkbox]):not([type=range]):not([type=file]),
+  select,textarea{
+    border:1px solid #d3dce9!important;border-radius:9px!important;background:#fff;
+    color:var(--fc-text);transition:border-color .15s,box-shadow .15s
+  }
+  input:not([type=checkbox]):not([type=range]):not([type=file]):hover,select:hover,textarea:hover{border-color:#aebfd8!important}
+  input:focus,select:focus,textarea:focus{outline:none!important;border-color:#3974bd!important;box-shadow:0 0 0 3px rgba(57,116,189,.13)!important}
+  input[type=file]{max-width:100%;padding:9px;border:1px dashed #c7d3e4;border-radius:9px;background:#f8faff;width:100%}
+  button{border-radius:9px!important;min-height:40px;box-shadow:0 1px 2px rgba(12,30,58,.06);transition:transform .12s,filter .12s,box-shadow .12s}
+  button:hover{filter:brightness(1.04);box-shadow:0 3px 9px rgba(12,30,58,.12)}
+  button:active{transform:translateY(1px);opacity:.92}
+  button.verde{background:#16804a!important}button.rojo{background:#c43d42!important}
+  button.amarillo{background:#d98519!important}button.gris{background:#65758b!important}
+  .fila{gap:10px}
+  .inv-stats{gap:12px}
+  .inv-stat{padding:15px 12px;border:1px solid var(--fc-line);border-radius:12px;background:#f9fbfe}
+  .inv-stat .num{font-size:clamp(20px,2.2vw,28px);letter-spacing:-.6px;color:var(--fc-primary)}
+  .inv-stat .lbl{font-size:10px;letter-spacing:.6px;font-weight:700}
+  .inv-stat.ok{background:#f0faf4;border-color:#b9e6c9}
+  .inv-stat.warn{background:#fff8eb;border-color:#f4d8a6}
+  .inv-stat.err{background:#fff3f3;border-color:#f0c1c1}
+  table{border-collapse:separate!important;border-spacing:0!important;border-radius:10px;overflow:hidden}
+  th,td{padding:10px 11px!important;border-right:0!important;border-left:0!important;border-top:0!important;border-color:#e7ecf3!important}
+  th{background:#edf3fb!important;color:#27466f!important;font-size:11px!important;text-transform:uppercase;letter-spacing:.45px;white-space:nowrap}
+  td{font-size:13px;background:#fff}
+  tbody tr:nth-child(even) td{background:#fafcff}
+  tbody tr:hover td{background:#eef5ff}
+  .tabla-scroll{border:1px solid var(--fc-line)!important;border-radius:10px!important;max-width:100%;overscroll-behavior:contain}
+  .tabla-scroll table{margin:0}
+  .tabla-scroll th{position:sticky;top:0;z-index:3}
+  .ayuda{border-radius:10px;background:#edf5ff;border-left-color:#3974bd;padding:12px 14px}
+  .paso{border-radius:12px;border-width:1px;background:#f7faff}
+  .paso-num{background:#245aa3}
+  .info-vinculo{border-radius:10px;background:#f0faf4;border-left-color:#16804a}
+  .modal-bg{backdrop-filter:blur(3px)}
+  .modal{border:1px solid #e1e7f0;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.22);padding:24px}
+  .dropdown-content{border:1px solid var(--fc-line);box-shadow:0 18px 50px rgba(0,0,0,.22)}
+  .dropdown-item{border-radius:10px}
+  .login-bg{background:radial-gradient(circle at 15% 10%,#2b5d9a 0%,transparent 36%),linear-gradient(135deg,#102747 0%,#173b70 58%,#245aa3 100%)}
+  .login-card{border:1px solid rgba(255,255,255,.45);border-radius:20px;padding:34px 28px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+  .login-card .logo{display:grid;place-items:center;margin:0 auto 12px;width:74px;height:74px;border-radius:22px;background:#edf4ff;font-size:40px}
+  .login-card h1{font-size:25px}
+  .acciones-fijas{
+    max-width:1460px;margin:14px auto;padding:12px clamp(12px,2vw,24px);
+    border:1px solid var(--fc-line);border-radius:14px;box-shadow:0 8px 24px rgba(25,48,82,.12);
+    background:rgba(255,255,255,.96);backdrop-filter:blur(12px)
+  }
+  #estadoRed{bottom:calc(18px + env(safe-area-inset-bottom,0px));left:16px;z-index:130;font-size:11px;border:1px solid var(--fc-line);padding:7px 12px}
+  .pedido-card{border:1px solid var(--fc-line);border-left:4px solid var(--fc-primary-2);border-radius:12px;box-shadow:var(--fc-shadow)}
+  .config-row{border:1px solid var(--fc-line);border-radius:11px;background:#fbfcff}
+  .banner{border-radius:10px}
+  :focus-visible{outline:3px solid rgba(57,116,189,.55)!important;outline-offset:2px}
+  @media(min-width:900px){
+    .tabs{flex-wrap:wrap}
+    #pestanaPedido,#pestanaInventario,#pestanaVincular,#pestanaBaseDatos,#pestanaVentas,#pestanaAjustes{padding-left:24px;padding-right:24px}
+    #pestanaPedido{display:grid;grid-template-columns:minmax(300px,.85fr) minmax(400px,1.15fr);gap:16px;align-items:start}
+    #pestanaPedido>.panel{margin-bottom:0!important}
+    #pestanaPedido>.panel:nth-child(1){grid-column:1}
+    #pestanaPedido>.panel:nth-child(2){grid-column:1}
+    #pestanaPedido>.panel:nth-child(3){grid-column:2;grid-row:1 / span 2}
+    #pestanaPedido>.acciones-fijas{grid-column:1 / -1;width:100%}
+  }
+  @media(max-width:699px){
+    .header-top{padding:10px}
+    .header-btn .linea1{font-size:12px}
+    .header-btn .linea2{font-size:15px}
+    .tabs{padding:0 7px;gap:0}
+    .tab{padding:12px 12px 10px;font-size:12px}
+    #pestanaPedido,#pestanaInventario,#pestanaVincular,#pestanaBaseDatos,#pestanaVentas,#pestanaAjustes{margin:10px auto 18px;padding:0 8px}
+    .panel{padding:14px!important;margin-bottom:10px!important}
+    .inv-stat{padding:11px 7px}
+    .inv-stat .num{font-size:20px}
+    .acciones-fijas{position:sticky;bottom:8px;margin:10px 8px!important;padding:8px;z-index:80}
+    .acciones-fijas button{padding:12px 8px;font-size:13px}
+    .modal{padding:18px}
+    th,td{padding:8px!important}
+    #estadoRed{bottom:calc(78px + env(safe-area-inset-bottom,0px));left:10px}
+  }
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+<script id="fc-relma-usability-refresh">
+(function(){
+  // Mejoras de comodidad que no reemplazan ni modifican las funciones de negocio.
+  document.documentElement.style.colorScheme='light';
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){
+      document.querySelectorAll('.modal-bg.activo').forEach(function(m){m.classList.remove('activo')});
+      document.querySelectorAll('.dropdown-menu.activo').forEach(function(m){m.classList.remove('activo')});
+    }
+  });
+  // Evita enviar accidentalmente el formulario de búsqueda al pulsar Enter.
+  document.querySelectorAll('input[type="search"]').forEach(function(i){i.setAttribute('autocomplete','off')});
+})();
+</script>
+
 </body>
 </html>
