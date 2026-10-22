@@ -1744,6 +1744,10 @@ async function bajarUsuariosSupabase() {
       console.log('📭 Sin usuarios en Supabase');
       return false;
     }
+    if (!data.data || Object.keys(data.data).length === 0) {
+      console.warn('⚠️ Supabase devolvió usuarios vacíos. Manteniendo los locales.');
+      return false;
+    }
     usuarios = data.data;
     localStorage.setItem(KEY_USERS, JSON.stringify(usuarios));
     console.log('✅ Usuarios bajados:', Object.keys(usuarios).length);
@@ -3132,7 +3136,13 @@ function inicializarUsuarios() {
     if (typeof usuarios[u].permisos.baseDatos === 'undefined') usuarios[u].permisos.baseDatos = usuarios[u].permisos.ajustes === true;
     if (!Array.isArray(usuarios[u].sucursalesPermitidas)) usuarios[u].sucursalesPermitidas = todos;
   });
-  if (!usuarios || Object.keys(usuarios).length === 0) {
+   if (!usuarios || Object.keys(usuarios).length === 0) {
+    // ⚡ PROTECCIÓN: Si ya había iniciado sesión antes, NO sobrescribir
+    const sesionGuardada = localStorage.getItem(KEY_SESSION);
+    if (sesionGuardada) {
+      console.warn('⚠️ Usuarios vacíos pero hay sesión activa. Evitando reset.');
+      return;
+    }
     usuarios = {};
     usuarios['admin'] = { nombre: 'Administrador', email: '', hash: hashPassword('admin123'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: true };
     usuarios['diego'] = { nombre: 'Diego', email: '', hash: hashPassword('24680'), permisos: { ...permTodo }, sucursalesPermitidas: todos, creado: new Date().toISOString(), primerLogin: false };
