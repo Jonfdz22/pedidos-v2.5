@@ -1735,24 +1735,20 @@ async function subirUsuariosSupabase() {
 }
 
 async function bajarUsuariosSupabase() {
-  if (!supabaseClient) return false;
+  if (!supabaseClient) return 'error';
   try {
     const { data, error } = await supabaseClient.from('app_data')
       .select('data').eq('section', 'usuarios').maybeSingle();
-    if (error) { console.error('Error bajando usuarios:', error); return false; }
+    if (error) { console.error('Error bajando usuarios:', error); return 'error'; }
     if (!data || !data.data || !Object.keys(data.data).length) {
-      console.log('📭 Sin usuarios en Supabase');
-      return false;
-    }
-    if (!data.data || Object.keys(data.data).length === 0) {
-      console.warn('⚠️ Supabase devolvió usuarios vacíos. Manteniendo los locales.');
-      return false;
+      console.log('📭 Sin usuarios en Supabase (Nube vacía)');
+      return 'empty';
     }
     usuarios = data.data;
     localStorage.setItem(KEY_USERS, JSON.stringify(usuarios));
     console.log('✅ Usuarios bajados:', Object.keys(usuarios).length);
-    return true;
-  } catch(e) { console.error(e); return false; }
+    return 'ok';
+  } catch(e) { console.error(e); return 'error'; }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1770,20 +1766,20 @@ async function subirSucursalesSupabase() {
 }
 
 async function bajarSucursalesSupabase() {
-  if (!supabaseClient) return false;
+  if (!supabaseClient) return 'error';
   try {
     const { data, error } = await supabaseClient.from('app_data')
       .select('data').eq('section', 'sucursales').maybeSingle();
-    if (error) { console.error('Error bajando sucursales:', error); return false; }
+    if (error) { console.error('Error bajando sucursales:', error); return 'error'; }
     if (!data || !data.data || !Array.isArray(data.data) || !data.data.length) {
       console.log('📭 Sin sucursales en Supabase');
-      return false;
+      return 'empty';
     }
     sucursales = data.data;
     localStorage.setItem(KEY_SUCURSALES, JSON.stringify(sucursales));
     console.log('✅ Sucursales bajadas:', sucursales.length);
-    return true;
-  } catch(e) { console.error(e); return false; }
+    return 'ok';
+  } catch(e) { console.error(e); return 'error'; }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1801,17 +1797,17 @@ async function subirEmpresaSupabase() {
 }
 
 async function bajarEmpresaSupabase() {
-  if (!supabaseClient) return false;
+  if (!supabaseClient) return 'error';
   try {
     const { data, error } = await supabaseClient.from('app_data')
       .select('data').eq('section', 'empresa').maybeSingle();
-    if (error) { console.error('Error bajando empresa:', error); return false; }
-    if (!data || !data.data || !data.data.nombre) return false;
+    if (error) { console.error('Error bajando empresa:', error); return 'error'; }
+    if (!data || !data.data || !data.data.nombre) return 'empty';
     nombreEmpresa = data.data.nombre;
     localStorage.setItem(KEY_EMPRESA, nombreEmpresa);
     console.log('✅ Empresa bajada:', nombreEmpresa);
-    return true;
-  } catch(e) { console.error(e); return false; }
+    return 'ok';
+  } catch(e) { console.error(e); return 'error'; }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1821,32 +1817,33 @@ async function bajarCoreSupabase() {
   if (!supabaseClient) return false;
   console.log('⬇️ Descargando datos core desde Supabase (paralelo)...');
   const t0 = performance.now();
-  // ⚡ Las 4 peticiones en PARALELO (antes eran en serie)
-  const [tieneUsuarios, tieneSucursales, tieneEmpresa] = await Promise.all([
+  
+  const [statusUsuarios, statusSucursales, statusEmpresa] = await Promise.all([
     bajarUsuariosSupabase(),
     bajarSucursalesSupabase(),
     bajarEmpresaSupabase()
   ]);
-  // Vínculos en paralelo también, no bloquea
+  
   bajarVinculosSupabase();
-  // Semilla: si Supabase está vacío, subimos lo local
-  if (!tieneUsuarios) {
-    console.log('📤 Subiendo usuarios locales como semilla');
+  
+  // 🔥 SOLO subir a la nube si se confirmó que está vacía (empty). 
+  // Si hubo error de red (error), NO subir nada para no borrar los datos reales.
+  if (statusUsuarios === 'empty') {
+    console.log('📤 Subiendo usuarios locales como semilla (Nube vacía)');
     subirUsuariosSupabase();
   }
-  if (!tieneSucursales) {
-    console.log('📤 Subiendo sucursales locales como semilla');
+  if (statusSucursales === 'empty') {
+    console.log('📤 Subiendo sucursales locales como semilla (Nube vacía)');
     subirSucursalesSupabase();
   }
-  if (!tieneEmpresa) {
-    console.log('📤 Subiendo empresa local como semilla');
+  if (statusEmpresa === 'empty') {
+    console.log('📤 Subiendo empresa local como semilla (Nube vacía)');
     subirEmpresaSupabase();
   }
   const ms = Math.round(performance.now() - t0);
   console.log(`✅ Core sincronizado en ${ms}ms`);
   return true;
 }
-
 // Sync auto con debounce para no saturar
 let _syncUsuariosTimeout = null;
 function sincronizarUsuariosAuto() {
@@ -3161,7 +3158,15 @@ function inicializarUsuarios() {
 }
 function guardarUsuarios() {
   try { localStorage.setItem(KEY_USERS, JSON.stringify(usuarios)); } catch(e) {}
-  if (typeof supabaseClient !== 'undefined' && supabaseClient) sincronizarUsuariosAuto();
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+    // 🔥 PROTECCIÓN: Si el admin sigue usando la clave de fábrica, NO subirlo (evita borrar la nube)
+    const adminHash = usuarios['admin'] ? usuarios['admin'].hash : null;
+    if (adminHash === hashPassword('admin123')) {
+      console.warn('⚠️ Protección: Saltando sincronización automática del usuario de fábrica.');
+      return;
+    }
+    sincronizarUsuariosAuto();
+  }
 }
 function reiniciarUsuarios() {
   if (!usuarios[usuarioLogueado]?.permisos.ajustes) { alert('⛔'); return; }
