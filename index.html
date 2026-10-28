@@ -299,9 +299,14 @@
       <div class="linea1">📋 <span id="headerEmpresa">FC-Relma</span> ▼</div>
       <div class="linea2" id="headerSucursal">SAHAGUN</div>
     </button>
-    <button class="header-btn header-right" onclick="abrirMenuUsuario()">
-      <div class="linea1">👤 <span id="usuarioActualHeader">—</span> ▼</div>
-    </button>
+<div style="display:flex; align-items:center; gap:6px;">
+      <button class="header-btn" onclick="alternarTema()" title="Cambiar tema claro/oscuro" style="padding:6px 10px; font-size:16px;">
+        <span id="btnIconoTema">🌙</span>
+      </button>
+      <button class="header-btn header-right" onclick="abrirMenuUsuario()">
+        <div class="linea1">👤 <span id="usuarioActualHeader">—</span> ▼</div>
+      </button>
+    </div>
   </div>
   <div class="tabs-scroll">
     <div class="tabs">
@@ -724,7 +729,11 @@
 
 <div class="modal-bg" id="modalCamara">
   <div class="modal"><h3>📷 Escanear</h3><div id="reader"></div>
-    <button class="rojo" style="width:100%; margin-top:10px;" onclick="cerrarCamara()">Cancelar</button></div>
+    <div class="fila" style="margin-top:10px; gap:8px;">
+      <button id="btnTorchCamara" class="amarillo" style="flex:1;" onclick="toggleLinterna()">💡 Linterna</button>
+      <button class="rojo" style="flex:1;" onclick="cerrarCamara()">Cancelar</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-bg" id="modalCantidad">
@@ -977,9 +986,10 @@
   <div class="modal">
     <h3>✅ Venta registrada</h3>
     <div id="ventaTicketContenido" style="font-family:monospace; font-size:12px; background:#f9f9f9; padding:14px; border-radius:8px; white-space:pre-wrap; max-height:50vh; overflow-y:auto;"></div>
-    <div class="fila" style="margin-top:14px;">
-      <button class="verde" style="flex:1;" onclick="ventaCopiarTicket()">📋 Copiar</button>
-      <button class="gris" onclick="cerrarModalVentaTicket()">Cerrar</button>
+    <div class="fila" style="margin-top:14px; gap:6px;">
+      <button class="verde" style="flex:1;" onclick="window.print()">🖨️ Imprimir</button>
+      <button class="gris" style="flex:1;" onclick="ventaCopiarTicket()">📋 Copiar</button>
+      <button class="rojo" onclick="cerrarModalVentaTicket()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -5834,6 +5844,29 @@ const tieneBarcodeDetector = 'BarcodeDetector' in window;
 
 
 
+/* ============ CÁMARA Y LINTERNA ============ */
+let trackVideoActual = null;
+let linternaEncendida = false;
+
+async function toggleLinterna() {
+  if (!trackVideoActual) return;
+  const capabilities = trackVideoActual.getCapabilities ? trackVideoActual.getCapabilities() : {};
+  if (!capabilities.torch) {
+    toast('⚠️ Este dispositivo no soporta linterna por cámara', 'warn');
+    return;
+  }
+  try {
+    linternaEncendida = !linternaEncendida;
+    await trackVideoActual.applyConstraints({
+      advanced: [{ torch: linternaEncendida }]
+    });
+    const btn = document.getElementById('btnTorchCamara');
+    if (btn) btn.textContent = linternaEncendida ? '🔦 Apagar' : '💡 Linterna';
+  } catch (e) {
+    toast('No se pudo activar la linterna', 'error');
+  }
+}
+
 async function abrirCamara(origen) {
   camaraOrigen = origen;
   const m = document.getElementById('modalCamara'); if (m) m.classList.add('activo');
@@ -5851,8 +5884,17 @@ async function abrirCamara(origen) {
   status.style.cssText = 'margin-top:8px; font-size:12px; color:#1a5fbf; font-weight:bold; text-align:center;';
   status.textContent = '⏳ Iniciando cámara…';
   cont.appendChild(status);
+
+  linternaEncendida = false;
+  const btnTorch = document.getElementById('btnTorchCamara');
+  if (btnTorch) btnTorch.textContent = '💡 Linterna';
+
   try {
-    camaraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+    camaraStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, 
+      audio: false 
+    });
+    trackVideoActual = camaraStream.getVideoTracks()[0];
     video.srcObject = camaraStream;
     await video.play();
     status.textContent = '🔍 Apunta al código…';
@@ -5865,6 +5907,7 @@ async function abrirCamara(origen) {
     cerrarCamara();
   }
 }
+
 function iniciarBarcodeDetector(video, status) {
   try {
     const detector = new BarcodeDetector({ formats: ['code_128','code_39','ean_13','ean_8','upc_a','upc_e','codabar','itf','qr_code'] });
@@ -5877,6 +5920,7 @@ function iniciarBarcodeDetector(video, status) {
     }, 150);
   } catch (e) { if (typeof ZXing !== 'undefined') iniciarZXing(video, status); }
 }
+
 function iniciarZXing(video, status) {
   try {
     const hints = new Map();
@@ -5888,10 +5932,13 @@ function iniciarZXing(video, status) {
     reader.decodeFromVideoElement(video, (result, err) => { if (result) onCamaraDetecta(result.getText()); });
   } catch (e) { status.textContent = '⚠️ Error al iniciar el lector'; }
 }
+
 function cerrarCamara() {
   if (camaraLoop) { clearInterval(camaraLoop); camaraLoop = null; }
   if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
   if (camaraStream) { camaraStream.getTracks().forEach(t => t.stop()); camaraStream = null; }
+  trackVideoActual = null;
+  linternaEncendida = false;
   const m = document.getElementById('modalCamara'); if (m) m.classList.remove('activo');
   const cont = document.getElementById('reader'); if (cont) cont.innerHTML = '';
 }
@@ -6903,19 +6950,131 @@ body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 </style>
 <script id="fc-relma-usability-refresh">
+const KEY_TEMA = 'fc_relma_tema_v1';
+
+function inicializarTema() {
+  const guardado = localStorage.getItem(KEY_TEMA);
+  if (guardado) {
+    aplicarTema(guardado);
+  } else {
+    const prefiereOscuro = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    aplicarTema(prefiereOscuro ? 'dark' : 'light');
+  }
+}
+
+function aplicarTema(tema) {
+  document.documentElement.setAttribute('data-theme', tema);
+  document.documentElement.style.colorScheme = tema;
+  try { localStorage.setItem(KEY_TEMA, tema); } catch(e) {}
+  const icon = document.getElementById('btnIconoTema');
+  if (icon) icon.textContent = tema === 'dark' ? '☀️' : '🌙';
+}
+
+function alternarTema() {
+  const actual = document.documentElement.getAttribute('data-theme') || 'light';
+  const nuevo = actual === 'dark' ? 'light' : 'dark';
+  aplicarTema(nuevo);
+  toast(nuevo === 'dark' ? '🌙 Modo Oscuro' : '☀️ Modo Claro');
+}
+
 (function(){
-  // Mejoras de comodidad que no reemplazan ni modifican las funciones de negocio.
-  document.documentElement.style.colorScheme='light';
-  document.addEventListener('keydown',function(e){
-    if(e.key==='Escape'){
-      document.querySelectorAll('.modal-bg.activo').forEach(function(m){m.classList.remove('activo')});
-      document.querySelectorAll('.dropdown-menu.activo').forEach(function(m){m.classList.remove('activo')});
+  inicializarTema();
+
+  // Atajos de teclado en Punto de Venta
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-bg.activo').forEach(m => m.classList.remove('activo'));
+      document.querySelectorAll('.dropdown-menu.activo').forEach(m => m.classList.remove('activo'));
+    }
+    // F2: Cobrar rápido si estás en ventas
+    if (e.key === 'F2' && tabActual === 'ventas') {
+      e.preventDefault();
+      ventaRapidaCobrar();
+    }
+    // F4: Enfocar buscador de ventas
+    if (e.key === 'F4' && tabActual === 'ventas') {
+      e.preventDefault();
+      const b = document.getElementById('ventaRapidaBusqueda');
+      if (b) { b.focus(); b.select(); }
     }
   });
-  // Evita enviar accidentalmente el formulario de búsqueda al pulsar Enter.
-  document.querySelectorAll('input[type="search"]').forEach(function(i){i.setAttribute('autocomplete','off')});
+
+  document.querySelectorAll('input[type="search"]').forEach(i => i.setAttribute('autocomplete', 'off'));
 })();
 </script>
 
+
+ <style id="fc-modo-oscuro-print">
+  [data-theme="dark"] {
+    --fc-primary: #60a5fa;
+    --fc-primary-2: #93c5fd;
+    --fc-accent: #fbbf24;
+    --fc-bg: #0b1322;
+    --fc-card: #152238;
+    --fc-text: #e2e8f0;
+    --fc-muted: #94a3b8;
+    --fc-line: #233554;
+    --fc-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  }
+  [data-theme="dark"] body { background: var(--fc-bg) !important; color: var(--fc-text) !important; }
+  [data-theme="dark"] .panel,
+  [data-theme="dark"] .modal,
+  [data-theme="dark"] .dropdown-content,
+  [data-theme="dark"] .pedido-card,
+  [data-theme="dark"] .acciones-fijas,
+  [data-theme="dark"] .login-card {
+    background: var(--fc-card) !important;
+    border-color: var(--fc-line) !important;
+    color: var(--fc-text) !important;
+  }
+  [data-theme="dark"] input:not([type=checkbox]):not([type=range]):not([type=file]),
+  [data-theme="dark"] select,
+  [data-theme="dark"] textarea {
+    background: #0d1829 !important;
+    color: #f8fafc !important;
+    border-color: #2b3f5c !important;
+  }
+  [data-theme="dark"] th { background: #1b2b44 !important; color: #93c5fd !important; border-color: var(--fc-line) !important; }
+  [data-theme="dark"] td { background: var(--fc-card) !important; color: var(--fc-text) !important; border-color: var(--fc-line) !important; }
+  [data-theme="dark"] tbody tr:nth-child(even) td { background: #121d30 !important; }
+  [data-theme="dark"] tbody tr:hover td,
+  [data-theme="dark"] tr.resultado:hover td { background: #1e3352 !important; }
+  [data-theme="dark"] .inv-stat { background: #111b2d !important; border-color: var(--fc-line) !important; }
+  [data-theme="dark"] .inv-stat .num { color: #60a5fa !important; }
+  [data-theme="dark"] .ayuda, [data-theme="dark"] .paso { background: #10213b !important; border-color: #2563eb !important; color: #cbd5e1 !important; }
+  [data-theme="dark"] .config-row,
+  [data-theme="dark"] .usuario-row,
+  [data-theme="dark"] .sucursal-row,
+  [data-theme="dark"] .dropdown-item {
+    background: #101c2e !important;
+    border-color: var(--fc-line) !important;
+    color: var(--fc-text) !important;
+  }
+  [data-theme="dark"] .dropdown-user-header { background: #132744 !important; }
+  [data-theme="dark"] #estadoRed { background: #132238 !important; border-color: var(--fc-line) !important; }
+
+  @media print {
+    body * { visibility: hidden !important; }
+    #modalVentaTicket, #modalVentaTicket * { visibility: visible !important; }
+    #modalVentaTicket {
+      position: absolute !important; left: 0 !important; top: 0 !important;
+      width: 100% !important; background: transparent !important; padding: 0 !important;
+    }
+    #modalVentaTicket .modal { box-shadow: none !important; border: none !important; max-width: 80mm !important; margin: 0 !important; }
+    #modalVentaTicket .modal-bg { position: static !important; background: none !important; }
+    #modalVentaTicket .fila, #modalVentaTicket h3 { display: none !important; }
+    #ventaTicketContenido {
+      font-size: 11px !important; color: #000 !important; background: #fff !important;
+      padding: 0 !important; width: 100% !important;
+    }
+  }
+</style>
+
+
+
+
+
+
+ 
 </body>
 </html>
