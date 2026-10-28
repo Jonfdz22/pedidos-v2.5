@@ -3597,7 +3597,10 @@ function aplicarPermisos() {
 
 // 🆕 Solo el usuario "admin" ve los paneles sensibles (EmailJS, Supabase, Zona de riesgo)
 function aplicarVisibilidadAdmin() {
-  const esAdmin = (usuarioLogueado === 'admin');
+  // 🔥 FIX: Permitir ver los paneles a cualquier usuario con permisos de ajustes
+  const u = usuarios[usuarioLogueado];
+  const esAdmin = (usuarioLogueado === 'admin') || (u && u.permisos && u.permisos.ajustes);
+  
   const pE = document.getElementById('panelEmailJS');
   const pS = document.getElementById('panelSupabase');
   const pR = document.getElementById('panelRiesgo');
@@ -7162,6 +7165,47 @@ function alternarTema() {
     border-color: var(--fc-line) !important; 
   }
 
+  /* =========================================
+     FIX: Textos que se quedaban oscuros 
+     ========================================= */
+  
+  /* Arregla los títulos de las cajas de configuración (Sonido, Vibración, etc.) */
+  [data-theme="dark"] .config-row label {
+    color: var(--fc-text) !important;
+  }
+  [data-theme="dark"] .config-row .subtexto {
+    color: var(--fc-muted) !important;
+  }
+
+  /* Arregla los textos generales, etiquetas pequeñas y ayudas */
+  [data-theme="dark"] label,
+  [data-theme="dark"] .small,
+  [data-theme="dark"] .diag,
+  [data-theme="dark"] p {
+    color: var(--fc-text) !important;
+  }
+
+  /* Arregla los textos dentro de los botones para que no se pierdan */
+  [data-theme="dark"] button,
+  [data-theme="dark"] .tab {
+    color: #ffffff !important;
+  }
+
+  /* Arregla los textos de la tabla y filas que usan clases específicas */
+  [data-theme="dark"] .usuario-row .nombre,
+  [data-theme="dark"] .sucursal-row .nombre {
+    color: var(--fc-primary-2) !important;
+  }
+
+  /* Arregla los textos de los modales */
+  [data-theme="dark"] .modal h3,
+  [data-theme="dark"] .modal label,
+  [data-theme="dark"] .modal div {
+    color: var(--fc-text);
+  }
+ 
+
+ 
   /* Impresión térmica */
   @media print {
     body * { visibility: hidden !important; }
