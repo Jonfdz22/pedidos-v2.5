@@ -4135,13 +4135,12 @@ function _ventaRapidaAgregarProducto(p, esPromo) {
     const precioBase = p.precio || 0;
     const precioRedondeado = redondearPrecio(precioBase);
     const um = p.um || 'PIEZA';
-    const esGranel = (um === 'LITRO' || um === 'GALON' || um === 'CUBETA');
     ventaRapidaActual.push({
       sku: p.sku,
       descripcion: p.descripcion || '',
       precio: precioRedondeado,
       precioOriginal: precioBase,
-      cantidad: esGranel ? 0.5 : 1,
+      cantidad: 1, // 🔥 AHORA SIEMPRE ENTRA EN 1
       um: um,
       promocion: !!esPromo
     });
