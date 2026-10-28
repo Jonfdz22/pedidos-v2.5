@@ -7004,7 +7004,10 @@ function alternarTema() {
 </script>
 
 
- <style id="fc-modo-oscuro-print">
+
+ 
+
+<style id="fc-modo-oscuro-print">
   [data-theme="dark"] {
     --fc-primary: #60a5fa;
     --fc-primary-2: #93c5fd;
@@ -7016,7 +7019,13 @@ function alternarTema() {
     --fc-line: #233554;
     --fc-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
   }
-  [data-theme="dark"] body { background: var(--fc-bg) !important; color: var(--fc-text) !important; }
+
+  [data-theme="dark"] body { 
+    background: var(--fc-bg) !important; 
+    color: var(--fc-text) !important; 
+  }
+
+  /* Paneles, modales y tarjetas principales */
   [data-theme="dark"] .panel,
   [data-theme="dark"] .modal,
   [data-theme="dark"] .dropdown-content,
@@ -7027,6 +7036,24 @@ function alternarTema() {
     border-color: var(--fc-line) !important;
     color: var(--fc-text) !important;
   }
+
+  /* Corrección del input de subir archivo (Seleccionar archivo) */
+  [data-theme="dark"] input[type=file] {
+    background: #0d1829 !important;
+    color: #94a3b8 !important;
+    border: 1px dashed #2b3f5c !important;
+  }
+  [data-theme="dark"] input[type=file]::file-selector-button,
+  [data-theme="dark"] input[type=file]::-webkit-file-upload-button {
+    background: #1e3352 !important;
+    color: #f1f5f9 !important;
+    border: 1px solid #334155 !important;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+
+  /* Inputs de texto, select y textareas */
   [data-theme="dark"] input:not([type=checkbox]):not([type=range]):not([type=file]),
   [data-theme="dark"] select,
   [data-theme="dark"] textarea {
@@ -7034,14 +7061,91 @@ function alternarTema() {
     color: #f8fafc !important;
     border-color: #2b3f5c !important;
   }
-  [data-theme="dark"] th { background: #1b2b44 !important; color: #93c5fd !important; border-color: var(--fc-line) !important; }
-  [data-theme="dark"] td { background: var(--fc-card) !important; color: var(--fc-text) !important; border-color: var(--fc-line) !important; }
-  [data-theme="dark"] tbody tr:nth-child(even) td { background: #121d30 !important; }
+
+  /* Corrección del marco de "Modo PZ / Registrar venta" y cajas con fondos claros fijos */
+  [data-theme="dark"] div[style*="background:#f0f7ff"],
+  [data-theme="dark"] div[style*="background: #f0f7ff"],
+  [data-theme="dark"] div[style*="background:#e3f2fd"],
+  [data-theme="dark"] div[style*="background: #e3f2fd"],
+  [data-theme="dark"] div[style*="background:#e8f5e9"],
+  [data-theme="dark"] div[style*="background: #e8f5e9"],
+  [data-theme="dark"] div[style*="background:#fff3e0"],
+  [data-theme="dark"] div[style*="background: #fff3e0"],
+  [data-theme="dark"] div[style*="background:#fafafa"],
+  [data-theme="dark"] div[style*="background: #fafafa"] {
+    background: #101d31 !important;
+    border-color: #223756 !important;
+    color: var(--fc-text) !important;
+  }
+
+  /* Textos destacados en negrita y títulos para que se lean bien */
+  [data-theme="dark"] .ayuda b,
+  [data-theme="dark"] .ayuda strong,
+  [data-theme="dark"] [style*="color:#1a3a6b"],
+  [data-theme="dark"] [style*="color: #1a3a6b"] {
+    color: #93c5fd !important;
+  }
+  [data-theme="dark"] h3,
+  [data-theme="dark"] h4 {
+    color: #60a5fa !important;
+  }
+
+  /* Chips de referencia, conteo y tiempo */
+  [data-theme="dark"] .chip-time,
+  [data-theme="dark"] .chip-counted,
+  [data-theme="dark"] .chip-pending {
+    background: #1c2e47 !important;
+    color: #93c5fd !important;
+    border: 1px solid #28446b !important;
+  }
+
+  /* Tablas */
+  [data-theme="dark"] th { 
+    background: #1b2b44 !important; 
+    color: #93c5fd !important; 
+    border-color: var(--fc-line) !important; 
+  }
+  [data-theme="dark"] td { 
+    background: var(--fc-card) !important; 
+    color: var(--fc-text) !important; 
+    border-color: var(--fc-line) !important; 
+  }
+  [data-theme="dark"] tbody tr:nth-child(even) td { 
+    background: #121d30 !important; 
+  }
   [data-theme="dark"] tbody tr:hover td,
-  [data-theme="dark"] tr.resultado:hover td { background: #1e3352 !important; }
-  [data-theme="dark"] .inv-stat { background: #111b2d !important; border-color: var(--fc-line) !important; }
-  [data-theme="dark"] .inv-stat .num { color: #60a5fa !important; }
-  [data-theme="dark"] .ayuda, [data-theme="dark"] .paso { background: #10213b !important; border-color: #2563eb !important; color: #cbd5e1 !important; }
+  [data-theme="dark"] tr.resultado:hover td { 
+    background: #1e3352 !important; 
+  }
+
+  /* Tarjetas de estadísticas (Contados, Pendientes, etc.) */
+  [data-theme="dark"] .inv-stat { 
+    background: #111b2d !important; 
+    border-color: var(--fc-line) !important; 
+  }
+  [data-theme="dark"] .inv-stat .num { 
+    color: #60a5fa !important; 
+  }
+  [data-theme="dark"] .inv-stat.ok {
+    background: rgba(30, 132, 73, 0.2) !important;
+    border-color: #1e8449 !important;
+  }
+  [data-theme="dark"] .inv-stat.warn {
+    background: rgba(230, 126, 34, 0.2) !important;
+    border-color: #e67e22 !important;
+  }
+  [data-theme="dark"] .inv-stat.err {
+    background: rgba(192, 57, 43, 0.2) !important;
+    border-color: #c0392b !important;
+  }
+
+  /* Secciones informativas y menús */
+  [data-theme="dark"] .ayuda, 
+  [data-theme="dark"] .paso { 
+    background: #10213b !important; 
+    border-color: #2563eb !important; 
+    color: #cbd5e1 !important; 
+  }
   [data-theme="dark"] .config-row,
   [data-theme="dark"] .usuario-row,
   [data-theme="dark"] .sucursal-row,
@@ -7050,9 +7154,15 @@ function alternarTema() {
     border-color: var(--fc-line) !important;
     color: var(--fc-text) !important;
   }
-  [data-theme="dark"] .dropdown-user-header { background: #132744 !important; }
-  [data-theme="dark"] #estadoRed { background: #132238 !important; border-color: var(--fc-line) !important; }
+  [data-theme="dark"] .dropdown-user-header { 
+    background: #132744 !important; 
+  }
+  [data-theme="dark"] #estadoRed { 
+    background: #132238 !important; 
+    border-color: var(--fc-line) !important; 
+  }
 
+  /* Impresión térmica */
   @media print {
     body * { visibility: hidden !important; }
     #modalVentaTicket, #modalVentaTicket * { visibility: visible !important; }
