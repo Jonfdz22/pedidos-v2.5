@@ -7330,6 +7330,47 @@ function alternarTema() {
   [data-theme="dark"] .modal .small {
     color: #cbd5e1 !important;
   }
+
+
+  /* =========================================
+     FIX: Modal de Registrar Venta (Inventario)
+     ========================================= */
+  [data-theme="dark"] #ventaProductoSel {
+    background: #101d31 !important; 
+    border-left-color: #3b82f6 !important;
+  }
+  [data-theme="dark"] #ventaProductoSel #ventaInfo,
+  [data-theme="dark"] #ventaProductoSel #ventaInfo * {
+    color: #e2e8f0 !important;
+  }
+  [data-theme="dark"] #ventaProductoSel #ventaInfo > div:first-child {
+    color: #93c5fd !important; 
+  }
+  [data-theme="dark"] #ventaProductoSel label.small {
+    color: #94a3b8 !important;
+  }
+
+  /* =========================================
+     FIX: Modal Elegir Producto (Varios con este código)
+     ========================================= */
+  [data-theme="dark"] .opcion-producto {
+    background: #101d31 !important;
+    border-color: #3b82f6 !important;
+  }
+  [data-theme="dark"] .opcion-producto .sku {
+    color: #93c5fd !important; /* SKU en azul claro */
+  }
+  [data-theme="dark"] .opcion-producto .desc {
+    color: #e2e8f0 !important; /* Descripción en blanco */
+  }
+  [data-theme="dark"] .opcion-producto .meta {
+    color: #94a3b8 !important; /* Textos de existencias/precio en gris claro */
+  }
+  /* Brillo extra para que los botones de PROMO/SISTEMA resalten en modo oscuro */
+  [data-theme="dark"] .opcion-producto .badge {
+    filter: brightness(1.2);
+  }
+
  
 
  
