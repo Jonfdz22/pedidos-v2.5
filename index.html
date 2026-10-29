@@ -5147,12 +5147,12 @@ function seleccionarParaVenta(sku) {
     }
   }
 
-  // 🔥 ESTAS ERAN LAS LÍNEAS QUE FALTABAN Y HACÍAN QUE DESAPARECIERA LA CAJA
+  // 🔥 AQUÍ SE MUESTRA LA CAJA Y SE ACTIVAN LOS BOTONES
   const vps = document.getElementById('ventaProductoSel'); 
-  if (vps) vps.style.display = 'block'; 
+  if (vps) vps.style.display = 'block';
   
   const bcv = document.getElementById('btnConfirmarVenta'); 
-  if (bcv) bcv.disabled = false; 
+  if (bcv) bcv.disabled = false;
   
   const vc = document.getElementById('ventaCantidad');
   if (vc) { 
