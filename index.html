@@ -5162,11 +5162,7 @@ function seleccionarParaVenta(sku) {
   }
 }
 
-  const vps = document.getElementById('ventaProductoSel'); if (vps) vps.style.display = 'block';
-  const bcv = document.getElementById('btnConfirmarVenta'); if (bcv) bcv.disabled = false;
-  const vc = document.getElementById('ventaCantidad');
-  if (vc) { vc.value = 1; vc.focus(); vc.select(); }
-}
+
 function confirmarVenta() {
   if (!ventaProductoSel) return;
   const vc = document.getElementById('ventaCantidad');
