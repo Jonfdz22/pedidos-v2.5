@@ -5842,7 +5842,12 @@ const tieneBarcodeDetector = 'BarcodeDetector' in window;
 
 /* ============ CÁMARA Y LINTERNA ============ */
 let trackVideoActual = null;
+/* ============ CÁMARA Y ESCÁNER ULTRA COMPATIBLE (iOS / ANDROID) ============ */
+let trackVideoActual = null;
 let linternaEncendida = false;
+let escaneandoActivo = false;
+let canvasIOS = null;
+let ctxIOS = null;
 
 async function toggleLinterna() {
   if (!trackVideoActual) return;
@@ -5858,23 +5863,30 @@ async function toggleLinterna() {
     });
     const btn = document.getElementById('btnTorchCamara');
     if (btn) btn.textContent = linternaEncendida ? '🔦 Apagar' : '💡 Linterna';
-  } catch (e) {
+  } catch(e) {
     toast('No se pudo activar la linterna', 'error');
   }
 }
 
 async function abrirCamara(origen) {
   camaraOrigen = origen;
-  const m = document.getElementById('modalCamara'); if (m) m.classList.add('activo');
+  const m = document.getElementById('modalCamara'); 
+  if (m) m.classList.add('activo');
+  
   const cont = document.getElementById('reader');
   if (!cont) return;
   cont.innerHTML = '';
+
   const video = document.createElement('video');
+  video.id = 'videoScanner';
   video.setAttribute('playsinline', 'true');
-  video.setAttribute('autoplay', 'true');
-  video.setAttribute('muted', 'true');
-  video.style.cssText = 'width:100%; border-radius:10px; background:#000; display:block;';
+  video.setAttribute('webkit-playsinline', 'true');
+  video.playsInline = true;
+  video.autoplay = true;
+  video.muted = true;
+  video.style.cssText = 'width:100%; border-radius:10px; background:#000; display:block; object-fit:cover;';
   cont.appendChild(video);
+
   const status = document.createElement('div');
   status.id = 'scanStatus';
   status.style.cssText = 'margin-top:8px; font-size:12px; color:#1a5fbf; font-weight:bold; text-align:center;';
@@ -5885,58 +5897,140 @@ async function abrirCamara(origen) {
   const btnTorch = document.getElementById('btnTorchCamara');
   if (btnTorch) btnTorch.textContent = '💡 Linterna';
 
+  // Configuración de resolución óptima para iPhone
+  const constraints = {
+    audio: false,
+    video: {
+      facingMode: { ideal: 'environment' },
+      width: { min: 640, ideal: 1280, max: 1920 },
+      height: { min: 480, ideal: 720, max: 1080 }
+    }
+  };
+
   try {
-    camaraStream = await navigator.mediaDevices.getUserMedia({ 
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, 
-      audio: false 
-    });
+    camaraStream = await navigator.mediaDevices.getUserMedia(constraints);
     trackVideoActual = camaraStream.getVideoTracks()[0];
     video.srcObject = camaraStream;
-    await video.play();
-    status.textContent = '🔍 Apunta al código…';
-    if (tieneBarcodeDetector && !esIOS) iniciarBarcodeDetector(video, status);
-    else if (typeof ZXing !== 'undefined') iniciarZXing(video, status);
-    else status.textContent = '⚠️ Este navegador no soporta lectura de códigos';
+    
+    // Esperar a que el video esté listo y con dimensiones válidas en iOS
+    video.onloadedmetadata = async () => {
+      try {
+        await video.play();
+        status.textContent = '🔍 Apunta al código de barras…';
+        iniciarLectorUniversal(video, status);
+      } catch (errPlay) {
+        console.error("Error al reproducir video:", errPlay);
+      }
+    };
   } catch (err) {
     console.error(err);
-    alert('No se pudo abrir la cámara:\n' + (err.message || err));
+    alert('No se pudo abrir la cámara. Revisa los permisos en Ajustes de Safari/Chrome:\n' + (err.message || err));
     cerrarCamara();
   }
 }
 
-function iniciarBarcodeDetector(video, status) {
-  try {
-    const detector = new BarcodeDetector({ formats: ['code_128','code_39','ean_13','ean_8','upc_a','upc_e','codabar','itf','qr_code'] });
-    let detectando = false;
-    camaraLoop = setInterval(async () => {
-      if (detectando || !video.videoWidth) return;
-      detectando = true;
-      try { const codigos = await detector.detect(video); if (codigos && codigos.length > 0) onCamaraDetecta(codigos[0].rawValue); } catch (e) {}
-      detectando = false;
-    }, 150);
-  } catch (e) { if (typeof ZXing !== 'undefined') iniciarZXing(video, status); }
-}
+function iniciarLectorUniversal(video, status) {
+  escaneandoActivo = true;
 
-function iniciarZXing(video, status) {
-  try {
-    const hints = new Map();
-    const formats = [ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E, ZXing.BarcodeFormat.CODABAR, ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.QR_CODE];
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    const reader = new ZXing.BrowserMultiFormatReader(hints);
-    zxingReader = reader;
-    reader.decodeFromVideoElement(video, (result, err) => { if (result) onCamaraDetecta(result.getText()); });
-  } catch (e) { status.textContent = '⚠️ Error al iniciar el lector'; }
+  // 1. Probar BarcodeDetector nativo (si el navegador lo tiene habilitado)
+  if ('BarcodeDetector' in window) {
+    try {
+      const detector = new BarcodeDetector({ 
+        formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code'] 
+      });
+      let procesando = false;
+      camaraLoop = setInterval(async () => {
+        if (!escaneandoActivo || procesando || !video.videoWidth) return;
+        procesando = true;
+        try {
+          const codigos = await detector.detect(video);
+          if (codigos && codigos.length > 0) {
+            onCamaraDetecta(codigos[0].rawValue);
+          }
+        } catch (e) {}
+        procesando = false;
+      }, 150);
+      return;
+    } catch (e) {
+      console.warn("Fallo BarcodeDetector, pasando a ZXing...");
+    }
+  }
+
+  // 2. Si no hay BarcodeDetector, usar ZXing mediante captura en Canvas (100% compatible con WebKit/iOS)
+  if (typeof ZXing !== 'undefined') {
+    try {
+      const hints = new Map();
+      const formatos = [
+        ZXing.BarcodeFormat.EAN_13,
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.CODE_39,
+        ZXing.BarcodeFormat.UPC_A,
+        ZXing.BarcodeFormat.UPC_E,
+        ZXing.BarcodeFormat.EAN_8,
+        ZXing.BarcodeFormat.QR_CODE
+      ];
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formatos);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+      const reader = new ZXing.MultiFormatReader();
+      reader.setHints(hints);
+
+      if (!canvasIOS) {
+        canvasIOS = document.createElement('canvas');
+        ctxIOS = canvasIOS.getContext('2d', { willReadFrequently: true });
+      }
+
+      let escaneandoFrame = false;
+      camaraLoop = setInterval(() => {
+        if (!escaneandoActivo || escaneandoFrame || !video.videoWidth || video.readyState < 2) return;
+        escaneandoFrame = true;
+
+        try {
+          const w = video.videoWidth;
+          const h = video.videoHeight;
+          if (canvasIOS.width !== w) canvasIOS.width = w;
+          if (canvasIOS.height !== h) canvasIOS.height = h;
+
+          ctxIOS.drawImage(video, 0, 0, w, h);
+          const imgData = ctxIOS.getImageData(0, 0, w, h);
+          
+          const luminanceSource = new ZXing.RGBLuminanceSource(imgData.data, w, h);
+          const binaryBitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminanceSource));
+          
+          const result = reader.decode(binaryBitmap);
+          if (result && result.getText()) {
+            onCamaraDetecta(result.getText());
+          }
+        } catch (errZXing) {
+          // Es normal que arroje NotFoundException en cada fotograma donde no hay código
+        }
+        escaneandoFrame = false;
+      }, 180);
+    } catch (errLector) {
+      console.error(errLector);
+      status.textContent = '⚠️ Error al inicializar lector ZXing';
+    }
+  } else {
+    status.textContent = '⚠️ Librería de escaneo no disponible';
+  }
 }
 
 function cerrarCamara() {
-  if (camaraLoop) { clearInterval(camaraLoop); camaraLoop = null; }
-  if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
-  if (camaraStream) { camaraStream.getTracks().forEach(t => t.stop()); camaraStream = null; }
+  escaneandoActivo = false;
+  if (camaraLoop) { 
+    clearInterval(camaraLoop); 
+    camaraLoop = null; 
+  }
+  if (camaraStream) { 
+    camaraStream.getTracks().forEach(t => t.stop()); 
+    camaraStream = null; 
+  }
   trackVideoActual = null;
   linternaEncendida = false;
-  const m = document.getElementById('modalCamara'); if (m) m.classList.remove('activo');
-  const cont = document.getElementById('reader'); if (cont) cont.innerHTML = '';
+  const m = document.getElementById('modalCamara'); 
+  if (m) m.classList.remove('activo');
+  const cont = document.getElementById('reader'); 
+  if (cont) cont.innerHTML = '';
 }
 function onCamaraDetecta(codigo) {
   const c = String(codigo).toUpperCase().trim();
