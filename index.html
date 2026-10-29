@@ -7297,6 +7297,39 @@ function alternarTema() {
   [data-theme="dark"] .modal div {
     color: var(--fc-text);
   }
+
+  /* =========================================
+     FIX: Modal de cantidad (el que sale en tu captura)
+     ========================================= */
+  [data-theme="dark"] .modal-cant-header {
+    background: #1e293b !important; /* Fondo oscuro elegante */
+    border-left-color: #3b82f6 !important;
+  }
+  [data-theme="dark"] .modal-cant-sku {
+    color: #93c5fd !important; /* Azul claro para el SKU */
+  }
+  [data-theme="dark"] .modal-cant-desc {
+    color: #f1f5f9 !important; /* Blanco para la descripción */
+  }
+
+  /* =========================================
+     FIX: Ticket de venta
+     ========================================= */
+  /* Mantenemos el ticket con fondo blanco y letras negras porque así se imprime,
+     pero nos aseguramos de que no se vuelva invisible en modo oscuro */
+  [data-theme="dark"] #ventaTicketContenido {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #cbd5e1;
+  }
+
+  /* =========================================
+     FIX: Etiquetas y textos en modales
+     ========================================= */
+  [data-theme="dark"] .modal label,
+  [data-theme="dark"] .modal .small {
+    color: #cbd5e1 !important;
+  }
  
 
  
@@ -7318,7 +7351,56 @@ function alternarTema() {
   }
 </style>
 
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}</script>
 
+<!-- ============ FILTRO Y DISPARO AUTOMÁTICO (LIVE TEXT iOS) ============ -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  
+  function configurarAutodisparo(inputId) {
+    const inp = document.getElementById(inputId);
+    if (!inp) return;
+
+    let procesando = false; // Candado para evitar doble disparo
+
+    inp.addEventListener('input', () => {
+      if (procesando) return;
+
+      const textoOriginal = inp.value;
+      
+      // 1. Buscamos códigos reales (8 a 14 dígitos continuos)
+      // Evita dispararse a medio camino si alguien escribe a mano
+      const coincidencias = textoOriginal.match(/\d{8,14}/);
+      
+      if (coincidencias) {
+        procesando = true;
+        const codigoLimpio = coincidencias[0];
+        
+        // Dejar solo los números limpios en el input
+        inp.value = codigoLimpio;
+        
+        // Efecto y aviso
+        toast('⚡ Código detectado: ' + codigoLimpio, 'warn');
+        feedbackExito();
+        
+        // 200 ms: tiempo perfecto para que iOS asiente el texto
+        setTimeout(() => {
+          inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+          procesando = false; // Liberamos el candado
+        }, 200);
+      }
+    });
+  }
+
+  // Activamos en los 3 buscadores de la app
+  configurarAutodisparo('busqueda');            // Pedidos
+  configurarAutodisparo('invBusqueda');         // Inventario
+  configurarAutodisparo('ventaRapidaBusqueda'); // Ventas
+});
+</script>
+
+</body>
+</html>
 
 
 
