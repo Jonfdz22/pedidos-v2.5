@@ -7382,6 +7382,39 @@ function alternarTema() {
     filter: brightness(1.2);
   }
 
+  /* =========================================
+     FIX: Tarjetas de Pedido en Celular
+     ========================================= */
+  
+  /* El SKU en azul claro */
+  [data-theme="dark"] .pedido-card-sku {
+    color: #93c5fd !important; 
+  }
+  
+  /* La descripción en blanco/gris claro */
+  [data-theme="dark"] .pedido-card-desc {
+    color: #e2e8f0 !important; 
+  }
+  
+  /* El recuadro de "Exist." (que salía blanco) */
+  [data-theme="dark"] .pedido-card-field .valor {
+    background: #0d1829 !important;
+    color: #e2e8f0 !important;
+    border: 1px solid #233554 !important;
+  }
+
+  /* Si el producto tiene existencia negativa, que mantenga el rojo */
+  [data-theme="dark"] .pedido-card-field .valor[style*="color:#c0392b"] {
+    color: #f87171 !important;
+    background: rgba(192, 57, 43, 0.2) !important;
+    border-color: #c0392b !important;
+  }
+
+  /* También arreglamos la tabla (para PC) por si acaso */
+  [data-theme="dark"] #tablaPedido td {
+    color: #e2e8f0 !important;
+  }
+ 
  
 
  
