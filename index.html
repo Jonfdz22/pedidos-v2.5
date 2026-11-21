@@ -6130,19 +6130,38 @@ async function toggleLinterna() {
 function procesarCodigoEscaneado(codigo, origen) {
   if (typeof feedbackExito === 'function') feedbackExito(); // Sonido de tu app
 
-  // Enrutar el código escaneado a la caja de texto correcta
   if (origen === 'buscar') {
     setVal('busqueda', codigo);
-    buscar();
-  } else if (origen === 'inventario') {
+    if (typeof buscar === 'function') buscar(); // Actualiza la lista de resultados
+    // Simular Enter para abrir la ventana del producto
+    setTimeout(() => {
+      if (typeof teclaBusqueda === 'function') {
+        teclaBusqueda({ key: 'Enter', preventDefault: () => {} });
+      }
+    }, 100);
+  } 
+  else if (origen === 'inventario') {
     setVal('invBusqueda', codigo);
-    invBuscar();
-  } else if (origen === 'vincular') {
+    if (typeof invBuscar === 'function') invBuscar();
+    setTimeout(() => {
+      if (typeof invTeclaBusqueda === 'function') {
+        invTeclaBusqueda({ key: 'Enter', preventDefault: () => {} });
+      }
+    }, 100);
+  } 
+  else if (origen === 'vincular') {
     setVal('inputCodigo', codigo);
-    capturarCodigo();
-  } else if (origen === 'ventas') {
+    // En vincular, la función capturarCodigo() ya hace todo el trabajo
+    if (typeof capturarCodigo === 'function') capturarCodigo();
+  } 
+  else if (origen === 'ventas') {
     setVal('ventaRapidaBusqueda', codigo);
-    ventaRapidaBuscar();
+    if (typeof ventaRapidaBuscar === 'function') ventaRapidaBuscar();
+    setTimeout(() => {
+      if (typeof ventaRapidaTecla === 'function') {
+        ventaRapidaTecla({ key: 'Enter', preventDefault: () => {} });
+      }
+    }, 100);
   }
 }
 
