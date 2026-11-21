@@ -6017,14 +6017,14 @@ async function abrirCamara(origen) {
   const status = document.getElementById('cameraStatus');
   
   if (modal) modal.classList.add('activo');
-  if (status) status.textContent = 'Iniciando cámara... (enfocando)';
+  if (status) status.textContent = 'Iniciando cámara...';
 
   const run = ++cameraRun;
 
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
 
-    // 1. Pedir la MÁXIMA resolución posible (1920x1080) para que los códigos pequeños tengan más píxeles
+    // Resolución alta SOLO como IDEAL (si el iPhone no lo soporta, usa la que pueda)
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
       video: {
@@ -6043,75 +6043,43 @@ async function abrirCamara(origen) {
     video.srcObject = stream;
     await video.play();
 
-    // 2. FORZAR ENFOQUE CONTINUO Y ZOOM ÓPTICO (clave para códigos pequeños)
+    // Solo UN cambio opcional: forzar enfoque continuo si el iPhone lo soporta
     const track = stream.getVideoTracks()[0];
     if (track) {
       try {
         const caps = track.getCapabilities();
-        const constraints = { advanced: [] };
-
-        // Forzar enfoque continuo
         if (caps.focusMode && caps.focusMode.includes('continuous')) {
-          constraints.advanced.push({ focusMode: 'continuous' });
-        }
-
-        // Aplicar un zoom inicial de 1.5x si el teléfono lo soporta (hace el código más grande)
-        if (caps.zoom) {
-          const zoomDeseado = Math.min(caps.zoom.max, 1.5);
-          constraints.advanced.push({ zoom: zoomDeseado });
-        }
-
-        if (constraints.advanced.length > 0) {
-          await track.applyConstraints(constraints);
-          console.log('✅ Enfoque/zoom aplicados:', constraints);
+          await track.applyConstraints({
+            advanced: [{ focusMode: 'continuous' }]
+          });
         }
       } catch(e) {
-        console.warn('No se pudo aplicar enfoque/zoom:', e);
+        console.warn('Focus continuo no soportado:', e);
       }
     }
 
-    if (status) status.textContent = 'Acerca el código a la cámara. Enfocando...';
+    if (status) status.textContent = 'Centra el código en la imagen.';
 
-    // 3. Configurar ZXing SOLO con los formatos que usas (mucho más rápido)
-    const hints = new Map();
-    // TRY_HARDER: se esfuerza más en códigos difíciles
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    // Limitar formatos: no pierde tiempo buscando QR, Aztec, etc.
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-      ZXing.BarcodeFormat.EAN_13,
-      ZXing.BarcodeFormat.EAN_8,
-      ZXing.BarcodeFormat.UPC_A,
-      ZXing.BarcodeFormat.UPC_E,
-      ZXing.BarcodeFormat.CODE_128,
-      ZXing.BarcodeFormat.CODE_39,
-      ZXing.BarcodeFormat.ITF,
-      ZXing.BarcodeFormat.QR_CODE
-    ]);
+    // ZXing SIN hints (como en la versión que SÍ funcionaba)
+    zxingReader = new ZXing.BrowserMultiFormatReader();
 
-    zxingReader = new ZXing.BrowserMultiFormatReader(hints);
-
-    // 4. Bucle de escaneo más agresivo (cada 100ms en lugar de 180ms)
     const readFrame = () => {
       if (run !== cameraRun) return;
       
-      if (video.readyState >= 2 && video.videoWidth > 0) {
+      if (video.readyState >= 2) {
         let result;
         try {
           result = zxingReader.decode(video);
-        } catch (e) {
-          // Es normal que falle mientras enfoca
-        }
+        } catch (e) {}
         
         if (result && result.getText()) {
           const codigo = result.getText();
-          if (status) status.textContent = '✔ Código detectado: ' + codigo;
           cerrarCamara();
           procesarCodigoEscaneado(codigo, camaraOrigen);
           return;
         }
       }
-      // Escanear cada 100ms (10 fps) para no perder el momento en que enfoca
-      camaraLoop = setTimeout(readFrame, 100);
+      camaraLoop = setTimeout(readFrame, 180);
     };
     
     readFrame();
