@@ -6017,17 +6017,21 @@ async function abrirCamara(origen) {
   const status = document.getElementById('cameraStatus');
   
   if (modal) modal.classList.add('activo');
-  if (status) status.textContent = 'Permite el acceso a la cámara...';
+  if (status) status.textContent = 'Iniciando cámara... (enfocando)';
 
   const run = ++cameraRun;
 
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
 
-    // Petición de cámara trasera
+    // 1. Pedir la MÁXIMA resolución posible (1920x1080) para que los códigos pequeños tengan más píxeles
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
     });
 
     if (run !== cameraRun) {
@@ -6037,35 +6041,77 @@ async function abrirCamara(origen) {
 
     camaraStream = stream;
     video.srcObject = stream;
-    
-    // Importante para iOS: esperar a que el video esté listo
     await video.play();
-    
-    if (status) status.textContent = 'Centra el código de barras en el recuadro.';
-    
-    // Inicializar ZXing
-    zxingReader = new ZXing.BrowserMultiFormatReader();
 
-    // Bucle de escaneo
+    // 2. FORZAR ENFOQUE CONTINUO Y ZOOM ÓPTICO (clave para códigos pequeños)
+    const track = stream.getVideoTracks()[0];
+    if (track) {
+      try {
+        const caps = track.getCapabilities();
+        const constraints = { advanced: [] };
+
+        // Forzar enfoque continuo
+        if (caps.focusMode && caps.focusMode.includes('continuous')) {
+          constraints.advanced.push({ focusMode: 'continuous' });
+        }
+
+        // Aplicar un zoom inicial de 1.5x si el teléfono lo soporta (hace el código más grande)
+        if (caps.zoom) {
+          const zoomDeseado = Math.min(caps.zoom.max, 1.5);
+          constraints.advanced.push({ zoom: zoomDeseado });
+        }
+
+        if (constraints.advanced.length > 0) {
+          await track.applyConstraints(constraints);
+          console.log('✅ Enfoque/zoom aplicados:', constraints);
+        }
+      } catch(e) {
+        console.warn('No se pudo aplicar enfoque/zoom:', e);
+      }
+    }
+
+    if (status) status.textContent = 'Acerca el código a la cámara. Enfocando...';
+
+    // 3. Configurar ZXing SOLO con los formatos que usas (mucho más rápido)
+    const hints = new Map();
+    // TRY_HARDER: se esfuerza más en códigos difíciles
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    // Limitar formatos: no pierde tiempo buscando QR, Aztec, etc.
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A,
+      ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.ITF,
+      ZXing.BarcodeFormat.QR_CODE
+    ]);
+
+    zxingReader = new ZXing.BrowserMultiFormatReader(hints);
+
+    // 4. Bucle de escaneo más agresivo (cada 100ms en lugar de 180ms)
     const readFrame = () => {
       if (run !== cameraRun) return;
       
-      if (video.readyState >= 2) {
+      if (video.readyState >= 2 && video.videoWidth > 0) {
         let result;
         try {
           result = zxingReader.decode(video);
         } catch (e) {
-          // ZXing lanza error cuando no encuentra código en el frame, es normal
+          // Es normal que falle mientras enfoca
         }
         
         if (result && result.getText()) {
           const codigo = result.getText();
+          if (status) status.textContent = '✔ Código detectado: ' + codigo;
           cerrarCamara();
           procesarCodigoEscaneado(codigo, camaraOrigen);
           return;
         }
       }
-      camaraLoop = setTimeout(readFrame, 180);
+      // Escanear cada 100ms (10 fps) para no perder el momento en que enfoca
+      camaraLoop = setTimeout(readFrame, 100);
     };
     
     readFrame();
