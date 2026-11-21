@@ -722,7 +722,12 @@
 </div>
 
 <div class="modal-bg" id="modalCamara">
-  <div class="modal"><h3>📷 Escanear</h3><div id="reader"></div>
+  <div class="modal">
+    <h3>📷 Escanear</h3>
+    <!-- Video nativo con atributos obligatorios para iPhone -->
+    <video id="cameraVideo" autoplay muted playsinline style="width:100%; max-height:60vh; background:#000; border-radius:10px; object-fit:cover; display:block;"></video>
+    <div id="cameraStatus" class="small" style="text-align:center; margin-top:8px;">Iniciando cámara...</div>
+    
     <div class="fila" style="margin-top:10px; gap:8px;">
       <button id="btnTorchCamara" class="amarillo" style="flex:1;" onclick="toggleLinterna()">💡 Linterna</button>
       <button class="rojo" style="flex:1;" onclick="cerrarCamara()">Cancelar</button>
@@ -1197,9 +1202,7 @@ let ventasPorSucursal = {};
 let nombreEmpresa = EMPRESA_DEFAULT;
 let modoEdicionSucursal = null;
 let _callbackConfirmPass = null;
-let zxingReader = null;
-let camaraStream = null;
-let camaraLoop = null;
+
 let modoEscanearPz = false;
 let ultimoEscanerPz = null;
 let superaTotalPendiente = null;
@@ -5999,64 +6002,147 @@ async function toggleLinterna() {
   }
 }
 
+/* ═══════════════════════════════════════════════
+   NUEVO SISTEMA DE CÁMARA (COMPATIBLE CON IPHONE)
+   ═══════════════════════════════════════════════ */
+let zxingReader = null;
+let camaraStream = null;
+let cameraRun = 0;
+let camaraLoop = null;
+
 async function abrirCamara(origen) {
-  camaraOrigen = origen;
-  const m = document.getElementById('modalCamara'); 
-  if (m) m.classList.add('activo');
+  camaraOrigen = origen; 
+  const modal = document.getElementById('modalCamara');
+  const video = document.getElementById('cameraVideo');
+  const status = document.getElementById('cameraStatus');
   
-  const cont = document.getElementById('reader');
-  if (!cont) return;
-  cont.innerHTML = '';
+  if (modal) modal.classList.add('activo');
+  if (status) status.textContent = 'Permite el acceso a la cámara...';
 
-  const video = document.createElement('video');
-  video.id = 'videoScanner';
-  video.setAttribute('playsinline', 'true');
-  video.setAttribute('webkit-playsinline', 'true');
-  video.playsInline = true;
-  video.autoplay = true;
-  video.muted = true;
-  video.style.cssText = 'width:100%; border-radius:10px; background:#000; display:block; object-fit:cover;';
-  cont.appendChild(video);
-
-  const status = document.createElement('div');
-  status.id = 'scanStatus';
-  status.style.cssText = 'margin-top:8px; font-size:12px; color:#1a5fbf; font-weight:bold; text-align:center;';
-  status.textContent = '⏳ Iniciando cámara…';
-  cont.appendChild(status);
-
-  linternaEncendida = false;
-  const btnTorch = document.getElementById('btnTorchCamara');
-  if (btnTorch) btnTorch.textContent = '💡 Linterna';
-
-  // Configuración de resolución óptima para iPhone
-  const constraints = {
-    audio: false,
-    video: {
-      facingMode: { ideal: 'environment' },
-      width: { min: 640, ideal: 1280, max: 1920 },
-      height: { min: 480, ideal: 720, max: 1080 }
-    }
-  };
+  const run = ++cameraRun;
 
   try {
-    camaraStream = await navigator.mediaDevices.getUserMedia(constraints);
-    trackVideoActual = camaraStream.getVideoTracks()[0];
-    video.srcObject = camaraStream;
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
+
+    // Petición de cámara trasera
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
+    });
+
+    if (run !== cameraRun) {
+      stream.getTracks().forEach(track => track.stop());
+      return;
+    }
+
+    camaraStream = stream;
+    video.srcObject = stream;
     
-    // Esperar a que el video esté listo y con dimensiones válidas en iOS
-    video.onloadedmetadata = async () => {
-      try {
-        await video.play();
-        status.textContent = '🔍 Apunta al código de barras…';
-        iniciarLectorUniversal(video, status);
-      } catch (errPlay) {
-        console.error("Error al reproducir video:", errPlay);
+    // Importante para iOS: esperar a que el video esté listo
+    await video.play();
+    
+    if (status) status.textContent = 'Centra el código de barras en el recuadro.';
+    
+    // Inicializar ZXing
+    zxingReader = new ZXing.BrowserMultiFormatReader();
+
+    // Bucle de escaneo
+    const readFrame = () => {
+      if (run !== cameraRun) return;
+      
+      if (video.readyState >= 2) {
+        let result;
+        try {
+          result = zxingReader.decode(video);
+        } catch (e) {
+          // ZXing lanza error cuando no encuentra código en el frame, es normal
+        }
+        
+        if (result && result.getText()) {
+          const codigo = result.getText();
+          cerrarCamara();
+          procesarCodigoEscaneado(codigo, camaraOrigen);
+          return;
+        }
       }
+      camaraLoop = setTimeout(readFrame, 180);
     };
-  } catch (err) {
-    console.error(err);
-    alert('No se pudo abrir la cámara. Revisa los permisos en Ajustes de Safari/Chrome:\n' + (err.message || err));
-    cerrarCamara();
+    
+    readFrame();
+
+  } catch (error) {
+    if (run !== cameraRun) return;
+    console.error("Error cámara:", error);
+    if (status) {
+      status.textContent = error.name === 'NotAllowedError' 
+        ? 'Permiso denegado. Actívalo en los ajustes de tu navegador.' 
+        : 'No se pudo iniciar el escáner.';
+    }
+  }
+}
+
+function cerrarCamara() {
+  cameraRun++; 
+  
+  if (camaraLoop) {
+    clearTimeout(camaraLoop);
+    camaraLoop = null;
+  }
+  
+  if (camaraStream) {
+    camaraStream.getTracks().forEach(track => track.stop());
+    camaraStream = null;
+  }
+  
+  const video = document.getElementById('cameraVideo');
+  if (video) video.srcObject = null;
+  
+  if (zxingReader) {
+    zxingReader.reset();
+    zxingReader = null;
+  }
+  
+  const modal = document.getElementById('modalCamara');
+  if (modal) modal.classList.remove('activo');
+}
+
+async function toggleLinterna() {
+  if (!camaraStream) return;
+  const track = camaraStream.getVideoTracks()[0];
+  if (!track) return;
+  
+  try {
+    const capabilities = track.getCapabilities();
+    if (!capabilities.torch) {
+      alert('Tu dispositivo o cámara no soporta linterna.');
+      return;
+    }
+    const current = track.getSettings().torch;
+    await track.applyConstraints({
+      advanced: [{ torch: !current }]
+    });
+  } catch (e) {
+    console.error('Error al encender linterna:', e);
+  }
+}
+
+// Función para manejar el código escaneado según la pestaña
+function procesarCodigoEscaneado(codigo, origen) {
+  if (typeof feedbackExito === 'function') feedbackExito(); // Sonido de tu app
+
+  // Enrutar el código escaneado a la caja de texto correcta
+  if (origen === 'buscar') {
+    setVal('busqueda', codigo);
+    buscar();
+  } else if (origen === 'inventario') {
+    setVal('invBusqueda', codigo);
+    invBuscar();
+  } else if (origen === 'vincular') {
+    setVal('inputCodigo', codigo);
+    capturarCodigo();
+  } else if (origen === 'ventas') {
+    setVal('ventaRapidaBusqueda', codigo);
+    ventaRapidaBuscar();
   }
 }
 
@@ -7661,6 +7747,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Apagar cámara si la app pasa a segundo plano o se cierra
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && typeof camaraStream !== 'undefined' && camaraStream) {
+    cerrarCamara();
+  }
+});
+window.addEventListener('pagehide', () => {
+  if (typeof camaraStream !== 'undefined' && camaraStream) {
+    cerrarCamara();
+  }
+});
 
   // Activamos en los 3 buscadores de la app
   configurarAutodisparo('busqueda');            // Pedidos
