@@ -279,6 +279,9 @@
     <div class="login-error" id="loginError"></div>
     <button type="button" class="gris" style="width:100%; margin-top:10px; font-size:13px;"
             onclick="abrirRecuperar()">🆘 Olvidé mi contraseña</button>
+
+    <button type="button" class="verde" style="width:100%; margin-top:10px; font-size:15px;"
+            onclick="abrirRegistro()">📝 Crear cuenta nueva</button>
     
   </div>
 </div>
@@ -1055,6 +1058,34 @@
 </div>
 
 </div><!-- /app -->
+
+<div class="modal-bg" id="modalRegistro">
+  <div class="modal">
+    <h3>📝 Crear cuenta nueva</h3>
+    <div class="ayuda">Al registrarte, un administrador deberá aprobar tu cuenta antes de que puedas entrar.</div>
+    
+    <label class="small">Nombre completo</label>
+    <input type="text" id="regNombre" placeholder="Ej: Juan Pérez">
+    
+    <label class="small" style="display:block; margin-top:10px;">Usuario</label>
+    <input type="text" id="regUsuario" style="text-transform:lowercase;" placeholder="Ej: juanp">
+    
+    <label class="small" style="display:block; margin-top:10px;">Correo</label>
+    <input type="email" id="regEmail" placeholder="correo@ejemplo.com">
+    
+    <label class="small" style="display:block; margin-top:10px;">Contraseña</label>
+    <input type="password" id="regPassword" placeholder="Mínimo 4 caracteres">
+    
+    <label class="small" style="display:block; margin-top:10px;">Sucursal a la que perteneces</label>
+    <select id="regSucursal"></select>
+    
+    <div class="fila" style="margin-top:16px;">
+      <button class="verde" style="flex:1;" onclick="guardarRegistro()">💾 Registrarme</button>
+      <button class="gris" onclick="cerrarRegistro()">Cancelar</button>
+    </div>
+    <div id="regError" class="login-error" style="text-align:center;"></div>
+  </div>
+</div>
 
 <div class="modal-bg" id="modalRecuperar">
   <div class="modal">
@@ -3209,6 +3240,71 @@ function cargarSesion() {
 }
 function borrarSesion() { try { localStorage.removeItem(KEY_SESSION); } catch(e) {} }
 
+function abrirRegistro() {
+  setVal('regNombre', '');
+  setVal('regUsuario', '');
+  setVal('regEmail', '');
+  setVal('regPassword', '');
+  const err = document.getElementById('regError'); if (err) err.classList.remove('show');
+  
+  // Llenar el select de sucursales
+  const sel = document.getElementById('regSucursal');
+  if (sel) {
+    sel.innerHTML = sucursales.map(s => `<option value="${s.id}">${esc(s.nombre)}</option>`).join('');
+  }
+  
+  const m = document.getElementById('modalRegistro'); if (m) m.classList.add('activo');
+}
+
+function cerrarRegistro() {
+  const m = document.getElementById('modalRegistro'); if (m) m.classList.remove('activo');
+}
+
+function guardarRegistro() {
+  const nombre = document.getElementById('regNombre').value.trim();
+  const username = document.getElementById('regUsuario').value.trim().toLowerCase();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const password = document.getElementById('regPassword').value;
+  const sucursal = document.getElementById('regSucursal').value;
+  const err = document.getElementById('regError');
+  
+  if (err) err.classList.remove('show');
+  
+  // Validaciones básicas
+  if (!nombre || !username || !password) { 
+    if (err) { err.textContent = 'Llena todos los campos obligatorios.'; err.classList.add('show'); }
+    return; 
+  }
+  if (!/^[a-z0-9._-]{3,20}$/.test(username)) {
+    if (err) { err.textContent = 'Usuario inválido (solo letras, números, puntos y guiones).'; err.classList.add('show'); }
+    return;
+  }
+  if (usuarios[username]) {
+    if (err) { err.textContent = 'Ese nombre de usuario ya está ocupado.'; err.classList.add('show'); }
+    return;
+  }
+  if (password.length < 4) {
+    if (err) { err.textContent = 'La contraseña debe tener al menos 4 caracteres.'; err.classList.add('show'); }
+    return;
+  }
+  
+  // Crear el usuario pendiente
+  usuarios[username] = {
+    nombre: nombre,
+    email: email,
+    hash: hashPassword(password),
+    permisos: { pedido: true, inventario: false, vincular: false, baseDatos: true, ajustes: false },
+    sucursalesPermitidas: [sucursal],
+    creado: new Date().toISOString(),
+    primerLogin: false,
+    aprobado: false // 🔥 Aquí está la magia: nace sin aprobación
+  };
+  
+  guardarUsuarios(); // Guarda en local y sube a Supabase
+  cerrarRegistro();
+  alert('✅ Cuenta creada con éxito.\n\nPor favor, avisa al administrador para que apruebe tu cuenta y puedas iniciar sesión.');
+}
+
 function intentarLogin() {
   const uInp = document.getElementById('loginUsuario');
   const pInp = document.getElementById('loginPassword');
@@ -3226,6 +3322,13 @@ function intentarLogin() {
     return;
   }
   window._intentosLogin = 0;
+  
+  // 🔥 BLOQUEO DE SEGURIDAD: Si la cuenta no está aprobada, no entra
+  if (usuario.aprobado === false) {
+    if (err) { err.textContent = '⏳ Tu cuenta está pendiente de aprobación por un administrador.'; err.classList.add('show'); }
+    return;
+  }
+
   usuarioLogueado = u;
   const permitidas = usuario.sucursalesPermitidas || [];
   if (!permitidas.length) { if (err) { err.textContent = 'Sin sucursales asignadas.'; err.classList.add('show'); } usuarioLogueado = null; return; }
@@ -3631,6 +3734,11 @@ function renderUsuarios() {
   cont.innerHTML = lista.map(([user, u]) => {
     const chips = Object.entries(u.permisos).filter(([_, v]) => v).map(([k]) => np[k] || '').join(' ');
     const soyYo = user === usuarioLogueado;
+    
+    // 🔥 Lógica visual para usuarios pendientes
+    const esPendiente = u.aprobado === false;
+    const badgePendiente = esPendiente ? '<span style="background:#e67e22;color:#fff;border-radius:6px;padding:2px 6px;font-size:10px;margin-left:6px;font-weight:bold;">⏳ PENDIENTE</span>' : '';
+    const btnAprobar = esPendiente ? `<button class="verde" onclick="aprobarUsuario('${user}')">✅ Aprobar</button>` : '';
     const admins = lista.filter(([k,v]) => v.permisos.ajustes);
     const ultAdm = u.permisos.ajustes && admins.length === 1;
     const sucs = (u.sucursalesPermitidas || []).map(id => getSucursal(id)?.abrev || id).join(', ');
@@ -3643,12 +3751,25 @@ function renderUsuarios() {
         <div class="small">🏢 ${sucs || '—'}</div>
       </div>
       <div class="acciones">
+        ${btnAprobar}
         <button onclick="abrirModalUsuario('${user}')">✏️</button>
         ${!soyYo ? `<button class="rojo" onclick="eliminarUsuario('${user}')" ${ultAdm ? 'disabled' : ''}>🗑</button>` : ''}
       </div>
     </div>`;
   }).join('');
 }
+
+function aprobarUsuario(username) {
+  const u = usuarios[username];
+  if (!u) return;
+  if (!confirm('¿Aprobar la cuenta de @' + username + ' para que pueda entrar?')) return;
+  
+  u.aprobado = true;
+  guardarUsuarios();
+  renderUsuarios();
+  toast('✅ Usuario @' + username + ' aprobado');
+}
+
 function renderSucursalesUsuario(seleccionadas) {
   const cont = document.getElementById('listaSucursalesUsuario');
   if (!cont) return;
@@ -7415,7 +7536,71 @@ function alternarTema() {
     color: #e2e8f0 !important;
   }
  
+    /* =========================================
+     FIX: Modal de Registro en Modo Oscuro
+     ========================================= */
+  [data-theme="dark"] #modalRegistro .modal {
+    background: var(--fc-card) !important;
+  }
+  [data-theme="dark"] #modalRegistro h3 {
+    color: #60a5fa !important;
+  }
+  [data-theme="dark"] #modalRegistro label {
+    color: var(--fc-text) !important;
+  }
  
+    /* =========================================
+     FIX: Menús desplegables (Sucursales / Usuario)
+     ========================================= */
+  [data-theme="dark"] .dropdown-item .texto {
+    color: #e2e8f0 !important; /* Letras blancas/grisáceas */
+  }
+  
+  [data-theme="dark"] .dropdown-item .subtexto {
+    color: #94a3b8 !important; /* Subtítulos más tenues */
+  }
+
+  /* Cuando una sucursal está seleccionada (activa) */
+  [data-theme="dark"] .dropdown-item.activo {
+    background: rgba(30, 132, 73, 0.25) !important; 
+    border-color: #1e8449 !important;
+  }
+  [data-theme="dark"] .dropdown-item.activo .texto {
+    color: #4ade80 !important; /* Verde brillante para que resalte */
+  }
+
+  /* El botón de la "X" para cerrar el menú */
+  [data-theme="dark"] .dropdown-close {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+  }
+
+  /* =========================================
+     FIX: Modal de Editar Usuario (Checkboxes)
+     ========================================= */
+  /* Fondo de las cajas de permisos y sucursales */
+  [data-theme="dark"] .permiso-check,
+  [data-theme="dark"] .sucursal-check {
+    background: #101c2e !important;
+    border: 1px solid var(--fc-line) !important;
+  }
+
+  /* Letras de los checkboxes */
+  [data-theme="dark"] .permiso-check label,
+  [data-theme="dark"] .sucursal-check label {
+    color: #e2e8f0 !important;
+  }
+
+  /* La caja naranja de "Es administrador" */
+  [data-theme="dark"] #modalUsuario div[style*="background:#fff7ed"] {
+    background: rgba(230, 126, 34, 0.15) !important; /* Naranja transparente */
+    border-color: #e67e22 !important;
+  }
+  
+  /* Letra de "Es administrador" */
+  [data-theme="dark"] #modalUsuario div[style*="background:#fff7ed"] label {
+    color: #f8fafc !important;
+  }
 
  
   /* Impresión térmica */
