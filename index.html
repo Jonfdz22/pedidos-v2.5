@@ -2928,13 +2928,28 @@ async function reasignarSesion(id){
   const ap = await bajarConteosIndividuales(id), snap = s.snapshot_base || [], tam = s.pagina_tamano || 200, tp = Math.max(1, Math.ceil(snap.length / tam));
   const hechos = new Set(ap.map(a => a.sku)), conPagina = {}; snap.forEach((p, i) => { if (hechos.has(p.sku)) conPagina[Math.floor(i / tam) + 1] = 1; });
   const asig = s.asignaciones || {}, nombres = [...new Set([...Object.keys(asig), ...Object.entries(usuarios).filter(([k, v]) => v.permisos.inventario).map(([k]) => k)])];
-  const ov = document.createElement('div'); ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:12px';
-  ov.innerHTML = `<div style="background:var(--fc-card, #fff);border-radius:12px;padding:14px;width:100%;max-width:420px;max-height:85vh;overflow:auto"><h3 style="margin:0 0 4px">🔁 Reasignar páginas</h3><div class="small">Total: ${tp} páginas de ${tam}. Las páginas con conteos no se pueden mover. Deja vacío para quitar la zona.</div>`
-    + nombres.map(u => { const a = asig[u] || {}; return `<div style="display:flex;gap:6px;align-items:center;margin:8px 0"><b style="flex:1;font-size:13px">@${esc(u)}</b><input type="number" min="1" max="${tp}" data-u="${esc(u)}" data-k="i" value="${a.inicio || ''}" style="width:62px"> – <input type="number" min="1" max="${tp}" data-u="${esc(u)}" data-k="f" value="${a.fin || ''}" style="width:62px"></div>`; }).join('')
+  const ov = document.createElement('div');
+  ov.className = 'modal-bg activo';
+  ov.innerHTML = `<div class="modal reasignar-dialogo" role="dialog" aria-modal="true" aria-labelledby="rsTitulo" aria-describedby="rsAyuda">
+    <h3 id="rsTitulo">Reasignar páginas</h3>
+    <div id="rsAyuda" class="small">Total: ${tp} páginas de ${tam}. Las páginas con conteos no se pueden mover. Deja vacío para quitar la zona.</div>`
+    + nombres.map(u => {
+      const a = asig[u] || {};
+      return `<div class="reasignar-fila">
+        <b>@${esc(u)}</b>
+        <input type="number" min="1" max="${tp}" data-u="${esc(u)}" data-k="i" value="${a.inicio || ''}" aria-label="Página inicial de @${esc(u)}">
+        <span aria-hidden="true">–</span>
+        <input type="number" min="1" max="${tp}" data-u="${esc(u)}" data-k="f" value="${a.fin || ''}" aria-label="Página final de @${esc(u)}">
+      </div>`;
+    }).join('')
     + `<div id="rsErr" style="color:var(--fc-danger-text, #c0392b);font-size:13px;min-height:18px"></div><div style="display:flex;gap:8px"><button class="gris" style="flex:1" id="rsCancel">Cancelar</button><button class="verde" style="flex:1" id="rsOk">Guardar</button></div></div>`;
   document.body.appendChild(ov);
   const err = m => { ov.querySelector('#rsErr').textContent = m; };
   ov.querySelector('#rsCancel').onclick = () => ov.remove();
+  ov.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.stopPropagation(); ov.remove(); }
+  });
+  ov.querySelector('#rsCancel').focus();
   ov.querySelector('#rsOk').onclick = async () => {
     const nu = {}; ov.querySelectorAll('[data-u]').forEach(i => { const u = i.dataset.u; (nu[u] = nu[u] || {})[i.dataset.k] = parseInt(i.value); });
     const res = {}, cub = new Array(tp + 1).fill(null);
@@ -7192,6 +7207,15 @@ body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area
   .info-vinculo{border-radius:10px;background:#f0faf4;border-left-color:#16804a}
   .modal-bg{backdrop-filter:blur(3px)}
   .modal{border:1px solid #e1e7f0;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.22);padding:24px}
+  .reasignar-dialogo{max-width:420px;color:var(--fc-text)}
+  .reasignar-fila{
+    display:grid;grid-template-columns:minmax(0,1fr) 68px auto 68px;gap:6px;align-items:center;
+    margin:8px 0;padding:8px;border:1px solid var(--fc-line);border-radius:8px;
+    background:var(--fc-subtle,#f5f5f5);font-size:13px
+  }
+  .reasignar-fila b{overflow-wrap:anywhere}
+  .reasignar-fila input[type=number]{min-width:0;text-align:center;padding:8px 4px}
+
   .dropdown-content{border:1px solid var(--fc-line);box-shadow:0 18px 50px rgba(0,0,0,.22)}
   .dropdown-item{border-radius:10px}
   .login-bg{background:radial-gradient(circle at 15% 10%,#2b5d9a 0%,transparent 36%),linear-gradient(135deg,#102747 0%,#173b70 58%,#245aa3 100%)}
