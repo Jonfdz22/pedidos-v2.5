@@ -5999,6 +5999,7 @@ function exportarInventario() {
 /* ============ CÁMARA ============ */
 const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
   || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const esAndroid = /Android/i.test(navigator.userAgent);
 
 let zxingReader = null;
 let camaraStream = null;
@@ -6030,13 +6031,13 @@ async function abrirCamara(origen) {
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
 
-    // Resolución alta SOLO como IDEAL (si el iPhone no lo soporta, usa la que pueda)
+    // En Android se piden menos píxeles para iniciar y decodificar más rápido.
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
       video: {
         facingMode: { ideal: 'environment' },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
+        width: { ideal: esAndroid ? 1280 : 1920 },
+        height: { ideal: esAndroid ? 720 : 1080 }
       }
     });
 
@@ -6049,9 +6050,9 @@ async function abrirCamara(origen) {
     video.srcObject = stream;
     await video.play();
 
-    // Solo UN cambio opcional: forzar enfoque continuo si el iPhone lo soporta
+    // En Android, el lector comienza con el enfoque automático del dispositivo.
     const track = stream.getVideoTracks()[0];
-    if (track) {
+    if (track && !esAndroid) {
       try {
         const caps = track.getCapabilities();
         if (caps.focusMode && caps.focusMode.includes('continuous')) {
@@ -6148,7 +6149,7 @@ async function abrirCamara(origen) {
           ultimoCodigo = '';
         }
       }
-      camaraLoop = setTimeout(readFrame, lectorCentro ? 100 : 180);
+      camaraLoop = setTimeout(readFrame, esAndroid || lectorCentro ? 100 : 180);
     };
 
     readFrame();
