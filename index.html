@@ -108,6 +108,11 @@
   .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:1100; display:none;
               align-items:center; justify-content:center; padding:15px; overflow-y:auto;}
   .modal-bg.activo { display:flex;}
+  .conteo-ciego :is(#tablaInventario :is(th,td):is(:nth-child(3),:nth-child(4),:nth-child(5),:nth-child(7),:nth-child(8)),
+    #invMiZonaTabla :is(th,td):nth-child(4), #invResultados :is(th,td):nth-child(3),
+    #ventaResultados :is(th,td):nth-child(3), #ventaInfo > div:nth-child(n+3),
+    #ventaCuadradoAviso, #invStatsTop .inv-stat:nth-child(n+4),
+    #invStats, #invAcciones button:first-child, #conteoSistema, .existencias-esperadas) { display:none !important; }
   #modalCamara.camara-venta { z-index:1150; }
   .modal { background:var(--fc-card, white); border-radius:12px; padding:20px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; position:relative;}
   .cant-grande { font-size:28px; text-align:center; font-weight:bold; padding:12px; width:100%; }
@@ -1050,6 +1055,11 @@
     </div>
 
     <div id="sesionAsignaciones" style="margin-top:10px;"></div>
+    <fieldset style="margin-top:14px; border:1px solid var(--fc-line); border-radius:8px;">
+      <legend>Opciones de la sesión</legend>
+      <label class="permiso-check"><input type="checkbox" id="sesionMostrarExistencias"> Mostrar existencias esperadas</label>
+      <label class="permiso-check"><input type="checkbox" id="sesionRevisarPendientes" checked> Revisar pendientes antes de cerrar</label>
+    </fieldset>
 
     <div class="fila" style="margin-top:16px;">
       <button class="verde" style="flex:1;" onclick="guardarNuevaSesion()">💾 Crear sesión</button>
@@ -1982,6 +1992,8 @@ function detectarDispositivo() {
 async function abrirModalNuevaSesion() {
   // Reset
   setVal('sesionNombre', '');
+  document.getElementById('sesionMostrarExistencias').checked = false;
+  document.getElementById('sesionRevisarPendientes').checked = true;
   setVal('sesionPaginaTamano', '200');
   _sesionTempAsignaciones = {};
 
@@ -2290,6 +2302,8 @@ async function guardarNuevaSesion() {
       sucursal_id: sucId,
       estado: 'borrador',
       creada_por: usuarioLogueado,
+      mostrar_existencias: document.getElementById('sesionMostrarExistencias').checked,
+      revisar_pendientes: document.getElementById('sesionRevisarPendientes').checked,
       asignaciones: asignacionesFinales,
       total_productos: slot.base.length,
       pagina_tamano: tamPag,
@@ -2339,6 +2353,8 @@ async function cargarListaSesiones() {
     }
 
     sesionesActuales = data || [];
+    const vigente = sesionActivaUsuario && sesionesActuales.find(s => s.id === sesionActivaUsuario.id);
+    if (vigente) integrarOpcionesSesion(vigente);
     renderBannerSesion();
   } catch (e) {
     console.error('Error cargando sesiones:', e);
@@ -2693,6 +2709,7 @@ async function unirseASesion(id) {
   }
 
   sesionActivaUsuario = sesion;
+  aplicarVisibilidadConteo();
 
   // Calcular mis páginas
   const ini = miAsignacion.inicio || 0;
@@ -2728,6 +2745,7 @@ function salirDeSesion() {
   misPaginasAsignadas = [];
   misSkusAsignados = [];
   conteosIndividualesCache = [];
+  aplicarVisibilidadConteo();
   toast('👋 Saliste de la sesión');
   renderBannerSesion();
   renderMiZona();
@@ -2748,6 +2766,11 @@ function iniciarPollingConteos() {
   _pollingConteos = setInterval(async () => {
     if (!supabaseClient || !sesionActivaUsuario) return;
     try {
+      const sesionId = sesionActivaUsuario.id;
+      const metadatos = await supabaseClient.from('sesiones_conteo')
+        .select('id,estado,mostrar_existencias,revisar_pendientes').eq('id', sesionId).maybeSingle();
+      if (sesionActivaUsuario?.id !== sesionId) return;
+      if (metadatos.data) integrarOpcionesSesion(metadatos.data);
       const { data } = await supabaseClient
         .from('conteos_individuales')
         .select('id')
@@ -2755,6 +2778,7 @@ function iniciarPollingConteos() {
         .order('timestamp', { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (sesionActivaUsuario?.id !== sesionId) return;
       const ultimoId = data?.id;
       if (ultimoId && ultimoId !== _lastConteoId) {
         if (_lastConteoId !== null) {
@@ -2780,6 +2804,7 @@ function detenerPollingConteos() {
 // - Si hay sesión y NO soy admin: solo mi zona
 function puedoContarSku(sku) {
   if (!sesionActivaUsuario) return { ok: true, razon: null };
+  if (sesionActivaUsuario.estado === 'cerrada') return { ok: false, razon: 'La sesión está cerrada.' };
   const u = usuarios[usuarioLogueado];
   if (u && u.permisos && u.permisos.ajustes) return { ok: true, razon: null };
   if (skuEstaEnMiZona(sku)) return { ok: true, razon: null };
@@ -2840,7 +2865,8 @@ async function toggleDashboard(id){
   } catch (e) { box.textContent = 'Error: ' + e.message; }
 }
 async function reporteSesion(id, prelim){
-  const s = sesionesActuales.find(x => x.id === id) || sesionActivaUsuario; if (!s) return;
+  const s = sesionesActuales.find(x => x.id === id) || sesionActivaUsuario;
+  if (!s || !puedeAdministrarConteo(s)) return;
   const ap = await bajarConteosIndividuales(s.id), snap = s.snapshot_base || [], por = {};
   ap.forEach(a => { (por[a.sku] = por[a.sku] || []).push(a); });
   const res = snap.map(p => { const l = por[p.sku] || [], t = l.reduce((x, a) => x + (Number(a.cantidad) || 0), 0), ex = _exSku(p);
@@ -2855,12 +2881,14 @@ async function reporteSesion(id, prelim){
   XLSX.writeFile(wb, (prelim ? 'PRELIMINAR_' : 'FINAL_') + 'sesion_' + String(s.nombre).replace(/[^A-Za-z0-9]/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.xlsx');
 }
 async function cerrarSesionConteo(id){
-  if (!_esAdminSesion() || !supabaseClient) return;
+  if (!supabaseClient) return;
   try {
-    await cargarListaSesiones(); const s = sesionesActuales.find(x => x.id === id); if (!s) return;
+    await cargarListaSesiones();
+    const s = sesionesActuales.find(x => x.id === id);
+    if (!s || !puedeAdministrarConteo(s) || s.estado !== 'abierta') return;
     const ap = await bajarConteosIndividuales(id), hechos = new Set(ap.map(a => a.sku)), snap = s.snapshot_base || [];
     const falt = snap.filter(p => !hechos.has(p.sku)).length;
-    if (falt && !confirm('⚠️ Faltan ' + falt + ' de ' + snap.length + ' productos por contar.\n¿Quieres cerrar de todos modos?')) return;
+    if (s.revisar_pendientes !== false && falt && !confirm('⚠️ Faltan ' + falt + ' de ' + snap.length + ' productos por contar.\n¿Quieres cerrar de todos modos?')) return;
     if (confirm('¿Descargar el reporte PRELIMINAR antes de cerrar?')) await reporteSesion(id, true);
     if (!confirm('¿Cerrar la sesión definitivamente? Nadie podrá seguir contando.')) return;
     const { error } = await supabaseClient.from('sesiones_conteo').update({ estado: 'cerrada', fecha_cierre: new Date().toISOString() }).eq('id', id);
@@ -2873,11 +2901,63 @@ function _extraBanner(){
   const s = sesionActivaUsuario || sesionesActuales.find(x => x.sucursal_id === sucursalActual && (x.estado === 'borrador' || x.estado === 'abierta')); if (!s) return;
   let h2 = '';
   if (sesionActivaUsuario && s.estado !== 'cerrada') { const t = ((s.asignaciones || {})[usuarioLogueado] || {}).terminado; h2 += `<button class="verde" style="width:100%;margin-top:6px" onclick="marcarTerminado()">${t ? '↩️ Reabrir mi zona' : '✅ Terminé mi zona'}</button>`; }
-  if (_esAdminSesion() && s.estado === 'abierta') h2 += `<button class="gris" style="width:100%;margin-top:6px" onclick="toggleDashboard('${s.id}')">📊 Ver estatus</button><div id="invDashSesion" style="display:none;margin-top:6px"></div><button class="gris" style="width:100%;margin-top:6px" onclick="reporteSesion('${s.id}',true)">📥 Reporte preliminar</button><button class="gris" style="width:100%;margin-top:6px" onclick="reasignarSesion('${s.id}')">🔁 Reasignar páginas</button><button class="gris" style="width:100%;margin-top:6px;color:var(--fc-danger-text, #c0392b);font-weight:bold" onclick="cerrarSesionConteo('${s.id}')">🔒 Cerrar sesión de conteo</button>`;
+  if (puedeAdministrarConteo(s) && s.estado !== 'cerrada' && typeof s.mostrar_existencias === 'boolean') {
+    h2 += `<button class="gris" style="width:100%;margin-top:6px" aria-pressed="${s.mostrar_existencias}" onclick="cambiarVisibilidadConteo(this)">${s.mostrar_existencias ? 'Ocultar' : 'Mostrar'} existencias esperadas</button>`;
+  }
+  if (puedeAdministrarConteo(s) && s.estado === 'abierta') h2 += `<button class="gris" style="width:100%;margin-top:6px" onclick="toggleDashboard('${s.id}')">📊 Ver estatus</button><div id="invDashSesion" style="display:none;margin-top:6px"></div><button class="gris" style="width:100%;margin-top:6px" onclick="reporteSesion('${s.id}',true)">📥 Reporte preliminar</button><button class="gris" style="width:100%;margin-top:6px" onclick="reasignarSesion('${s.id}')">🔁 Reasignar páginas</button><button class="gris" style="width:100%;margin-top:6px;color:var(--fc-danger-text, #c0392b);font-weight:bold" onclick="cerrarSesionConteo('${s.id}')">🔒 Cerrar sesión de conteo</button>`;
   a.insertAdjacentHTML('beforeend', h2);
 }
- function _ciego(){ return false; }
-function _vExis(p){ return p.exis; }
+function puedeAdministrarConteo(sesion) {
+  return !!sesion && (sesion.creada_por === usuarioLogueado || _esAdminSesion());
+}
+function _ciego() {
+  return sesionActivaUsuario?.sucursal_id === sucursalActual && sesionActivaUsuario?.mostrar_existencias === false;
+}
+function _vExis(p) { return _ciego() ? '—' : p.exis; }
+function aplicarVisibilidadConteo() {
+  document.documentElement.classList.toggle('conteo-ciego', _ciego());
+}
+function integrarOpcionesSesion(sesion) {
+  if (sesionActivaUsuario?.id !== sesion.id) return;
+  const anterior = _ciego();
+  sesionActivaUsuario = { ...sesionActivaUsuario, ...sesion };
+  aplicarVisibilidadConteo();
+  if (anterior !== _ciego()) {
+    invBuscar();
+    renderMiZona();
+    renderInventario();
+    renderPedido();
+    buscar();
+    if (productoSeleccionado && document.getElementById('modalCantidad')?.classList.contains('activo')) {
+      cerrarModalCantidad();
+    }
+  }
+}
+async function cambiarVisibilidadConteo(boton) {
+  const s = sesionActivaUsuario || sesionesActuales.find(x => x.sucursal_id === sucursalActual && x.estado !== 'cerrada');
+  if (!supabaseClient || !puedeAdministrarConteo(s) || s.estado === 'cerrada') return;
+  boton.disabled = true;
+  try {
+    const { data, error } = await supabaseClient.from('sesiones_conteo').update({
+      mostrar_existencias: !s.mostrar_existencias,
+      visibilidad_actualizada_por: usuarioLogueado,
+      visibilidad_actualizada_en: new Date().toISOString(),
+    }).eq('id', s.id).eq('mostrar_existencias', s.mostrar_existencias).neq('estado', 'cerrada').select().maybeSingle();
+    if (error) throw error;
+    if (!data) {
+      await cargarListaSesiones();
+      toast('La sesión cambió. Revisa su configuración.', 'warn');
+      return;
+    }
+    sesionesActuales = sesionesActuales.map(item => item.id === data.id ? data : item);
+    integrarOpcionesSesion(data);
+    renderBannerSesion();
+  } catch (error) {
+    toast('No se pudo guardar el cambio: ' + error.message, 'error');
+  } finally {
+    boton.disabled = false;
+  }
+}
 /* ===== A) Administradores ===== */
 const _PERM_IDS = ['permPedido','permInventario','permVincular','permBaseDatos','permAjustes'];
 document.addEventListener('change', e => {
@@ -3462,7 +3542,8 @@ function cambiarSucursal(id) {
   cerrarMenuSucursal();
   if (id === sucursalActual) return;
   sucursalActual = id;
-   actualizarInventarioActual();
+  aplicarVisibilidadConteo();
+  actualizarInventarioActual();
   if (typeof supabaseClient !== 'undefined' && supabaseClient) {
     bajarInventarioSupabase(id);
     iniciarPollingInventario();
@@ -3970,6 +4051,7 @@ function eliminarSucursal(id) {
 
 /* ============ RESPALDO ============ */
 function exportarRespaldo() {
+  if (_ciego()) { toast('Las existencias están ocultas durante esta sesión.', 'warn'); return; }
   const data = { version: 17, exportado: new Date().toISOString(),
     productos, productosManuales, pedido, vinculos, usuarios, configEmailJS,
     inventariosPorSucursal, ventasPorSucursal, sucursales, nombreEmpresa, sucursalActual, configSonido };
@@ -4096,6 +4178,7 @@ function buscarProductoPorSku(sku) {
   return null;
 }
 function getExistencias(sku) {
+  if (_ciego()) return null;
   const p = inventarioBase.find(x => x.sku.toUpperCase() === sku.toUpperCase());
   return p ? p.exis : null;
 }
@@ -5155,7 +5238,7 @@ function escanearPorPieza(codigo) {
   const esperado = p.exis;
   const vendido = totalVendidoDeSku(p.sku);
   const ajustado = getAjustadoDeSku(p.sku, p);
-  if (nuevo > ajustado) {
+  if (!_ciego() && nuevo > ajustado) {
     feedbackAlerta();
     superaTotalPendiente = { producto: p, cantidadNueva: nuevo, ajustado, cantidadAnterior: actual };
     const el = document.getElementById('superaTotalInfo');
@@ -5580,7 +5663,7 @@ function abrirModalConteo(p) {
     <div style="font-weight:bold; font-size:15px; color:var(--fc-heading-text, #1a3a6b);">${esc(p.sku)}</div>
     <div class="small" style="margin-top:4px;">${esc(p.descripcion)}</div>
     ${fechaBase ? '<div class="small" style="margin-top:4px; color:var(--fc-purple-text, #8e24aa);">📸 Referencia: ' + fmtFecha(fechaBase) + '</div>' : ''}
-    ${vendido > 0 ? '<div class="small" style="margin-top:4px; color:var(--fc-warning-text, #e67e22);">🛒 Vendido hoy: ' + vendido + '</div>' : ''}`;
+    ${vendido > 0 ? '<div class="small existencias-esperadas" style="margin-top:4px; color:var(--fc-warning-text, #e67e22);">🛒 Vendido hoy: ' + vendido + '</div>' : ''}`;
   const claseExis = p.exis < 0 ? 'color:var(--fc-danger-text, #c0392b);' : 'color:var(--fc-heading-text, #1a3a6b);';
   const cs = document.getElementById('conteoSistema');
   if (cs) cs.innerHTML = `
@@ -5731,8 +5814,9 @@ function renderInventario() {
   const horasMap = getHoraConteoPorSku();
   const ventasPostC = getVentaPostConteo();
   const rows = inventarioBase.filter(p => inventarioConteo[p.sku] !== undefined);
+  const col = _ciego() && ['exis', 'vendido', 'ajustado', 'dif', 'difmxn'].includes(ordenInventario.columna)
+    ? 'sku' : ordenInventario.columna;
   const dirMul = ordenInventario.dir === 'asc' ? 1 : -1;
-  const col = ordenInventario.columna;
   rows.sort((a, b) => {
     let va, vb;
        if (col === 'hora') {
@@ -5792,8 +5876,8 @@ function renderInventario() {
     const difMxn = d * (p.precio || 0);
     let claseRow = '';
     if (ventasPostC[p.sku]) claseRow = 'alerta-venta';
-    else if (d > 0) claseRow = 'sobrante';
-    else if (d < 0) claseRow = 'faltante';
+    else if (!_ciego() && d > 0) claseRow = 'sobrante';
+    else if (!_ciego() && d < 0) claseRow = 'faltante';
     const claseDif = d > 0 ? 'dif-pos' : (d < 0 ? 'dif-neg' : '');
     const claseExis = p.exis < 0 ? 'neg-num' : '';
     const signo = d > 0 ? '+' : '';
@@ -5838,6 +5922,7 @@ function limpiarConteo() {
 
 /* ============ EXPORTAR INVENTARIO (con hoja nueva + colores + usuario) ============ */
 function exportarInventario() {
+  if (_ciego()) { toast('Las existencias están ocultas durante esta sesión.', 'warn'); return; }
   if (!Object.keys(inventarioConteo).length) { alert('No has contado nada.'); return; }
   const s = getSucursalActual();
   const fechaBase = getFechaCargaBase();
