@@ -422,6 +422,10 @@
     <div id="invSesionEstado" class="small">Cargando...</div>
     <div id="invSesionAcciones" style="margin-top:10px;"></div>
   </details>
+  <details class="panel inv-plegable" id="invPanelMuebles" hidden>
+    <summary>Conteo por muebles</summary>
+    <div id="mueblesAdminContenido"></div>
+  </details>
   <details class="panel inv-plegable" id="invPanelCarga">
     <summary>1 · Cargar inventario del sistema (<span id="invSucursalNombre"></span>)</summary>
     <div class="ayuda">Cada sucursal tiene <b>su propio inventario</b>. Sube el <b>Reporte de Inventario</b> (Excel).</div>
@@ -722,7 +726,23 @@
   </div>
 </div>
 
+<section id="mueblesExterno" hidden>
+  <header><h1>Inventario por muebles</h1></header>
+  <main class="panel">
+    <button id="mueblesActualizarExterno" class="gris">Actualizar mis muebles</button>
+    <p id="mueblesMensaje" role="status"></p>
+    <div id="mueblesTrabajo">Cargando ubicaciones…</div>
+  </main>
+</section>
+<dialog id="mueblesCompartir" class="modal">
+  <h3>Enlace del responsable</h3>
+  <p>Comparte este enlace con la persona asignada. Verá sus muebles cuando verifique su correo.</p>
+  <label>Enlace <input type="url" readonly onclick="this.select()"></label>
+  <form method="dialog"><button class="gris">Cerrar</button></form>
+</dialog>
+
 <div class="modal-bg" id="modalCamara">
+  <div id="mueblesDestello" aria-hidden="true"></div>
   <div class="modal">
     <h3>📷 Escanear</h3>
     <!-- Video nativo con atributos obligatorios para iPhone -->
@@ -6014,6 +6034,10 @@ async function abrirCamara(origen) {
   const opcionesContinuo = document.getElementById('cameraContinuousOptions');
   const continuo = document.getElementById('cameraContinuous');
   const esInventario = origen === 'inventario';
+  const esMueble = origen === 'muebles';
+  const destello = document.getElementById('mueblesDestello');
+  if (destello) destello.className = '';
+  const muebles = esMueble ? window.conteoMuebles : null;
   const porPieza = esInventario && modoEscanearPz && !sesionActivaUsuario;
   modal.classList.toggle('camara-venta', origen === 'venta-inventario');
   opcionesContinuo.hidden = !esInventario;
@@ -6022,7 +6046,7 @@ async function abrirCamara(origen) {
     : 'La cámara queda abierta para el siguiente producto después de confirmar la cantidad.';
   
   if (modal) modal.classList.add('activo');
-  if (status) status.textContent = 'Iniciando cámara...';
+  if (status) status.textContent = muebles ? 'Iniciando cámara · ' + muebles.nombre() : 'Iniciando cámara...';
 
   const run = ++cameraRun;
   let ultimoCodigo = '';
@@ -6068,7 +6092,9 @@ async function abrirCamara(origen) {
     if (run !== cameraRun) return;
 
     if (status) {
-      status.textContent = esIOS
+      status.textContent = muebles
+        ? 'Escaneo continuo · ' + muebles.nombre()
+        : esIOS
         ? 'Centra el código completo. Si se ve borroso, aleja un poco el iPhone.'
         : 'Centra el código en la imagen.';
     }
@@ -6087,6 +6113,10 @@ async function abrirCamara(origen) {
       if (run !== cameraRun) return;
       if (!modal.classList.contains('activo')) {
         cerrarCamara();
+        return;
+      }
+      if (muebles?.ocupada()) {
+        camaraLoop = setTimeout(readFrame, 100);
         return;
       }
       if (esInventario && document.querySelector('.modal-bg.activo:not(#modalCamara), [data-pausa-escaneo]')) {
@@ -6126,14 +6156,16 @@ async function abrirCamara(origen) {
             console.error('Error al leer el código:', error);
             cerrarCamara();
             modal.classList.add('activo');
-            status.textContent = 'No se pudo leer con la cámara. Cierra y vuelve a abrir el escáner.';
+            const mensaje = 'No se pudo leer con la cámara. Cierra y vuelve a abrir el escáner.';
+            if (muebles) muebles.error(mensaje);
+            else status.textContent = mensaje;
             return;
           }
         }
 
         const codigo = resultado?.getText()?.trim();
         if (codigo) {
-          if (!esInventario || !continuo.checked) {
+          if (!esMueble && (!esInventario || !continuo.checked)) {
             cerrarCamara();
             procesarCodigoEscaneado(codigo, origen);
             return;
@@ -6142,7 +6174,8 @@ async function abrirCamara(origen) {
           ultimaLectura = performance.now();
           if (normalizado !== ultimoCodigo) {
             ultimoCodigo = normalizado;
-            if (porPieza) escanearPorPieza(normalizado);
+            if (muebles) void muebles.escanear(normalizado);
+            else if (porPieza) escanearPorPieza(normalizado);
             else procesarCodigoInv(normalizado, 'inventario-cantidad');
           }
         } else if (performance.now() - ultimaLectura >= 650) {
@@ -6160,9 +6193,11 @@ async function abrirCamara(origen) {
     cerrarCamara();
     modal?.classList.add('activo');
     if (status) {
-      status.textContent = error.name === 'NotAllowedError' 
-        ? 'Permiso denegado. Actívalo en los ajustes de tu navegador.' 
+      const mensaje = error.name === 'NotAllowedError'
+        ? 'Permiso denegado. Actívalo en los ajustes de tu navegador.'
         : 'No se pudo iniciar el escáner.';
+      if (muebles) muebles.error(mensaje);
+      else status.textContent = mensaje;
     }
   }
 }
@@ -7512,6 +7547,27 @@ window.addEventListener('pagehide', () => {
 });
 </script>
 
+<style>
+  [hidden]{display:none!important}
+  .muebles-enlace #app,.muebles-enlace #loginBg,.muebles-enlace #estadoRed{display:none!important}
+  #mueblesExterno main{max-width:45rem;margin:1rem auto!important}
+  #mueblesExterno header{padding:12px 16px}
+  #mueblesExterno h1{margin:0;font-size:1.2rem}
+  .muebles-form{display:grid;gap:.65rem;margin:.75rem 0}
+  .muebles-form label{display:grid;gap:.3rem}
+  .muebles-acciones{flex-wrap:wrap}
+  .muebles-item{width:100%;margin:.35rem 0}
+  .muebles-asignacion{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.55rem 0;border-top:1px solid var(--fc-line)}
+  #mueblesCompartir::backdrop{background:#0009}
+  #mueblesCompartir form{margin-top:1rem}
+  #mueblesDestello{display:none;position:fixed;inset:0;z-index:1;pointer-events:none}
+  #mueblesDestello.muebles-exito{display:block;background:#23ff5d44;box-shadow:inset 0 0 0 14px #22ed55}
+  #mueblesDestello.muebles-error{display:block;background:#ff273f55;box-shadow:inset 0 0 0 14px #ff453a}
+  @media(prefers-reduced-motion:reduce){
+    #mueblesDestello.muebles-exito,#mueblesDestello.muebles-error{background:none}
+  }
+</style>
+<script defer src="muebles.js"></script>
 </body>
 </html>
 
