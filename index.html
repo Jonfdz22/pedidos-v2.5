@@ -16,7 +16,7 @@
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent;}
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-         margin: 0; background:#eef2f7; color:#222; padding-bottom:80px;}
+         margin: 0; background:var(--fc-subtle, #eef2f7); color:var(--fc-body-text, #222); padding-bottom:80px;}
   header { background:#1a3a6b; color:white; position:sticky; top:0; z-index:50;
            box-shadow:0 2px 6px rgba(0,0,0,.15);}
   .header-top { display:flex; justify-content:space-between; align-items:center; padding:10px 14px;}
@@ -39,61 +39,61 @@
   .dropdown-menu { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5);
                    z-index:200; display:none; align-items:flex-start; justify-content:center;}
   .dropdown-menu.activo { display:flex;}
-  .dropdown-content { background:white; border-radius:0 0 16px 16px; width:100%; max-width:420px;
+  .dropdown-content { background:var(--fc-card, white); border-radius:0 0 16px 16px; width:100%; max-width:420px;
                       padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.3); max-height:80vh; overflow-y:auto;}
   .dropdown-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
-  .dropdown-header h3 { margin:0; color:#1a3a6b; font-size:16px;}
-  .dropdown-close { background:#f0f0f0; border:none; border-radius:50%; width:32px; height:32px;
-                    cursor:pointer; font-size:16px; font-weight:bold; color:#555;}
+  .dropdown-header h3 { margin:0; color:var(--fc-heading-text, #1a3a6b); font-size:16px;}
+  .dropdown-close { background:var(--fc-subtle, #f0f0f0); border:none; border-radius:50%; width:32px; height:32px;
+                    cursor:pointer; font-size:16px; font-weight:bold; color:var(--fc-secondary-text, #555);}
   .dropdown-item { display:flex; align-items:center; justify-content:space-between; gap:10px;
                    padding:12px; border-radius:8px; cursor:pointer; border:1px solid #eee;
-                   margin-bottom:6px; background:#fafafa; transition:background .15s;}
-  .dropdown-item:active { background:#e3f2fd;}
-  .dropdown-item.activo { background:#e8f5e9; border-color:#1e8449;}
+                   margin-bottom:6px; background:var(--fc-subtle, #fafafa); transition:background .15s;}
+  .dropdown-item:active { background:var(--fc-info-surface, #e3f2fd);}
+  .dropdown-item.activo { background:var(--fc-success-surface, #e8f5e9); border-color:#1e8449;}
   .dropdown-item .info { display:flex; align-items:center; gap:10px; flex:1;}
   .dropdown-item .icono { font-size:20px;}
-  .dropdown-item .texto { font-size:14px; color:#222; font-weight:bold;}
-  .dropdown-item .subtexto { font-size:11px; color:#888; margin-top:2px;}
-  .dropdown-item .check { color:#1e8449; font-size:18px; font-weight:bold;}
-  .dropdown-user-header { background:#f0f7ff; padding:14px; border-radius:10px; margin-bottom:14px;
+  .dropdown-item .texto { font-size:14px; color:var(--fc-body-text, #222); font-weight:bold;}
+  .dropdown-item .subtexto { font-size:11px; color:var(--fc-secondary-text, #888); margin-top:2px;}
+  .dropdown-item .check { color:var(--fc-success-text, #1e8449); font-size:18px; font-weight:bold;}
+  .dropdown-user-header { background:var(--fc-info-surface, #f0f7ff); padding:14px; border-radius:10px; margin-bottom:14px;
                           border-left:4px solid #1a5fbf;}
-  .dropdown-user-header .nombre { font-weight:bold; color:#1a3a6b; font-size:16px;}
-  .dropdown-user-header .usuario { font-family:monospace; color:#666; font-size:12px; margin-top:2px;}
-  .dropdown-user-header .correo { font-size:12px; color:#666; margin-top:4px;}
+  .dropdown-user-header .nombre { font-weight:bold; color:var(--fc-heading-text, #1a3a6b); font-size:16px;}
+  .dropdown-user-header .usuario { font-family:monospace; color:var(--fc-secondary-text, #666); font-size:12px; margin-top:2px;}
+  .dropdown-user-header .correo { font-size:12px; color:var(--fc-secondary-text, #666); margin-top:4px;}
   .modal-pass-input { width:100%; font-size:18px; padding:14px; text-align:center;
                       border:2px solid #1a5fbf; border-radius:8px; margin-top:10px; font-weight:bold;}
-  .panel { background:white; margin:10px; padding:14px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,.08);}
-  h3 { margin:0 0 10px 0; color:#1a3a6b; font-size:15px;}
+  .panel { background:var(--fc-card, white); margin:10px; padding:14px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,.08);}
+  h3 { margin:0 0 10px 0; color:var(--fc-heading-text, #1a3a6b); font-size:15px;}
   input, textarea, button, select { font-size:16px; padding:10px; box-sizing:border-box; font-family:inherit;}
   input[type=text], input[type=number], input[type=password], input[type=email] { width:100%; border:1px solid #ccc; border-radius:6px;}
-  select { width:100%; border:1px solid #ccc; border-radius:6px; background:white;}
+  select { width:100%; border:1px solid #ccc; border-radius:6px; background:var(--fc-card, white);}
   button { background:#1a5fbf; color:white; border:none; border-radius:6px; cursor:pointer; padding:10px 16px; font-weight:bold;}
   button:active { opacity:.7; }
   button:disabled { opacity:.5; cursor:not-allowed;}
   button.rojo { background:#c0392b;} button.verde { background:#1e8449;}
   button.gris { background:#7f8c8d;} button.amarillo { background:#e67e22;}
   button.camara { background:#1e8449; padding:10px 14px; font-size:20px; }
-  button.modo-activo { background:#e67e22; animation:pulse 2s infinite; }
+  button.modo-activo { background:var(--fc-warning-solid, #e67e22); animation:pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.7;} }
   .fila { display:flex; gap:8px; align-items:stretch; }
   .fila input { flex:1; }
-  table { width:100%; border-collapse:collapse; background:white; margin-top:8px;}
+  table { width:100%; border-collapse:collapse; background:var(--fc-card, white); margin-top:8px;}
   th, td { border:1px solid #ddd; padding:6px 8px; text-align:left; font-size:13px;}
   th { background:#1a5fbf; color:white; font-size:12px;}
   th.ordenable { cursor:pointer; user-select:none; }
   th.ordenable:hover { background:#1552a8; }
   .ord-ind { font-size:11px; margin-left:4px; opacity:.9; }
-  tr.resultado:active, tr.resultado.sel { background:#dbe9ff; }
-  tr.resultado.sel td { background:#dbe9ff; }
+  tr.resultado:active, tr.resultado.sel { background:var(--fc-selection, #dbe9ff); }
+  tr.resultado.sel td { background:var(--fc-selection, #dbe9ff); }
   tr.resultado { cursor:pointer; }
-  tr.ya-vinculado { background:#e8f5e9 !important; }
-  tr.alerta-venta { background:#fff8e1 !important; }
-  tr.alerta-venta td { background:#fff8e1; }
+  tr.ya-vinculado { background:var(--fc-success-surface, #e8f5e9) !important; }
+  tr.alerta-venta { background:var(--fc-warning-surface, #fff8e1) !important; }
+  tr.alerta-venta td { background:var(--fc-warning-surface, #fff8e1); }
   .cant { width:70px; text-align:center; font-weight:bold; }
-  .small { font-size:12px; color:#666;}
+  .small { font-size:12px; color:var(--fc-secondary-text, #666);}
   .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; color:white;}
-  .G { background:#2e86c1;} .QT { background:#8e44ad;} .C5 { background:#e67e22;} .PZ { background:#7f8c8d;}
-  .badge-promo { background:#e67e22; }
+  .G { background:#2e86c1;} .QT { background:#8e44ad;} .C5 { background:var(--fc-warning-solid, #e67e22);} .PZ { background:#7f8c8d;}
+  .badge-promo { background:var(--fc-warning-solid, #e67e22); }
   .badge-sistema { background:#1a5fbf; }
   .badge-manual { background:#7f8c8d; }
   .badge-contado { background:#1e8449; font-size:10px; padding:2px 6px; }
@@ -103,44 +103,45 @@
            font-weight:bold; z-index:999; pointer-events:none; max-width:90%; text-align:center; font-size:14px;}
   .toast.show { opacity:1; }
   .toast.error { background:#c0392b; }
-  .toast.warn { background:#e67e22; }
+  .toast.warn { background:var(--fc-warning-solid, #e67e22); }
   .toast.big { font-size:20px; padding:16px 24px; }
   .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:1100; display:none;
               align-items:center; justify-content:center; padding:15px; overflow-y:auto;}
   .modal-bg.activo { display:flex;}
-  .modal { background:white; border-radius:12px; padding:20px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; position:relative;}
+  #modalCamara.camara-venta { z-index:1150; }
+  .modal { background:var(--fc-card, white); border-radius:12px; padding:20px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; position:relative;}
   .cant-grande { font-size:28px; text-align:center; font-weight:bold; padding:12px; width:100%; }
   #reader { width:100%; border-radius:10px; overflow:hidden; background:#000; min-height:220px; position:relative;}
   #reader video { width:100% !important; height:auto !important; max-height:70vh; object-fit:cover; background:#000; display:block;}
-  .progreso { font-size:12px; color:#1a5fbf; font-weight:bold; margin-top:6px;}
-  .diag { font-size:11px; color:#888; margin-top:4px;}
-  .aviso-guardado { background:#fff8e1; color:#7a5a00; padding:6px 10px; border-radius:6px;
+  .progreso { font-size:12px; color:var(--fc-info-text, #1a5fbf); font-weight:bold; margin-top:6px;}
+  .diag { font-size:11px; color:var(--fc-secondary-text, #888); margin-top:4px;}
+  .aviso-guardado { background:var(--fc-warning-surface, #fff8e1); color:var(--fc-warning-text, #7a5a00); padding:6px 10px; border-radius:6px;
                     font-size:12px; margin-top:8px; display:none;}
-  .info-vinculo { background:#e8f5e9; padding:12px; border-radius:8px; border-left:4px solid #1e8449;
+  .info-vinculo { background:var(--fc-success-surface, #e8f5e9); padding:12px; border-radius:8px; border-left:4px solid #1e8449;
                   font-family:monospace; font-size:14px; margin:10px 0; word-break:break-all;}
   .input-gigante { font-size:22px; font-weight:bold; text-align:center; padding:16px;
-                   background:#f9f9f9; border:2px dashed #1a5fbf; letter-spacing:1px;}
+                   background:var(--fc-subtle, #f9f9f9); border:2px dashed #1a5fbf; letter-spacing:1px;}
   .tabla-scroll { max-height:500px; overflow-y:auto; border:1px solid #ddd; border-radius:6px; margin-top:8px;}
   .tabla-scroll table { margin:0; }
   .tabla-scroll th { position:sticky; top:0; z-index:2; }
-  .acciones-fijas { position:fixed; bottom:0; left:0; right:0; background:white; padding:10px;
+  .acciones-fijas { position:fixed; bottom:0; left:0; right:0; background:var(--fc-card, white); padding:10px;
                     box-shadow:0 -2px 10px rgba(0,0,0,.1); display:flex; gap:8px; z-index:40;}
   .acciones-fijas button { flex:1; padding:14px; font-size:15px;}
-  .ayuda { background:#e3f2fd; padding:10px 12px; border-radius:6px; font-size:13px; line-height:1.5;
+  .ayuda { background:var(--fc-info-surface, #e3f2fd); padding:10px 12px; border-radius:6px; font-size:13px; line-height:1.5;
            border-left:4px solid #1a5fbf; margin:8px 0;}
-  .ayuda b { color:#1a3a6b;}
-  .paso { background:#f0f7ff; padding:12px; border-radius:8px; margin:10px 0; border:2px solid #1a5fbf;}
+  .ayuda b { color:var(--fc-heading-text, #1a3a6b);}
+  .paso { background:var(--fc-info-surface, #f0f7ff); padding:12px; border-radius:8px; margin:10px 0; border:2px solid #1a5fbf;}
   .paso-num { display:inline-block; background:#1a5fbf; color:white; width:24px; height:24px;
               border-radius:50%; text-align:center; line-height:24px; font-weight:bold;
               font-size:13px; margin-right:8px;}
   .chip-codigo { display:inline-block; background:#1a5fbf; color:white; padding:3px 8px;
                  border-radius:12px; font-size:11px; font-family:monospace; margin:2px 0;}
-  .estado-ok { color:#1e8449; font-weight:bold; font-size:12px; }
-  .estado-warn { color:#e67e22; font-weight:bold; font-size:12px; }
+  .estado-ok { color:var(--fc-success-text, #1e8449); font-weight:bold; font-size:12px; }
+  .estado-warn { color:var(--fc-warning-text, #e67e22); font-weight:bold; font-size:12px; }
   .banner { padding:14px 16px; border-radius:10px; margin:10px 0; font-size:14px; line-height:1.4; display:none; }
   .banner.show { display:block; }
-  .banner-info { background:#e3f2fd; border-left:6px solid #1a5fbf; color:#1a3a6b;}
-  .banner-warn { background:#fff3e0; border-left:6px solid #e67e22; color:#7a3d00;}
+  .banner-info { background:var(--fc-info-surface, #e3f2fd); border-left:6px solid #1a5fbf; color:var(--fc-heading-text, #1a3a6b);}
+  .banner-warn { background:var(--fc-warning-surface, #fff3e0); border-left:6px solid #e67e22; color:var(--fc-warning-text, #7a3d00);}
   .banner-titulo { font-weight:bold; font-size:15px; margin-bottom:6px; display:flex; align-items:center; gap:8px;}
   .exito-fullscreen { position:fixed; inset:0; background:rgba(30,132,73,.97); color:white;
                       display:none; flex-direction:column; align-items:center; justify-content:center;
@@ -153,96 +154,96 @@
                                        max-width:90vw; word-break:break-all; }
   .login-bg { position:fixed; inset:0; background:linear-gradient(135deg,#1a3a6b 0%,#0f2444 100%);
               display:flex; align-items:center; justify-content:center; padding:20px; z-index:1000; }
-  .login-card { background:white; border-radius:16px; padding:32px 24px; width:100%; max-width:380px;
+  .login-card { background:var(--fc-card, white); border-radius:16px; padding:32px 24px; width:100%; max-width:380px;
                 box-shadow:0 20px 40px rgba(0,0,0,.3); }
   .login-card .logo { text-align:center; font-size:48px; margin-bottom:8px; }
-  .login-card h1 { text-align:center; color:#1a3a6b; font-size:22px; margin:0 0 6px 0; }
-  .login-card .sub { text-align:center; color:#666; font-size:13px; margin-bottom:24px; }
-  .login-card label { display:block; font-size:13px; color:#444; font-weight:bold; margin-top:12px; margin-bottom:4px;}
+  .login-card h1 { text-align:center; color:var(--fc-heading-text, #1a3a6b); font-size:22px; margin:0 0 6px 0; }
+  .login-card .sub { text-align:center; color:var(--fc-secondary-text, #666); font-size:13px; margin-bottom:24px; }
+  .login-card label { display:block; font-size:13px; color:var(--fc-body-text, #444); font-weight:bold; margin-top:12px; margin-bottom:4px;}
   .login-card button { width:100%; margin-top:20px; padding:14px; font-size:16px; }
-  .login-error { background:#fee; color:#c0392b; padding:10px; border-radius:6px; font-size:13px;
+  .login-error { background:var(--fc-danger-surface, #fee); color:var(--fc-danger-text, #c0392b); padding:10px; border-radius:6px; font-size:13px;
                  margin-top:12px; display:none; text-align:center; }
   .login-error.show { display:block; }
   .usuario-row { display:flex; align-items:center; justify-content:space-between; gap:8px;
                  padding:10px; border:1px solid #ddd; border-radius:8px; margin-bottom:8px;
-                 background:#fafafa; flex-wrap:wrap; }
+                 background:var(--fc-subtle, #fafafa); flex-wrap:wrap; }
   .usuario-row .info { flex:1; min-width:150px;}
-  .usuario-row .nombre { font-weight:bold; color:#1a3a6b; }
+  .usuario-row .nombre { font-weight:bold; color:var(--fc-heading-text, #1a3a6b); }
   .usuario-row .acciones { display:flex; gap:6px; }
   .permiso-check { display:flex; align-items:center; gap:8px; padding:8px;
-                   background:#f5f5f5; border-radius:6px; margin:4px 0; cursor:pointer;}
+                   background:var(--fc-subtle, #f5f5f5); border-radius:6px; margin:4px 0; cursor:pointer;}
   .permiso-check input { width:auto; transform:scale(1.3); }
   .sucursal-check { display:flex; align-items:center; gap:8px; padding:8px;
-                    background:#f5f5f5; border-radius:6px; margin:4px 0; cursor:pointer;}
+                    background:var(--fc-subtle, #f5f5f5); border-radius:6px; margin:4px 0; cursor:pointer;}
   .sucursal-check input { width:auto; transform:scale(1.3); }
   .otp-input { display:flex; gap:8px; justify-content:center; margin:16px 0; }
   .otp-input input { width:48px; height:56px; text-align:center; font-size:24px; font-weight:bold;
                      border:2px solid #ccc; border-radius:8px; padding:0; }
-  .timer { text-align:center; color:#e67e22; font-weight:bold; font-size:14px; margin:8px 0;}
+  .timer { text-align:center; color:var(--fc-warning-text, #e67e22); font-weight:bold; font-size:14px; margin:8px 0;}
   .inv-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:8px; margin:10px 0;}
   .inv-stat { background:#f8f9fb; border-radius:8px; padding:10px; text-align:center; border:1px solid #e0e4ea;}
-  .inv-stat .num { font-size:20px; font-weight:bold; color:#1a3a6b; }
-  .inv-stat .lbl { font-size:10px; color:#666; text-transform:uppercase; margin-top:2px;}
-  .inv-stat.ok { border-color:#1e8449; background:#e8f5e9;}
-  .inv-stat.warn { border-color:#e67e22; background:#fff3e0;}
-  .inv-stat.err { border-color:#c0392b; background:#fee;}
-  .dif-pos { color:#1e8449; font-weight:bold;}
-  .dif-neg { color:#c0392b; font-weight:bold;}
-  .neg-num { color:#c0392b; font-weight:bold;}
+  .inv-stat .num { font-size:20px; font-weight:bold; color:var(--fc-heading-text, #1a3a6b); }
+  .inv-stat .lbl { font-size:10px; color:var(--fc-secondary-text, #666); text-transform:uppercase; margin-top:2px;}
+  .inv-stat.ok { border-color:#1e8449; background:var(--fc-success-surface, #e8f5e9);}
+  .inv-stat.warn { border-color:#e67e22; background:var(--fc-warning-surface, #fff3e0);}
+  .inv-stat.err { border-color:#c0392b; background:var(--fc-danger-surface, #fee);}
+  .dif-pos { color:var(--fc-success-text, #1e8449); font-weight:bold;}
+  .dif-neg { color:var(--fc-danger-text, #c0392b); font-weight:bold;}
+  .neg-num { color:var(--fc-danger-text, #c0392b); font-weight:bold;}
   .chip-counted { display:inline-block; background:#1e8449; color:white; padding:2px 8px;
                   border-radius:10px; font-size:10px; font-weight:bold; margin-left:4px;}
-  .chip-pending { display:inline-block; background:#e67e22; color:white; padding:2px 8px;
+  .chip-pending { display:inline-block; background:var(--fc-warning-solid, #e67e22); color:white; padding:2px 8px;
                   border-radius:10px; font-size:10px; font-weight:bold; margin-left:4px;}
-  .chip-time { display:inline-block; background:#e3f2fd; color:#1a3a6b; padding:2px 6px;
+  .chip-time { display:inline-block; background:var(--fc-info-surface, #e3f2fd); color:var(--fc-heading-text, #1a3a6b); padding:2px 6px;
                border-radius:10px; font-size:10px; margin-left:4px; font-family:monospace;}
-  .chip-venta { display:inline-block; background:#e67e22; color:white; padding:2px 6px;
+  .chip-venta { display:inline-block; background:var(--fc-warning-solid, #e67e22); color:white; padding:2px 6px;
                 border-radius:10px; font-size:10px; margin-left:4px;}
-  .modal-cant-header { background:#f0f7ff; padding:12px; border-radius:8px; margin-bottom:12px;
+  .modal-cant-header { background:var(--fc-info-surface, #f0f7ff); padding:12px; border-radius:8px; margin-bottom:12px;
                        border-left:4px solid #1a5fbf; }
-  .modal-cant-sku { font-weight:bold; font-size:15px; color:#1a3a6b; }
-  .modal-cant-desc { font-size:13px; color:#444; margin:4px 0 8px 0; }
+  .modal-cant-sku { font-weight:bold; font-size:15px; color:var(--fc-heading-text, #1a3a6b); }
+  .modal-cant-desc { font-size:13px; color:var(--fc-body-text, #444); margin:4px 0 8px 0; }
   .modal-cant-info { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
   .pill { padding:6px 10px; border-radius:8px; font-size:12px; font-weight:bold;}
-  .pill-promo { background:#fff3e0; color:#7a3d00; border:1px solid #e67e22;}
-  .pill-sistema { background:#e3f2fd; color:#1a3a6b; border:1px solid #1a5fbf;}
-  .pill-manual { background:#f0f0f0; color:#555; border:1px solid #999;}
-  .pill-existencias { background:#e8f5e9; color:#0d4d26; border:1px solid #1e8449;}
-  .pill-sin-datos { background:#fff3e0; color:#7a3d00; border:1px solid #e67e22;}
-  .pill-cuadrado { background:#e8f5e9; color:#0d4d26; border:2px solid #1e8449;}
-  .hint-scan { background:#fff3e0; padding:8px 10px; border-radius:6px; font-size:12px; color:#7a3d00;
+  .pill-promo { background:var(--fc-warning-surface, #fff3e0); color:var(--fc-warning-text, #7a3d00); border:1px solid #e67e22;}
+  .pill-sistema { background:var(--fc-info-surface, #e3f2fd); color:var(--fc-heading-text, #1a3a6b); border:1px solid #1a5fbf;}
+  .pill-manual { background:var(--fc-subtle, #f0f0f0); color:var(--fc-secondary-text, #555); border:1px solid #999;}
+  .pill-existencias { background:var(--fc-success-surface, #e8f5e9); color:var(--fc-success-text, #0d4d26); border:1px solid #1e8449;}
+  .pill-sin-datos { background:var(--fc-warning-surface, #fff3e0); color:var(--fc-warning-text, #7a3d00); border:1px solid #e67e22;}
+  .pill-cuadrado { background:var(--fc-success-surface, #e8f5e9); color:var(--fc-success-text, #0d4d26); border:2px solid #1e8449;}
+  .hint-scan { background:var(--fc-warning-surface, #fff3e0); padding:8px 10px; border-radius:6px; font-size:12px; color:var(--fc-warning-text, #7a3d00);
                margin-top:8px; border-left:3px solid #e67e22;}
-  .opcion-producto { background:#f0f7ff; padding:12px; border-radius:8px; margin:8px 0;
+  .opcion-producto { background:var(--fc-info-surface, #f0f7ff); padding:12px; border-radius:8px; margin:8px 0;
                      border:2px solid #1a5fbf; cursor:pointer; }
-  .opcion-producto:active { background:#dbe9ff;}
-  .opcion-producto .sku { font-weight:bold; color:#1a3a6b; font-size:15px;}
-  .opcion-producto .desc { font-size:13px; color:#444; margin-top:2px;}
-  .opcion-producto .meta { font-size:12px; color:#666; margin-top:4px;}
+  .opcion-producto:active { background:var(--fc-selection, #dbe9ff);}
+  .opcion-producto .sku { font-weight:bold; color:var(--fc-heading-text, #1a3a6b); font-size:15px;}
+  .opcion-producto .desc { font-size:13px; color:var(--fc-body-text, #444); margin-top:2px;}
+  .opcion-producto .meta { font-size:12px; color:var(--fc-secondary-text, #666); margin-top:4px;}
   .sucursal-row { display:flex; align-items:center; justify-content:space-between; gap:8px;
                   padding:10px; border:1px solid #ddd; border-radius:8px; margin-bottom:8px;
-                  background:#fafafa; flex-wrap:wrap;}
+                  background:var(--fc-subtle, #fafafa); flex-wrap:wrap;}
   .sucursal-row .info { flex:1;}
-  .sucursal-row .nombre { font-weight:bold; color:#1a3a6b; }
-  .sucursal-row .abrev { font-size:11px; color:#888; font-family:monospace; }
+  .sucursal-row .nombre { font-weight:bold; color:var(--fc-heading-text, #1a3a6b); }
+  .sucursal-row .abrev { font-size:11px; color:var(--fc-secondary-text, #888); font-family:monospace; }
   .sucursal-row .acciones { display:flex; gap:6px;}
   #pedidoCards { display:none; }
-  .pedido-card { background:white; border:1px solid #ddd; border-left:4px solid #1a5fbf;
+  .pedido-card { background:var(--fc-card, white); border:1px solid #ddd; border-left:4px solid #1a5fbf;
                  border-radius:8px; padding:12px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,.05);}
   .pedido-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;}
-  .pedido-card-sku { font-family:monospace; font-weight:bold; font-size:14px; color:#1a3a6b;
+  .pedido-card-sku { font-family:monospace; font-weight:bold; font-size:14px; color:var(--fc-heading-text, #1a3a6b);
                      word-break:break-all; flex:1;}
-  .pedido-card-desc { font-size:13px; color:#333; margin-bottom:10px; line-height:1.4;}
+  .pedido-card-desc { font-size:13px; color:var(--fc-body-text, #333); margin-bottom:10px; line-height:1.4;}
   .pedido-card-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; align-items:end;}
   .pedido-card-field { display:flex; flex-direction:column; gap:2px;}
-  .pedido-card-field label { font-size:10px; color:#666; font-weight:bold; text-transform:uppercase;}
+  .pedido-card-field label { font-size:10px; color:var(--fc-secondary-text, #666); font-weight:bold; text-transform:uppercase;}
   .pedido-card-field input { padding:8px; font-size:16px; text-align:center; font-weight:bold;}
   .pedido-card-field .valor { padding:8px; font-size:15px; text-align:center; font-weight:bold;
-                              background:#f5f5f5; border-radius:6px; font-family:monospace;}
+                              background:var(--fc-subtle, #f5f5f5); border-radius:6px; font-family:monospace;}
   .btn-x { background:#c0392b; color:white; border:none; border-radius:50%; width:32px; height:32px;
            cursor:pointer; font-weight:bold; font-size:14px; padding:0; flex-shrink:0;}
   .config-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
-                padding:12px; background:#fafafa; border-radius:8px; margin-bottom:8px; border:1px solid #eee;}
-  .config-row label { font-size:14px; font-weight:bold; color:#333;}
-  .config-row .subtexto { font-size:11px; color:#888; margin-top:2px; font-weight:normal;}
+                padding:12px; background:var(--fc-subtle, #fafafa); border-radius:8px; margin-bottom:8px; border:1px solid #eee;}
+  .config-row label { font-size:14px; font-weight:bold; color:var(--fc-body-text, #333);}
+  .config-row .subtexto { font-size:11px; color:var(--fc-secondary-text, #888); margin-top:2px; font-weight:normal;}
   input[type=range] { width:100%; }
   .toggle-switch { position:relative; display:inline-block; width:56px; height:30px; flex-shrink:0;}
   .toggle-switch input { opacity:0; width:0; height:0;}
@@ -433,14 +434,14 @@
   </div>
   <div class="panel" id="invPanelContar" style="display:none;">
     <h3>2 · Contar productos</h3>
-    <div style="background:#f0f7ff; padding:10px; border-radius:8px; margin-bottom:12px; border-left:4px solid #1a5fbf;">
+    <div style="background:var(--fc-info-surface, #f0f7ff); padding:10px; border-radius:8px; margin-bottom:12px; border-left:4px solid #1a5fbf;">
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button id="btnModoPz" class="gris" style="flex:1; font-size:13px; padding:12px;"
                 onclick="toggleModoPz()">⚡ Modo PZ: Desactivado</button>
         <button class="amarillo" style="flex:1; font-size:13px; padding:12px;"
                 onclick="abrirRegistrarVenta()">🛒 Registrar venta</button>
       </div>
-      <div id="modoPzInfo" class="small" style="margin-top:8px; display:none; color:#7a3d00;">
+      <div id="modoPzInfo" class="small" style="margin-top:8px; display:none; color:var(--fc-warning-text, #7a3d00);">
         ⚡ <b>Modo PZ activado:</b> cada escaneo suma +1 automáticamente.
       </div>
     </div>
@@ -583,7 +584,7 @@
     <div class="fila">
       <input type="text" id="ventaRapidaBusqueda" placeholder="Escanea o busca SKU/descripción…"
              oninput="ventaRapidaBuscar()" onkeydown="ventaRapidaTecla(event)">
-      <button class="camara" onclick="abrirCamara('ventas')">📷</button>
+      <button class="camara" style="font-size:13px;" onclick="abrirCamara('ventas')">📷 Escanear</button>
     </div>
     <div id="ventaRapidaResultados" style="margin-top:8px;"></div>
   </div>
@@ -591,9 +592,9 @@
   <div class="panel">
     <h3>🧾 Ticket actual (<span id="ventaRapidaContador">0</span>)</h3>
     <div id="ventaRapidaTabla"></div>
-    <div style="background:#e8f5e9; padding:14px; border-radius:8px; margin-top:10px; text-align:right;">
+    <div style="background:var(--fc-success-surface, #e8f5e9); padding:14px; border-radius:8px; margin-top:10px; text-align:right;">
       <div class="small">TOTAL:</div>
-      <div style="font-size:32px; font-weight:bold; color:#1e8449;" id="ventaRapidaTotal">$0.00</div>
+      <div style="font-size:32px; font-weight:bold; color:var(--fc-success-text, #1e8449);" id="ventaRapidaTotal">$0.00</div>
     </div>
     <div class="fila" style="margin-top:10px;">
       <button class="verde" style="flex:1; font-size:16px; padding:14px;" onclick="ventaRapidaCobrar()">💰 Cobrar</button>
@@ -713,7 +714,7 @@
     <div class="fila" style="margin-top:8px;">
       <button style="flex:1; background:#1a3a6b;" onclick="subirTodoALaNube()">☁️ Subir TODO a la nube</button>
     </div>
-    <div id="logSupabase" class="small" style="margin-top:10px; font-family:monospace; background:#f5f5f5; padding:8px; border-radius:6px; display:none; max-height:150px; overflow-y:auto;"></div>
+    <div id="logSupabase" class="small" style="margin-top:10px; font-family:monospace; background:var(--fc-subtle, #f5f5f5); padding:8px; border-radius:6px; display:none; max-height:150px; overflow-y:auto;"></div>
   </div>
    <div class="panel" id="panelRiesgo" style="border:2px solid #c0392b;">
     <h3>⚠️ Zona de riesgo</h3>
@@ -727,6 +728,13 @@
     <!-- Video nativo con atributos obligatorios para iPhone -->
     <video id="cameraVideo" autoplay muted playsinline style="width:100%; max-height:60vh; background:#000; border-radius:10px; object-fit:cover; display:block;"></video>
     <div id="cameraStatus" class="small" style="text-align:center; margin-top:8px;">Iniciando cámara...</div>
+    <div id="cameraContinuousOptions" hidden style="margin-top:10px;">
+      <label style="display:flex; gap:8px; align-items:center;">
+        <input id="cameraContinuous" type="checkbox" style="width:auto; margin:0;" aria-describedby="cameraContinuousHelp">
+        Escaneo continuo
+      </label>
+      <div id="cameraContinuousHelp" class="small"></div>
+    </div>
     
     <div class="fila" style="margin-top:10px; gap:8px;">
       <button id="btnTorchCamara" class="amarillo" style="flex:1;" onclick="toggleLinterna()">💡 Linterna</button>
@@ -784,14 +792,17 @@
 <div class="modal-bg" id="modalRegistrarVenta">
   <div class="modal">
     <h3>🛒 Registrar venta</h3>
-    <div class="ayuda" style="background:#fff3e0; border-left-color:#e67e22;">
+    <div class="ayuda" style="background:var(--fc-warning-surface, #fff3e0); border-left-color:#e67e22;">
       La venta se descontará del <b>esperado</b>.
     </div>
-    <label class="small">Buscar producto</label>
-    <input type="text" id="ventaBusqueda" placeholder="SKU o descripción…"
-           oninput="buscarProductoParaVenta()" onkeydown="teclaVenta(event)">
+    <label class="small" for="ventaBusqueda">Buscar producto</label>
+    <div class="fila">
+      <input type="text" id="ventaBusqueda" placeholder="SKU o descripción…"
+             oninput="buscarProductoParaVenta()" onkeydown="teclaVenta(event)">
+      <button class="camara" style="font-size:13px;" onclick="abrirCamara('venta-inventario')">📷 Escanear</button>
+    </div>
     <div id="ventaResultados" style="max-height:280px; overflow-y:auto; margin-top:8px;"></div>
-    <div id="ventaProductoSel" style="display:none; margin-top:14px; background:#f0f7ff; padding:12px; border-radius:8px; border-left:4px solid #1a5fbf;">
+    <div id="ventaProductoSel" style="display:none; margin-top:14px; background:var(--fc-info-surface, #f0f7ff); padding:12px; border-radius:8px; border-left:4px solid #1a5fbf;">
       <div id="ventaInfo" style="margin-bottom:10px;"></div>
       <div id="ventaCuadradoAviso" style="display:none;"></div>
       <label class="small">Cantidad vendida</label>
@@ -803,7 +814,7 @@
     </div>
     <hr style="margin:16px 0; border:none; border-top:1px solid #eee;">
      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;">
-      <h4 style="margin:0; color:#1a3a6b; font-size:13px;">Ventas registradas hoy (<span id="contVentas">0</span>)</h4>
+      <h4 style="margin:0; color:var(--fc-heading-text, #1a3a6b); font-size:13px;">Ventas registradas hoy (<span id="contVentas">0</span>)</h4>
       <button class="rojo" id="btnBorrarTodasVentas" style="font-size:11px; padding:5px 10px;" onclick="eliminarTodasLasVentas()">🗑 Borrar todas</button>
     </div>
     <div id="listaVentasHoy" style="max-height:300px; overflow-y:auto;"></div>
@@ -812,8 +823,8 @@
 
 <div class="modal-bg" id="modalSuperaTotal">
   <div class="modal" style="border:3px solid #e67e22;">
-    <h3 style="color:#e67e22;">⚠️ Ya contaste el total</h3>
-    <div id="superaTotalInfo" class="ayuda" style="background:#fff3e0; border-left-color:#e67e22;"></div>
+    <h3 style="color:var(--fc-warning-text, #e67e22);">⚠️ Ya contaste el total</h3>
+    <div id="superaTotalInfo" class="ayuda" style="background:var(--fc-warning-surface, #fff3e0); border-left-color:#e67e22;"></div>
     <div class="fila" style="margin-top:16px;">
       <button class="verde" style="flex:1;" onclick="confirmarSuperaTotal()">✔ Sí, guardar</button>
       <button class="amarillo" onclick="deshacerUltimoEscaner()">↩ Deshacer</button>
@@ -824,7 +835,7 @@
 <div class="modal-bg" id="modalConteo">
   <div class="modal">
     <div id="conteoInfoProducto" style="margin-bottom:12px;"></div>
-    <div id="conteoSistema" style="background:#e3f2fd; padding:12px; border-radius:8px; margin-bottom:12px; text-align:center;"></div>
+    <div id="conteoSistema" style="background:var(--fc-info-surface, #e3f2fd); padding:12px; border-radius:8px; margin-bottom:12px; text-align:center;"></div>
     <label class="small">¿Cuántas piezas hay FÍSICAMENTE?</label>
     <input type="number" id="inputConteo" class="cant-grande" value="0"
            onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarConteo();}">
@@ -841,7 +852,7 @@
 <div class="modal-bg" id="modalVincularRapido">
   <div class="modal">
     <h3>🔗 Vincular a un producto</h3>
-    <div class="info-vinculo" style="background:#fff3e0; border-left-color:#e67e22;">
+    <div class="info-vinculo" style="background:var(--fc-warning-surface, #fff3e0); border-left-color:#e67e22;">
       Código: <b id="codigoRapido"></b>
     </div>
     <input type="text" id="busquedaRapida" placeholder="Busca SKU o descripción…" oninput="buscarVincularRapido()">
@@ -853,7 +864,7 @@
 <div class="modal-bg" id="modalImportarVinculos">
   <div class="modal">
     <h3>📥 Importar vínculos</h3>
-    <div style="background:#e3f2fd; padding:12px; border-radius:8px; margin-bottom:14px;">
+    <div style="background:var(--fc-info-surface, #e3f2fd); padding:12px; border-radius:8px; margin-bottom:14px;">
       <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
         <span>📊 Actuales:</span><b id="impTotalActual">0</b>
       </div>
@@ -898,7 +909,7 @@
     <h3>⚙️ Mi cuenta</h3>
     <div id="miCuentaInfo"></div>
     <hr style="border:none; border-top:1px solid #eee; margin:18px 0;">
-    <h4 style="margin:0 0 10px 0; color:#1a3a6b; font-size:14px;">🔑 Cambiar contraseña</h4>
+    <h4 style="margin:0 0 10px 0; color:var(--fc-heading-text, #1a3a6b); font-size:14px;">🔑 Cambiar contraseña</h4>
     <label class="small">Contraseña actual</label>
     <input type="password" id="mcPassActual">
     <label class="small" style="display:block; margin-top:10px;">Nueva contraseña</label>
@@ -907,7 +918,7 @@
     <input type="password" id="mcPassConfirmar">
     <button class="verde" style="width:100%; margin-top:10px;" onclick="cambiarMiContraseña()">💾 Cambiar contraseña</button>
     <hr style="border:none; border-top:1px solid #eee; margin:18px 0;">
-    <h4 style="margin:0 0 10px 0; color:#1a3a6b; font-size:14px;">📧 Cambiar correo</h4>
+    <h4 style="margin:0 0 10px 0; color:var(--fc-heading-text, #1a3a6b); font-size:14px;">📧 Cambiar correo</h4>
     <label class="small">Contraseña actual</label>
     <input type="password" id="mcCorreoPass">
     <label class="small" style="display:block; margin-top:10px;">Nuevo correo</label>
@@ -920,9 +931,9 @@
  <div class="modal-bg" id="modalVentaCobrar">
   <div class="modal">
     <h3>💰 Cobrar venta</h3>
-    <div style="background:#e8f5e9; padding:16px; border-radius:8px; text-align:center; margin-bottom:14px;">
+    <div style="background:var(--fc-success-surface, #e8f5e9); padding:16px; border-radius:8px; text-align:center; margin-bottom:14px;">
       <div class="small">TOTAL A PAGAR</div>
-      <div style="font-size:40px; font-weight:bold; color:#1e8449;" id="cobrarTotal">$0.00</div>
+      <div style="font-size:40px; font-weight:bold; color:var(--fc-success-text, #1e8449);" id="cobrarTotal">$0.00</div>
     </div>
     <label class="small">Método de pago</label>
        <div class="fila" style="margin-top:6px; flex-wrap:wrap; gap:6px;">
@@ -931,20 +942,20 @@
       <button class="gris" style="flex:1; min-width:70px; font-size:12px;" id="btnPagoTransf" onclick="ventaSetMetodo('transferencia')">🏦 Transf.</button>
       <button class="gris" style="flex:1; min-width:70px; font-size:12px;" id="btnPagoCredito" onclick="ventaSetMetodo('credito')">📝 Crédito</button>
     </div>
-    <div id="ventaCreditoWrap" style="display:none; margin-top:14px; background:#fff3e0; padding:12px; border-radius:8px; border-left:4px solid #e67e22;">
+    <div id="ventaCreditoWrap" style="display:none; margin-top:14px; background:var(--fc-warning-surface, #fff3e0); padding:12px; border-radius:8px; border-left:4px solid #e67e22;">
       <label class="small" style="font-weight:bold;">👤 Cliente (obligatorio)</label>
       <input type="text" id="cobrarClienteNombre" list="listaClientesDatalist" placeholder="Nombre del cliente…" autocomplete="off">
       <datalist id="listaClientesDatalist"></datalist>
-      <div class="small" style="margin-top:6px; color:#7a3d00;">📝 Se guardará como PENDIENTE de pago.</div>
+      <div class="small" style="margin-top:6px; color:var(--fc-warning-text, #7a3d00);">📝 Se guardará como PENDIENTE de pago.</div>
     </div>
    
     <div id="ventaEfectivoWrap" style="margin-top:14px;">
       <label class="small">Monto recibido</label>
       <input type="number" id="cobrarRecibido" class="cant-grande" value="" min="0" placeholder="0"
              oninput="ventaRecalcularCambio()" onkeydown="if(event.key==='Enter'){event.preventDefault();ventaConfirmar();}">
-      <div style="margin-top:10px; background:#fff3e0; padding:12px; border-radius:8px; text-align:center;">
+      <div style="margin-top:10px; background:var(--fc-warning-surface, #fff3e0); padding:12px; border-radius:8px; text-align:center;">
         <div class="small">CAMBIO</div>
-        <div style="font-size:28px; font-weight:bold; color:#e67e22;" id="cobrarCambio">$0.00</div>
+        <div style="font-size:28px; font-weight:bold; color:var(--fc-warning-text, #e67e22);" id="cobrarCambio">$0.00</div>
       </div>
       <div class="fila" style="margin-top:10px; flex-wrap:wrap; gap:6px;">
         <button class="gris" style="flex:1; min-width:60px; font-size:12px;" onclick="ventaBillete(50)">$50</button>
@@ -964,7 +975,7 @@
   <div class="modal-bg" id="modalCierreCaja">
   <div class="modal" style="max-width:600px;">
     <h3>🔒 Cierre de caja</h3>
-    <div style="background:#e3f2fd; padding:10px; border-radius:8px; margin-bottom:12px;">
+    <div style="background:var(--fc-info-surface, #e3f2fd); padding:10px; border-radius:8px; margin-bottom:12px;">
       <div class="small"><b>Sucursal:</b> <span id="ccSucursal"></span></div>
       <div class="small"><b>Fecha:</b> <span id="ccFecha"></span></div>
       <div class="small"><b>Cajero:</b> @<span id="ccUsuario"></span></div>
@@ -984,7 +995,7 @@
 <div class="modal-bg" id="modalVentaTicket">
   <div class="modal">
     <h3>✅ Venta registrada</h3>
-    <div id="ventaTicketContenido" style="font-family:monospace; font-size:12px; background:#f9f9f9; padding:14px; border-radius:8px; white-space:pre-wrap; max-height:50vh; overflow-y:auto;"></div>
+    <div id="ventaTicketContenido" style="font-family:monospace; font-size:12px; background:#f9f9f9; color:#111; padding:14px; border-radius:8px; white-space:pre-wrap; max-height:50vh; overflow-y:auto;"></div>
     <div class="fila" style="margin-top:14px; gap:6px;">
       <button class="verde" style="flex:1;" onclick="window.print()">🖨️ Imprimir</button>
       <button class="gris" style="flex:1;" onclick="ventaCopiarTicket()">📋 Copiar</button>
@@ -1001,7 +1012,7 @@
     <label class="small" style="display:block; margin-top:10px;">Correo</label><input type="email" id="userEmail">
     <label class="small" style="display:block; margin-top:10px;" id="labelUserPassword">Contraseña</label>
     <input type="password" id="userPassword">
-    <div class="permiso-check" style="border:2px solid #e67e22;border-radius:8px;padding:8px;margin-top:12px;background:#fff7ed"><input type="checkbox" id="esAdminUsuario"><label for="esAdminUsuario" style="color:#7a4a00"><b>👑 Es administrador</b> <span class="small">(marca todos los permisos)</span></label></div>
+    <div class="permiso-check permiso-admin" style="border:2px solid #e67e22;border-radius:8px;padding:8px;margin-top:12px;background:var(--fc-warning-surface, #fff7ed)"><input type="checkbox" id="esAdminUsuario"><label for="esAdminUsuario" style="color:var(--fc-warning-text, #7a4a00)"><b>👑 Es administrador</b> <span class="small">(marca todos los permisos)</span></label></div>
     <label class="small" style="display:block; margin-top:14px;">Pestañas permitidas</label>
     <div class="permiso-check"><input type="checkbox" id="permPedido" checked><label for="permPedido">🛒 Pedido</label></div>
     <div class="permiso-check"><input type="checkbox" id="permInventario"><label for="permInventario">📦 Inventario</label></div>
@@ -1030,12 +1041,12 @@
     <input type="number" id="sesionPaginaTamano" value="200" min="50" max="500">
     <div class="small" style="margin-top:4px;">Recomendado: 200 productos por página</div>
 
-    <div style="background:#e3f2fd; padding:12px; border-radius:8px; margin-top:14px; border-left:4px solid #1a5fbf;">
-      <div style="font-weight:bold; color:#1a3a6b; font-size:13px;">📄 Asignación de páginas</div>
+    <div style="background:var(--fc-info-surface, #e3f2fd); padding:12px; border-radius:8px; margin-top:14px; border-left:4px solid #1a5fbf;">
+      <div style="font-weight:bold; color:var(--fc-heading-text, #1a3a6b); font-size:13px;">📄 Asignación de páginas</div>
       <div class="small" style="margin-top:6px;">
         Selecciona qué páginas le tocan a cada usuario. Se generarán automáticamente según el tamaño de página.
       </div>
-      <div id="sesionPaginasInfo" class="small" style="margin-top:8px; font-weight:bold; color:#1a5fbf;"></div>
+      <div id="sesionPaginasInfo" class="small" style="margin-top:8px; font-weight:bold; color:var(--fc-info-text, #1a5fbf);"></div>
     </div>
 
     <div id="sesionAsignaciones" style="margin-top:10px;"></div>
@@ -1179,7 +1190,6 @@ let ultimoProductoAgregado = null;
 let tabActual = 'pedido';
 let vinculos = {};
 let codigoPendiente = null;
-let camaraOrigen = null;
 let codigoRapidoPendiente = null;
 let usuarios = {};
 let usuarioLogueado = null;
@@ -1553,9 +1563,9 @@ function actualizarEstadoEmailJS() {
   const el = document.getElementById('estadoEmailJS');
   if (!el) return;
   if (configEmailJS.publicKey && configEmailJS.serviceId && configEmailJS.templateId) {
-    el.innerHTML = '✅ Configurado.'; el.style.background = '#e8f5e9';
+    el.innerHTML = '✅ Configurado.'; el.style.background = 'var(--fc-success-surface, #e8f5e9)';
   } else {
-    el.innerHTML = '⚠️ Faltan datos.'; el.style.background = '#fff3e0';
+    el.innerHTML = '⚠️ Faltan datos.'; el.style.background = 'var(--fc-warning-surface, #fff3e0)';
   }
 }
 async function probarEmailJS() {
@@ -1628,13 +1638,13 @@ function actualizarEstadoSupabase() {
   if (!el) return;
   if (configSupabase.url && configSupabase.key && supabaseClient) {
     el.innerHTML = '✅ Conectado a Supabase';
-    el.style.background = '#e8f5e9';
+    el.style.background = 'var(--fc-success-surface, #e8f5e9)';
   } else if (configSupabase.url && configSupabase.key) {
     el.innerHTML = '⚠️ Configurado pero sin conexión';
-    el.style.background = '#fff3e0';
+    el.style.background = 'var(--fc-warning-surface, #fff3e0)';
   } else {
     el.innerHTML = '⚠️ No configurado. Pega tu URL y tu Publishable Key.';
-    el.style.background = '#fff3e0';
+    el.style.background = 'var(--fc-warning-surface, #fff3e0)';
   }
 }
 
@@ -2034,21 +2044,21 @@ async function actualizarInfoPaginas() {
   // Cabecera con semáforo
   let colorEstado, icono, mensaje;
   if (analisis.traslapadas.length) {
-    colorEstado = '#c0392b';
+    colorEstado = 'var(--fc-danger-text, #c0392b)';
     icono = '❌';
     mensaje = `Hay <b>${analisis.traslapadas.length}</b> páginas traslapadas. Revisa los rangos.`;
   } else if (analisis.sinAsignar.length) {
-    colorEstado = '#e67e22';
+    colorEstado = 'var(--fc-warning-text, #e67e22)';
     icono = '⚠️';
     mensaje = `Faltan <b>${analisis.sinAsignar.length}</b> páginas sin asignar.`;
   } else {
-    colorEstado = '#1e8449';
+    colorEstado = 'var(--fc-success-text, #1e8449)';
     icono = '✅';
     mensaje = `Todo cubierto: <b>${analisis.totalPaginas}</b> páginas asignadas.`;
   }
 
   info.innerHTML = `
-    <div style="font-size:12px; color:#666; margin-bottom:4px;">
+    <div style="font-size:12px; color:var(--fc-secondary-text, #666); margin-bottom:4px;">
       📄 <b>${total}</b> productos · <b>${numPaginas}</b> páginas de <b>${tamPag}</b> cada una
     </div>
     <div style="color:${colorEstado}; font-weight:bold; font-size:13px;">
@@ -2060,12 +2070,12 @@ async function actualizarInfoPaginas() {
     const lista = analisis.traslapadas.slice(0, 5).map(t =>
       `<div>· Pág. ${t.pagina}: <b>${t.usuarios.join(' + ')}</b></div>`
     ).join('');
-    info.innerHTML += `<div style="color:#c0392b; font-size:11px; margin-top:6px;">${lista}${analisis.traslapadas.length > 5 ? '<div>... y ' + (analisis.traslapadas.length - 5) + ' más</div>' : ''}</div>`;
+    info.innerHTML += `<div style="color:var(--fc-danger-text, #c0392b); font-size:11px; margin-top:6px;">${lista}${analisis.traslapadas.length > 5 ? '<div>... y ' + (analisis.traslapadas.length - 5) + ' más</div>' : ''}</div>`;
   }
 
   // 🆕 Si faltan páginas, mostrar cuáles
   if (analisis.sinAsignar.length) {
-    info.innerHTML += `<div style="color:#e67e22; font-size:11px; margin-top:6px;">Faltan: ${resumirPaginas(analisis.sinAsignar)}</div>`;
+    info.innerHTML += `<div style="color:var(--fc-warning-text, #e67e22); font-size:11px; margin-top:6px;">Faltan: ${resumirPaginas(analisis.sinAsignar)}</div>`;
   }
 
   // Lista de usuarios con permiso de inventario
@@ -2100,13 +2110,13 @@ async function actualizarInfoPaginas() {
         });
       });
       if (conflictos.length) {
-        avisoTraslape = `<div class="small" style="color:#c0392b; margin-top:6px; font-weight:bold;">
+        avisoTraslape = `<div class="small" style="color:var(--fc-danger-text, #c0392b); margin-top:6px; font-weight:bold;">
           ⚠️ ${conflictos.length} página(s) se traslapan con otro usuario
         </div>`;
       }
     }
-    return `<div style="background:#fafafa; padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid ${avisoTraslape ? '#c0392b' : '#eee'};">
-      <div style="font-weight:bold; color:#1a3a6b; margin-bottom:6px;">👤 ${u.nombre || user} <span class="small">@${user}</span></div>
+    return `<div style="background:var(--fc-subtle, #fafafa); padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid ${avisoTraslape ? 'var(--fc-danger-text, #c0392b)' : 'var(--fc-session-line, #eee)'};">
+      <div style="font-weight:bold; color:var(--fc-heading-text, #1a3a6b); margin-bottom:6px;">👤 ${u.nombre || user} <span class="small">@${user}</span></div>
       <div class="fila">
         <div style="flex:1;">
           <label class="small">Página inicio</label>
@@ -2352,21 +2362,21 @@ function renderBannerSesion() {
     const pct = total ? Math.round((totalContados / total) * 100) : 0;
 
     estado.innerHTML = `
-      <div style="font-size:15px; font-weight:bold; color:#1a3a6b;">📋 ${esc(s.nombre)}</div>
+      <div style="font-size:15px; font-weight:bold; color:var(--fc-heading-text, #1a3a6b);">📋 ${esc(s.nombre)}</div>
       <div class="small" style="margin-top:4px;">
-        <span style="color:#1e8449; font-weight:bold;">● ESTÁS DENTRO</span>
+        <span style="color:var(--fc-success-text, #1e8449); font-weight:bold;">● ESTÁS DENTRO</span>
       </div>
-      <div style="margin-top:8px; background:white; padding:10px; border-radius:8px; border:1px solid #cce5ff;">
-        <div class="small" style="font-weight:bold; color:#1a3a6b;">
+      <div style="margin-top:8px; background:var(--fc-card, white); padding:10px; border-radius:8px; border:1px solid var(--fc-session-line, #cce5ff);">
+        <div class="small" style="font-weight:bold; color:var(--fc-heading-text, #1a3a6b);">
           📄 Tus páginas: <b>${miAsig.inicio}-${miAsig.fin}</b>
         </div>
         <div class="small" style="margin-top:4px;">
           ✅ Contados: <b>${totalContados}</b> · ⏳ Faltan: <b>${total - totalContados}</b>
         </div>
-        <div style="margin-top:6px; background:#e3f2fd; border-radius:4px; height:8px; overflow:hidden;">
-          <div style="background:#1e8449; height:100%; width:${pct}%; transition:width .3s;"></div>
+        <div style="margin-top:6px; background:var(--fc-info-surface, #e3f2fd); border-radius:4px; height:8px; overflow:hidden;">
+          <div style="background:var(--fc-progress-fill, #1e8449); height:100%; width:${pct}%; transition:width .3s;"></div>
         </div>
-        <div class="small" style="margin-top:2px; text-align:right; color:#666;">${pct}% completado</div>
+        <div class="small" style="margin-top:2px; text-align:right; color:var(--fc-secondary-text, #666);">${pct}% completado</div>
       </div>`;
 
     acciones.innerHTML = `
@@ -2399,21 +2409,21 @@ function renderBannerSesion() {
 
   // Hay sesión activa: mostrar info
   const asignados = Object.keys(sesionActiva.asignaciones || {}).length;
-  const colorEstado = sesionActiva.estado === 'abierta' ? '#1e8449' : '#e67e22';
+  const colorEstado = sesionActiva.estado === 'abierta' ? 'var(--fc-success-text, #1e8449)' : 'var(--fc-warning-text, #e67e22)';
   const textoEstado = sesionActiva.estado === 'abierta' ? 'ABIERTA' : 'BORRADOR';
   const miAsig = (sesionActiva.asignaciones || {})[usuarioLogueado];
 
   estado.innerHTML = `
-    <div style="font-size:15px; font-weight:bold; color:#1a3a6b;">${sesionActiva.nombre}</div>
+    <div style="font-size:15px; font-weight:bold; color:var(--fc-heading-text, #1a3a6b);">${sesionActiva.nombre}</div>
     <div class="small" style="margin-top:4px;">
       <span style="color:${colorEstado}; font-weight:bold;">● ${textoEstado}</span> · 
       📦 ${sesionActiva.total_productos} prods · 
       👥 ${asignados} asignados
     </div>
-    <div class="small" style="margin-top:4px; color:#666;">
+    <div class="small" style="margin-top:4px; color:var(--fc-secondary-text, #666);">
       Creada por @${sesionActiva.creada_por} · ${fmtFecha(sesionActiva.fecha_creacion)}
     </div>
-    ${miAsig ? `<div class="small" style="margin-top:6px; padding:6px 8px; background:#e8f5e9; border-radius:6px; color:#0d4d26; font-weight:bold;">📄 Tú: páginas ${miAsig.inicio}-${miAsig.fin}</div>` : '<div class="small" style="margin-top:6px; color:#c0392b;">⚠️ No tienes páginas asignadas</div>'}`;
+    ${miAsig ? `<div class="small" style="margin-top:6px; padding:6px 8px; background:var(--fc-success-surface, #e8f5e9); border-radius:6px; color:var(--fc-success-text, #0d4d26); font-weight:bold;">📄 Tú: páginas ${miAsig.inicio}-${miAsig.fin}</div>` : '<div class="small" style="margin-top:6px; color:var(--fc-danger-text, #c0392b);">⚠️ No tienes páginas asignadas</div>'}`;
 
   let botonesHTML = '';
   if (sesionActiva.estado === 'abierta') {
@@ -2480,8 +2490,8 @@ function renderMiZona() {
 
   stats.innerHTML = `
     <b>${total}</b> productos en mi zona · 
-    <span style="color:#1e8449;">✅ ${contados} contados</span> · 
-    <span style="color:#e67e22;">⏳ ${pendientes} pendientes</span>
+    <span style="color:var(--fc-success-text, #1e8449);">✅ ${contados} contados</span> ·
+    <span style="color:var(--fc-warning-text, #e67e22);">⏳ ${pendientes} pendientes</span>
     ${filtroTexto || filtroZona !== 'todos' ? ` · Mostrando <b>${misProductos.length}</b>` : ''}`;
 
   if (!misProductos.length) {
@@ -2499,8 +2509,8 @@ function renderMiZona() {
       ? `<span class="chip-counted">✅ ${c}</span>`
       : `<span class="chip-pending">⏳</span>`;
     const claseExis = (p.exis || 0) < 0 ? 'neg-num' : '';
-    const rowStyle = contado ? 'background:#f0fdf4;' : '';
-    return `<tr style="${rowStyle}">
+    const claseFila = contado ? 'fila-contada' : '';
+    return `<tr class="${claseFila}">
       <td style="text-align:center;">${chip}</td>
       <td style="font-family:monospace;">${esc(p.sku)}</td>
       <td class="small">${esc(p.descripcion)}</td>
@@ -2511,7 +2521,7 @@ function renderMiZona() {
   }).join('');
 
   if (misProductos.length > 500) {
-    tbody.innerHTML += `<tr><td colspan="6" class="small" style="text-align:center; padding:10px; background:#fff3e0;">Mostrando los primeros 500 de ${misProductos.length}. Usa el filtro para acotar.</td></tr>`;
+    tbody.innerHTML += `<tr><td colspan="6" class="small" style="text-align:center; padding:10px; background:var(--fc-warning-surface, #fff3e0);">Mostrando los primeros 500 de ${misProductos.length}. Usa el filtro para acotar.</td></tr>`;
   }
 }
 
@@ -2826,7 +2836,7 @@ async function toggleDashboard(id){
       return `<tr><td>${esc(u)} ${a.terminado ? '✅' : ''}</td><td>${a.inicio}-${a.fin}</td><td>${c}/${skus.length}</td><td><b>${pct}%</b></td></tr>`;
     }).join('');
     const tot = snap.length, pt = tot ? Math.round(hechos.size / tot * 100) : 0;
-    box.innerHTML = `<div style="background:#fff;border:1px solid #cce5ff;border-radius:8px;padding:8px;overflow-x:auto"><div class="small"><b>Total sesión:</b> ${hechos.size}/${tot} (${pt}%)</div><table style="width:100%;font-size:12px;margin-top:6px"><tr><th align="left">Usuario</th><th align="left">Págs.</th><th align="left">Contados</th><th align="left">%</th></tr>${filas}</table></div>`;
+    box.innerHTML = `<div style="background:var(--fc-card, #fff);border:1px solid var(--fc-session-line, #cce5ff);border-radius:8px;padding:8px;overflow-x:auto"><div class="small"><b>Total sesión:</b> ${hechos.size}/${tot} (${pt}%)</div><table style="width:100%;font-size:12px;margin-top:6px"><tr><th align="left">Usuario</th><th align="left">Págs.</th><th align="left">Contados</th><th align="left">%</th></tr>${filas}</table></div>`;
   } catch (e) { box.textContent = 'Error: ' + e.message; }
 }
 async function reporteSesion(id, prelim){
@@ -2863,7 +2873,7 @@ function _extraBanner(){
   const s = sesionActivaUsuario || sesionesActuales.find(x => x.sucursal_id === sucursalActual && (x.estado === 'borrador' || x.estado === 'abierta')); if (!s) return;
   let h2 = '';
   if (sesionActivaUsuario && s.estado !== 'cerrada') { const t = ((s.asignaciones || {})[usuarioLogueado] || {}).terminado; h2 += `<button class="verde" style="width:100%;margin-top:6px" onclick="marcarTerminado()">${t ? '↩️ Reabrir mi zona' : '✅ Terminé mi zona'}</button>`; }
-  if (_esAdminSesion() && s.estado === 'abierta') h2 += `<button class="gris" style="width:100%;margin-top:6px" onclick="toggleDashboard('${s.id}')">📊 Ver estatus</button><div id="invDashSesion" style="display:none;margin-top:6px"></div><button class="gris" style="width:100%;margin-top:6px" onclick="reporteSesion('${s.id}',true)">📥 Reporte preliminar</button><button class="gris" style="width:100%;margin-top:6px" onclick="reasignarSesion('${s.id}')">🔁 Reasignar páginas</button><button class="gris" style="width:100%;margin-top:6px;color:#c0392b;font-weight:bold" onclick="cerrarSesionConteo('${s.id}')">🔒 Cerrar sesión de conteo</button>`;
+  if (_esAdminSesion() && s.estado === 'abierta') h2 += `<button class="gris" style="width:100%;margin-top:6px" onclick="toggleDashboard('${s.id}')">📊 Ver estatus</button><div id="invDashSesion" style="display:none;margin-top:6px"></div><button class="gris" style="width:100%;margin-top:6px" onclick="reporteSesion('${s.id}',true)">📥 Reporte preliminar</button><button class="gris" style="width:100%;margin-top:6px" onclick="reasignarSesion('${s.id}')">🔁 Reasignar páginas</button><button class="gris" style="width:100%;margin-top:6px;color:var(--fc-danger-text, #c0392b);font-weight:bold" onclick="cerrarSesionConteo('${s.id}')">🔒 Cerrar sesión de conteo</button>`;
   a.insertAdjacentHTML('beforeend', h2);
 }
  function _ciego(){ return false; }
@@ -2895,7 +2905,7 @@ renderUsuarios = function(){
     const b = row.querySelector('button[onclick^="abrirModalUsuario"]'); if (!b) return;
     const user = b.getAttribute('onclick').match(/'([^']+)'/)[1], u = usuarios[user]; if (!u) return;
     const adm = !!u.permisos.ajustes;
-    if (adm) { row.style.border = '2px solid #e67e22'; const n = row.querySelector('.nombre'); if (n) n.insertAdjacentHTML('beforeend', ' <span style="background:#e67e22;color:#fff;border-radius:6px;padding:1px 6px;font-size:11px">👑 ADMIN</span>'); }
+    if (adm) { row.style.border = '2px solid #e67e22'; const n = row.querySelector('.nombre'); if (n) n.insertAdjacentHTML('beforeend', ' <span style="background:var(--fc-warning-solid, #e67e22);color:#fff;border-radius:6px;padding:1px 6px;font-size:11px">👑 ADMIN</span>'); }
     const ac = row.querySelector('.acciones'); if (ac) ac.insertAdjacentHTML('afterbegin', `<button onclick="alternarAdmin('${user}')" ${adm && nAdm <= 1 ? 'disabled' : ''}>${adm ? '👑➖' : '👑➕'}</button>`);
   });
 };
@@ -2918,13 +2928,28 @@ async function reasignarSesion(id){
   const ap = await bajarConteosIndividuales(id), snap = s.snapshot_base || [], tam = s.pagina_tamano || 200, tp = Math.max(1, Math.ceil(snap.length / tam));
   const hechos = new Set(ap.map(a => a.sku)), conPagina = {}; snap.forEach((p, i) => { if (hechos.has(p.sku)) conPagina[Math.floor(i / tam) + 1] = 1; });
   const asig = s.asignaciones || {}, nombres = [...new Set([...Object.keys(asig), ...Object.entries(usuarios).filter(([k, v]) => v.permisos.inventario).map(([k]) => k)])];
-  const ov = document.createElement('div'); ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:12px';
-  ov.innerHTML = `<div style="background:#fff;border-radius:12px;padding:14px;width:100%;max-width:420px;max-height:85vh;overflow:auto"><h3 style="margin:0 0 4px">🔁 Reasignar páginas</h3><div class="small">Total: ${tp} páginas de ${tam}. Las páginas con conteos no se pueden mover. Deja vacío para quitar la zona.</div>`
-    + nombres.map(u => { const a = asig[u] || {}; return `<div style="display:flex;gap:6px;align-items:center;margin:8px 0"><b style="flex:1;font-size:13px">@${esc(u)}</b><input type="number" min="1" max="${tp}" data-u="${esc(u)}" data-k="i" value="${a.inicio || ''}" style="width:62px"> – <input type="number" min="1" max="${tp}" data-u="${esc(u)}" data-k="f" value="${a.fin || ''}" style="width:62px"></div>`; }).join('')
-    + `<div id="rsErr" style="color:#c0392b;font-size:13px;min-height:18px"></div><div style="display:flex;gap:8px"><button class="gris" style="flex:1" id="rsCancel">Cancelar</button><button class="verde" style="flex:1" id="rsOk">Guardar</button></div></div>`;
+  const ov = document.createElement('div');
+  ov.className = 'modal-bg activo';
+  ov.innerHTML = `<div class="modal reasignar-dialogo" role="dialog" aria-modal="true" aria-labelledby="rsTitulo" aria-describedby="rsAyuda">
+    <h3 id="rsTitulo">Reasignar páginas</h3>
+    <div id="rsAyuda" class="small">Total: ${tp} páginas de ${tam}. Las páginas con conteos no se pueden mover. Deja vacío para quitar la zona.</div>`
+    + nombres.map(u => {
+      const a = asig[u] || {};
+      return `<div class="reasignar-fila">
+        <b>@${esc(u)}</b>
+        <input type="number" min="1" max="${tp}" data-u="${esc(u)}" data-k="i" value="${a.inicio || ''}" aria-label="Página inicial de @${esc(u)}">
+        <span aria-hidden="true">–</span>
+        <input type="number" min="1" max="${tp}" data-u="${esc(u)}" data-k="f" value="${a.fin || ''}" aria-label="Página final de @${esc(u)}">
+      </div>`;
+    }).join('')
+    + `<div id="rsErr" style="color:var(--fc-danger-text, #c0392b);font-size:13px;min-height:18px"></div><div style="display:flex;gap:8px"><button class="gris" style="flex:1" id="rsCancel">Cancelar</button><button class="verde" style="flex:1" id="rsOk">Guardar</button></div></div>`;
   document.body.appendChild(ov);
   const err = m => { ov.querySelector('#rsErr').textContent = m; };
   ov.querySelector('#rsCancel').onclick = () => ov.remove();
+  ov.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.stopPropagation(); ov.remove(); }
+  });
+  ov.querySelector('#rsCancel').focus();
   ov.querySelector('#rsOk').onclick = async () => {
     const nu = {}; ov.querySelectorAll('[data-u]').forEach(i => { const u = i.dataset.u; (nu[u] = nu[u] || {})[i.dataset.k] = parseInt(i.value); });
     const res = {}, cub = new Array(tp + 1).fill(null);
@@ -2959,19 +2984,19 @@ function renderSesiones() {
   }
 
   const colorEstado = {
-    'borrador': '#7f8c8d',
-    'abierta': '#1e8449',
-    'cerrada': '#1a3a6b'
+    'borrador': 'var(--fc-secondary-text, #7f8c8d)',
+    'abierta': 'var(--fc-success-text, #1e8449)',
+    'cerrada': 'var(--fc-heading-text, #1a3a6b)'
   };
 
   cont.innerHTML = sesionesActuales.map(s => {
     const suc = getSucursal(s.sucursal_id);
     const asignados = Object.keys(s.asignaciones || {}).length;
-    const color = colorEstado[s.estado] || '#666';
-    return `<div style="background:#fafafa; padding:10px; border-radius:8px; margin-bottom:8px; border-left:4px solid ${color};">
+    const color = colorEstado[s.estado] || 'var(--fc-secondary-text, #666)';
+    return `<div style="background:var(--fc-subtle, #fafafa); padding:10px; border-radius:8px; margin-bottom:8px; border-left:4px solid ${color};">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
         <div style="flex:1; min-width:0;">
-          <div style="font-weight:bold; color:#1a3a6b;">${esc(s.nombre)}</div>
+          <div style="font-weight:bold; color:var(--fc-heading-text, #1a3a6b);">${esc(s.nombre)}</div>
           <div class="small" style="margin-top:2px;">
             🏢 ${suc ? suc.nombre : s.sucursal_id} · 
             <span style="color:${color}; font-weight:bold;">${s.estado.toUpperCase()}</span>
@@ -2981,7 +3006,7 @@ function renderSesiones() {
             👥 ${asignados} asignados · 
             📄 pág. de ${s.pagina_tamano}
           </div>
-          <div class="small" style="margin-top:2px; color:#888;">
+          <div class="small" style="margin-top:2px; color:var(--fc-secondary-text, #888);">
             Creada: ${fmtFecha(s.fecha_creacion)} por @${s.creada_por}
           </div>
         </div>
@@ -3603,7 +3628,7 @@ function iniciarTimerOTP() {
     if (!el) return;
     if (!otpActual) { el.textContent = '⏱ Esperando…'; return; }
     const r = otpActual.expira - Date.now();
-    if (r <= 0) { el.textContent = '⏱ Expirado'; el.style.color = '#c0392b'; detenerTimerOTP(); return; }
+    if (r <= 0) { el.textContent = '⏱ Expirado'; el.style.color = 'var(--fc-danger-text, #c0392b)'; detenerTimerOTP(); return; }
     const min = Math.floor(r / 60000), seg = Math.floor((r % 60000) / 1000);
     el.textContent = `⏱ Expira en ${min}:${String(seg).padStart(2,'0')}`;
   };
@@ -3740,7 +3765,7 @@ function renderUsuarios() {
     
     // 🔥 Lógica visual para usuarios pendientes
     const esPendiente = u.aprobado === false;
-    const badgePendiente = esPendiente ? '<span style="background:#e67e22;color:#fff;border-radius:6px;padding:2px 6px;font-size:10px;margin-left:6px;font-weight:bold;">⏳ PENDIENTE</span>' : '';
+    const badgePendiente = esPendiente ? '<span style="background:var(--fc-warning-solid, #e67e22);color:#fff;border-radius:6px;padding:2px 6px;font-size:10px;margin-left:6px;font-weight:bold;">⏳ PENDIENTE</span>' : '';
     const btnAprobar = esPendiente ? `<button class="verde" onclick="aprobarUsuario('${user}')">✅ Aprobar</button>` : '';
     const admins = lista.filter(([k,v]) => v.permisos.ajustes);
     const ultAdm = u.permisos.ajustes && admins.length === 1;
@@ -4285,11 +4310,11 @@ function ventaRapidaRender() {
         total += imp;
         const original = it.precioOriginal || it.precio;
         const tieneDescuento = it.precio < original;
-        const estiloPrecio = tieneDescuento ? 'background:#fff3e0; border:1px solid #e67e22;' : '';
-        const avisoDesc = (tieneDescuento ? `<div class="small" style="color:#e67e22; font-size:10px;">ant. $${original.toFixed(2)}</div>` : '') + (it.promocion ? `<div class="small" style="color:#1e8449; font-size:10px; font-weight:bold;">🏷️ PROMO</div>` : '');
+        const estiloPrecio = tieneDescuento ? 'background:var(--fc-warning-surface, #fff3e0); border:1px solid #e67e22;' : '';
+        const avisoDesc = (tieneDescuento ? `<div class="small" style="color:var(--fc-warning-text, #e67e22); font-size:10px;">ant. $${original.toFixed(2)}</div>` : '') + (it.promocion ? `<div class="small" style="color:var(--fc-success-text, #1e8449); font-size:10px; font-weight:bold;">🏷️ PROMO</div>` : '');
         return `<tr>
        <td style="font-family:monospace; font-size:11px;">${esc(it.sku)}</td>
-       <td class="small">${esc(it.descripcion)}${avisoDesc}<div class="small" style="color:#888; font-size:10px;">${it.um || 'PIEZA'}</div></td>
+       <td class="small">${esc(it.descripcion)}${avisoDesc}<div class="small" style="color:var(--fc-secondary-text, #888); font-size:10px;">${it.um || 'PIEZA'}</div></td>
        <td><input type="number" min="0.01" step="0.01" value="${it.cantidad}" style="width:64px; text-align:center; font-weight:bold;" onchange="ventaRapidaCambiarCant(${i}, this.value)"></td>
        <td><input type="number" step="0.01" min="0" value="${it.precio.toFixed(2)}" style="width:70px; text-align:right; font-weight:bold; ${estiloPrecio}" onchange="ventaRapidaCambiarPrecio(${i}, this.value)"></td>
        <td style="text-align:right; font-weight:bold;">$${imp.toFixed(2)}</td>
@@ -4413,7 +4438,7 @@ function guardarClienteCredito(nombre) {
   const rec = parseFloat(inp.value) || 0;
   const cambio = Math.max(0, rec - total);
   elCambio.textContent = '$' + cambio.toFixed(2);
-  elCambio.style.color = cambio > 0 ? '#e67e22' : '#666';
+  elCambio.style.color = cambio > 0 ? 'var(--fc-warning-text, #e67e22)' : 'var(--fc-secondary-text, #666)';
 }
  
 function ventaBillete(monto) {
@@ -4511,7 +4536,7 @@ function ventaRapidaRenderHistorial() {
   cont.innerHTML = '<table><thead><tr><th>Folio</th><th>Hora</th><th>Art.</th><th>Total</th><th>Pago</th><th></th></tr></thead><tbody>' +
     ventas.slice().reverse().map(v => {
       const esCredito = v.metodo === 'credito';
-      const clienteTxt = esCredito ? '<div class="small" style="color:#e67e22; font-weight:bold;">👤 ' + esc(v.cliente || '—') + (v.pagado ? ' ✅' : ' ⏳') + '</div>' : '';
+      const clienteTxt = esCredito ? '<div class="small" style="color:var(--fc-warning-text, #e67e22); font-weight:bold;">👤 ' + esc(v.cliente || '—') + (v.pagado ? ' ✅' : ' ⏳') + '</div>' : '';
       return `<tr>
       <td style="font-family:monospace; font-size:11px;">${v.folio}</td>
       <td class="small">${new Date(v.fecha).toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'})}</td>
@@ -4561,10 +4586,10 @@ function ventaRapidaRenderCreditos() {
   let html = '';
   Object.entries(porCliente).forEach(([cliente, arr]) => {
     const total = arr.reduce((s, v) => s + v.total, 0);
-    html += `<div style="background:#fff3e0; padding:10px; border-radius:8px; margin-bottom:8px; border-left:4px solid #e67e22;">
+    html += `<div style="background:var(--fc-warning-surface, #fff3e0); padding:10px; border-radius:8px; margin-bottom:8px; border-left:4px solid #e67e22;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-        <div style="font-weight:bold; color:#7a3d00;">👤 ${esc(cliente)}</div>
-        <div style="font-size:18px; font-weight:bold; color:#e67e22;">$${total.toFixed(2)}</div>
+        <div style="font-weight:bold; color:var(--fc-warning-text, #7a3d00);">👤 ${esc(cliente)}</div>
+        <div style="font-size:18px; font-weight:bold; color:var(--fc-warning-text, #e67e22);">$${total.toFixed(2)}</div>
       </div>
       <div class="small">${arr.length} venta(s) pendiente(s)</div>
       <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">`;
@@ -4631,42 +4656,42 @@ function ventaAbrirCierreCaja() {
   setText('ccUsuario', usuarioLogueado);
   const r = calcularResumenCaja(ventas);
   const html = `
-    <div style="background:#f0f7ff; padding:12px; border-radius:8px; border-left:4px solid #1a5fbf;">
-      <div style="font-weight:bold; color:#1a3a6b; margin-bottom:8px;">📊 Resumen del día</div>
+    <div style="background:var(--fc-info-surface, #f0f7ff); padding:12px; border-radius:8px; border-left:4px solid #1a5fbf;">
+      <div style="font-weight:bold; color:var(--fc-heading-text, #1a3a6b); margin-bottom:8px;">📊 Resumen del día</div>
       <table style="width:100%; font-size:13px;">
         <tr><td>Ventas totales:</td><td style="text-align:right; font-weight:bold;">${ventas.length}</td></tr>
-        <tr><td>Total vendido:</td><td style="text-align:right; font-weight:bold; color:#1e8449;">$${r.total.toFixed(2)}</td></tr>
+        <tr><td>Total vendido:</td><td style="text-align:right; font-weight:bold; color:var(--fc-success-text, #1e8449);">$${r.total.toFixed(2)}</td></tr>
       </table>
     </div>
     <div style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-      <div style="background:#e8f5e9; padding:10px; border-radius:8px;">
+      <div style="background:var(--fc-success-surface, #e8f5e9); padding:10px; border-radius:8px;">
         <div class="small">💵 EFECTIVO</div>
-        <div style="font-size:18px; font-weight:bold; color:#1e8449;">$${r.efectivo.toFixed(2)}</div>
+        <div style="font-size:18px; font-weight:bold; color:var(--fc-success-text, #1e8449);">$${r.efectivo.toFixed(2)}</div>
         <div class="small">${r.nEfectivo} venta(s)</div>
       </div>
-      <div style="background:#e3f2fd; padding:10px; border-radius:8px;">
+      <div style="background:var(--fc-info-surface, #e3f2fd); padding:10px; border-radius:8px;">
         <div class="small">💳 TARJETA</div>
-        <div style="font-size:18px; font-weight:bold; color:#1a3a6b;">$${r.tarjeta.toFixed(2)}</div>
+        <div style="font-size:18px; font-weight:bold; color:var(--fc-heading-text, #1a3a6b);">$${r.tarjeta.toFixed(2)}</div>
         <div class="small">${r.nTarjeta} venta(s)</div>
       </div>
-      <div style="background:#f3e5f5; padding:10px; border-radius:8px;">
+      <div style="background:var(--fc-purple-surface, #f3e5f5); padding:10px; border-radius:8px;">
         <div class="small">🏦 TRANSFERENCIA</div>
-        <div style="font-size:18px; font-weight:bold; color:#6a1b9a;">$${r.transferencia.toFixed(2)}</div>
+        <div style="font-size:18px; font-weight:bold; color:var(--fc-purple-text, #6a1b9a);">$${r.transferencia.toFixed(2)}</div>
         <div class="small">${r.nTransferencia} venta(s)</div>
       </div>
-      <div style="background:#fff3e0; padding:10px; border-radius:8px;">
+      <div style="background:var(--fc-warning-surface, #fff3e0); padding:10px; border-radius:8px;">
         <div class="small">📝 CRÉDITO PEND.</div>
-        <div style="font-size:18px; font-weight:bold; color:#e67e22;">$${r.credito.toFixed(2)}</div>
+        <div style="font-size:18px; font-weight:bold; color:var(--fc-warning-text, #e67e22);">$${r.credito.toFixed(2)}</div>
         <div class="small">${r.nCredito} venta(s)</div>
       </div>
     </div>
-    ${r.creditoPagado > 0 ? `<div style="margin-top:10px; background:#e8f5e9; padding:10px; border-radius:8px;">
+    ${r.creditoPagado > 0 ? `<div style="margin-top:10px; background:var(--fc-success-surface, #e8f5e9); padding:10px; border-radius:8px;">
       <div class="small">✅ CRÉDITO COBRADO HOY</div>
-      <div style="font-size:18px; font-weight:bold; color:#1e8449;">$${r.creditoPagado.toFixed(2)}</div>
+      <div style="font-size:18px; font-weight:bold; color:var(--fc-success-text, #1e8449);">$${r.creditoPagado.toFixed(2)}</div>
     </div>` : ''}
-    <div style="margin-top:10px; background:#f0f0f0; padding:10px; border-radius:8px; font-size:12px;">
+    <div style="margin-top:10px; background:var(--fc-subtle, #f0f0f0); padding:10px; border-radius:8px; font-size:12px;">
       <div><b>💵 Efectivo esperado en caja:</b> $${r.efectivo.toFixed(2)}</div>
-      <div class="small" style="color:#666; margin-top:4px;">(Solo cuenta ventas en efectivo. El crédito se cobra aparte.)</div>
+      <div class="small" style="color:var(--fc-secondary-text, #666); margin-top:4px;">(Solo cuenta ventas en efectivo. El crédito se cobra aparte.)</div>
     </div>`;
   document.getElementById('ccResumen').innerHTML = html;
   document.getElementById('ccObservaciones').value = '';
@@ -4999,9 +5024,9 @@ function preguntarReemplazoExcel(contadosCount, fechaAnterior) {
       ✅ Productos contados: <b>${contadosCount}</b>`;
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;padding:15px;';
-    modal.innerHTML = `<div style="background:white;border-radius:12px;padding:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;">
-        <h3 style="margin-top:0;color:#1a3a6b;">📊 Nuevo Excel detectado</h3>
-        <div style="background:#e3f2fd;padding:12px;border-radius:8px;font-size:13px;line-height:1.6;border-left:4px solid #1a5fbf;">${msg}</div>
+    modal.innerHTML = `<div style="background:var(--fc-card, white);border-radius:12px;padding:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;">
+        <h3 style="margin-top:0;color:var(--fc-heading-text, #1a3a6b);">📊 Nuevo Excel detectado</h3>
+        <div style="background:var(--fc-info-surface, #e3f2fd);padding:12px;border-radius:8px;font-size:13px;line-height:1.6;border-left:4px solid #1a5fbf;">${msg}</div>
         <button class="verde" style="width:100%;text-align:left;padding:14px;margin-top:14px;margin-bottom:8px;" id="btnSoloNoContados">
           <div style="font-size:15px;font-weight:bold;">🔄 Solo actualizar los NO contados</div></button>
         <button class="amarillo" style="width:100%;text-align:left;padding:14px;margin-bottom:8px;" id="btnTodo">
@@ -5252,16 +5277,16 @@ function seleccionarParaVenta(sku) {
 
   const vi = document.getElementById('ventaInfo');
   if (vi) vi.innerHTML = `
-    <div style="font-weight:bold; color:#1a3a6b; font-size:15px;">${esc(p.sku)}</div>
+    <div style="font-weight:bold; color:var(--fc-heading-text, #1a3a6b); font-size:15px;">${esc(p.sku)}</div>
     <div class="small" style="margin-top:4px;">${esc(p.descripcion)}</div>
     <div class="small" style="margin-top:6px;">Exis: <b>${_vExis(p)}</b> · Vendido hoy: <b>${vendido}</b></div>
-    ${yaContado ? '<div class="small" style="margin-top:6px; color:#1e8449;">✅ Ya contado (' + contado + ')</div>' : '<div class="small" style="margin-top:6px; color:#e67e22;">⚠️ Aún no contado</div>'}`;
+    ${yaContado ? '<div class="small" style="margin-top:6px; color:var(--fc-success-text, #1e8449);">✅ Ya contado (' + contado + ')</div>' : '<div class="small" style="margin-top:6px; color:var(--fc-warning-text, #e67e22);">⚠️ Aún no contado</div>'}`;
 
   const vca = document.getElementById('ventaCuadradoAviso');
   if (vca) {
     if (cuadraPerfecto) {
       vca.style.display = 'block';
-      vca.innerHTML = `<div style="background:#e8f5e9; padding:10px; border-radius:8px; border-left:4px solid #1e8449; margin-bottom:10px; font-size:13px; color:#0d4d26;">
+      vca.innerHTML = `<div style="background:var(--fc-success-surface, #e8f5e9); padding:10px; border-radius:8px; border-left:4px solid #1e8449; margin-bottom:10px; font-size:13px; color:var(--fc-success-text, #0d4d26);">
         ✅ <b>Este producto ya está contado y CUADRA con el sistema.</b><br>
         La venta se registrará SIN ajustar el conteo. La diferencia seguirá en 0.
       </div>`;
@@ -5330,13 +5355,13 @@ function renderVentasHoy() {
   if (!ventas.length) { cont.innerHTML = '<p class="small">Sin ventas registradas</p>'; return; }
   const ordenadas = ventas.map((v, i) => ({ ...v, idx: i })).reverse().slice(0, 30);
   cont.innerHTML = ordenadas.map(v => `
-    <div style="display:flex; justify-content:space-between; align-items:center; background:#fff3e0; padding:8px; border-radius:6px; margin-bottom:4px; font-size:12px; gap:8px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--fc-warning-surface, #fff3e0); padding:8px; border-radius:6px; margin-bottom:4px; font-size:12px; gap:8px;">
       <div style="flex:1; min-width:0;">
-        <div style="font-weight:bold; color:#7a3d00;">${v.sku}</div>
-        <div style="color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${v.descripcion || ''}</div>
-        <div style="color:#888; font-size:10px;">${fmtHora(v.hora)} · @${v.usuario}</div>
+        <div style="font-weight:bold; color:var(--fc-warning-text, #7a3d00);">${v.sku}</div>
+        <div style="color:var(--fc-secondary-text, #666); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${v.descripcion || ''}</div>
+        <div style="color:var(--fc-secondary-text, #888); font-size:10px;">${fmtHora(v.hora)} · @${v.usuario}</div>
       </div>
-      <div style="font-weight:bold; color:#7a3d00; font-size:16px;">${v.cantidad}</div>
+      <div style="font-weight:bold; color:var(--fc-warning-text, #7a3d00); font-size:16px;">${v.cantidad}</div>
       <button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="eliminarVenta(${v.idx})">🗑</button>
     </div>`).join('');
 }
@@ -5510,17 +5535,18 @@ function invTeclaBusqueda(e) {
 }
 function mostrarNoEncontradoInventario(codigo, skuVinculado) {
   const modal = document.createElement('div');
+  modal.dataset.pausaEscaneo = '';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2500;display:flex;align-items:center;justify-content:center;padding:15px;';
   const skuInfo = skuVinculado
-    ? `<div style="background:#fff3e0; padding:10px; border-radius:8px; margin-bottom:12px; font-size:13px; border-left:4px solid #e67e22;">
-        ⚠️ El código <b style="font-family:monospace;">${codigo}</b> está vinculado al SKU <b>${skuVinculado}</b>,<br>
+    ? `<div style="background:var(--fc-warning-surface, #fff3e0); padding:10px; border-radius:8px; margin-bottom:12px; font-size:13px; border-left:4px solid #e67e22;">
+        ⚠️ El código <b style="font-family:monospace;">${esc(codigo)}</b> está vinculado al SKU <b>${esc(skuVinculado)}</b>,<br>
         pero ese SKU <b>NO está en el inventario de esta sucursal</b>.
       </div>`
-    : `<div style="background:#fff3e0; padding:10px; border-radius:8px; margin-bottom:12px; font-size:13px; border-left:4px solid #e67e22;">
-        ❌ No se encontró el código: <b style="font-family:monospace;">${codigo}</b>
+    : `<div style="background:var(--fc-warning-surface, #fff3e0); padding:10px; border-radius:8px; margin-bottom:12px; font-size:13px; border-left:4px solid #e67e22;">
+        ❌ No se encontró el código: <b style="font-family:monospace;">${esc(codigo)}</b>
       </div>`;
-  modal.innerHTML = `<div style="background:white;border-radius:12px;padding:20px;width:100%;max-width:480px;">
-    <h3 style="margin-top:0;color:#1a3a6b;">🔍 Código no registrado</h3>
+  modal.innerHTML = `<div style="background:var(--fc-card, white);border-radius:12px;padding:20px;width:100%;max-width:480px;">
+    <h3 style="margin-top:0;color:var(--fc-heading-text, #1a3a6b);">🔍 Código no registrado</h3>
     ${skuInfo}
     <button class="amarillo" style="width:100%;text-align:left;padding:14px;margin-bottom:8px;" id="btnAgregarNuevo">
       <div style="font-size:15px;font-weight:bold;">✏️ Agregar como producto nuevo</div>
@@ -5566,21 +5592,23 @@ function abrirModalConteo(p) {
   const ajustado = getAjustadoDeSku(p.sku, p);
   const cip = document.getElementById('conteoInfoProducto');
   if (cip) cip.innerHTML = `
-    <div style="font-weight:bold; font-size:15px; color:#1a3a6b;">${esc(p.sku)}</div>
+    <div style="font-weight:bold; font-size:15px; color:var(--fc-heading-text, #1a3a6b);">${esc(p.sku)}</div>
     <div class="small" style="margin-top:4px;">${esc(p.descripcion)}</div>
-    ${fechaBase ? '<div class="small" style="margin-top:4px; color:#8e24aa;">📸 Referencia: ' + fmtFecha(fechaBase) + '</div>' : ''}
-    ${vendido > 0 ? '<div class="small" style="margin-top:4px; color:#e67e22;">🛒 Vendido hoy: ' + vendido + '</div>' : ''}`;
-  const claseExis = p.exis < 0 ? 'color:#c0392b;' : 'color:#1a3a6b;';
+    ${fechaBase ? '<div class="small" style="margin-top:4px; color:var(--fc-purple-text, #8e24aa);">📸 Referencia: ' + fmtFecha(fechaBase) + '</div>' : ''}
+    ${vendido > 0 ? '<div class="small" style="margin-top:4px; color:var(--fc-warning-text, #e67e22);">🛒 Vendido hoy: ' + vendido + '</div>' : ''}`;
+  const claseExis = p.exis < 0 ? 'color:var(--fc-danger-text, #c0392b);' : 'color:var(--fc-heading-text, #1a3a6b);';
   const cs = document.getElementById('conteoSistema');
   if (cs) cs.innerHTML = `
-    <div class="small" style="color:#666;">SISTEMA DICE QUE HAY</div>
+    <div class="small" style="color:var(--fc-secondary-text, #666);">SISTEMA DICE QUE HAY</div>
     <div style="font-size:32px; font-weight:bold; ${claseExis}">${_vExis(p)}</div>
-    ${vendido > 0 ? '<div class="small" style="color:#e67e22; margin-top:4px;">Ajustado por ventas: <b>' + ajustado + '</b></div>' : ''}
-    ${p.exis < 0 ? '<div class="small" style="color:#c0392b; font-weight:bold;">⚠️ NEGATIVO</div>' : ''}
-    ${contado !== undefined ? '<div class="small" style="margin-top:6px; color:#1e8449;">Contado antes: <b>' + contado + '</b></div>' : ''}`;
+    ${vendido > 0 ? '<div class="small" style="color:var(--fc-warning-text, #e67e22); margin-top:4px;">Ajustado por ventas: <b>' + ajustado + '</b></div>' : ''}
+    ${p.exis < 0 ? '<div class="small" style="color:var(--fc-danger-text, #c0392b); font-weight:bold;">⚠️ NEGATIVO</div>' : ''}
+    ${contado !== undefined ? '<div class="small" style="margin-top:6px; color:var(--fc-success-text, #1e8449);">Contado antes: <b>' + contado + '</b></div>' : ''}`;
    const inp = document.getElementById('inputConteo');
   if (inp) inp.value = contado !== undefined ? contado : '';
 
+  const desgloseAnterior = document.getElementById('conteoDesgloseSesion');
+  desgloseAnterior?.remove();
   // 🆕 Si hay sesión activa y otros ya contaron, mostrar desglose
   if (sesionActivaUsuario) {
     const aportes = aportesDeSku(p.sku);
@@ -5597,9 +5625,10 @@ function abrirModalConteo(p) {
       }, {})).reduce((s, v) => s + v, 0);
 
       const divDesglose = document.createElement('div');
-      divDesglose.style.cssText = 'background:#fff3e0; padding:10px; border-radius:8px; margin-bottom:12px; border-left:4px solid #e67e22;';
+      divDesglose.id = 'conteoDesgloseSesion';
+      divDesglose.style.cssText = 'background:var(--fc-warning-surface, #fff3e0); padding:10px; border-radius:8px; margin-bottom:12px; border-left:4px solid #e67e22;';
       divDesglose.innerHTML = `
-        <div style="font-weight:bold; font-size:12px; color:#7a3d00; margin-bottom:6px;">
+        <div style="font-weight:bold; font-size:12px; color:var(--fc-warning-text, #7a3d00); margin-bottom:6px;">
           📊 Aportaciones en esta sesión:
         </div>
         ${desglose}
@@ -5785,7 +5814,7 @@ function renderInventario() {
     const signo = d > 0 ? '+' : '';
     const badgeManual = p.manual ? ' <span class="badge badge-manual">🆕</span>' : '';
     const conto = usuariosConteo[p.sku] || '—';
-    const alerta = ventasPostC[p.sku] ? ' <span title="Tuvo venta después del conteo. Verifica." style="color:#e67e22; font-weight:bold;">⚠️</span>' : '';
+    const alerta = ventasPostC[p.sku] ? ' <span title="Tuvo venta después del conteo. Verifica." style="color:var(--fc-warning-text, #e67e22); font-weight:bold;">⚠️</span>' : '';
     return `<tr class="${claseRow}">
       <td style="font-family:monospace;">${esc(p.sku)}${badgeManual}${alerta}</td>
       <td class="small">${esc(p.descripcion)}</td>
@@ -5968,58 +5997,35 @@ function exportarInventario() {
 }
 
 /* ============ CÁMARA ============ */
-const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-const tieneBarcodeDetector = 'BarcodeDetector' in window;
+const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-
-
-
-
-
-/* ============ CÁMARA Y ESCÁNER ULTRA COMPATIBLE (iOS / ANDROID) ============ */
-let trackVideoActual = null;
-let linternaEncendida = false;
-let escaneandoActivo = false;
-let canvasIOS = null;
-let ctxIOS = null;
-
-async function toggleLinterna() {
-  if (!trackVideoActual) return;
-  const capabilities = trackVideoActual.getCapabilities ? trackVideoActual.getCapabilities() : {};
-  if (!capabilities.torch) {
-    toast('⚠️ Este dispositivo no soporta linterna por cámara', 'warn');
-    return;
-  }
-  try {
-    linternaEncendida = !linternaEncendida;
-    await trackVideoActual.applyConstraints({
-      advanced: [{ torch: linternaEncendida }]
-    });
-    const btn = document.getElementById('btnTorchCamara');
-    if (btn) btn.textContent = linternaEncendida ? '🔦 Apagar' : '💡 Linterna';
-  } catch(e) {
-    toast('No se pudo activar la linterna', 'error');
-  }
-}
-
-/* ═══════════════════════════════════════════════
-   NUEVO SISTEMA DE CÁMARA (COMPATIBLE CON IPHONE)
-   ═══════════════════════════════════════════════ */
 let zxingReader = null;
 let camaraStream = null;
 let cameraRun = 0;
 let camaraLoop = null;
 
 async function abrirCamara(origen) {
-  camaraOrigen = origen; 
+  cerrarCamara();
   const modal = document.getElementById('modalCamara');
   const video = document.getElementById('cameraVideo');
   const status = document.getElementById('cameraStatus');
+  const opcionesContinuo = document.getElementById('cameraContinuousOptions');
+  const continuo = document.getElementById('cameraContinuous');
+  const esInventario = origen === 'inventario';
+  const porPieza = esInventario && modoEscanearPz && !sesionActivaUsuario;
+  modal.classList.toggle('camara-venta', origen === 'venta-inventario');
+  opcionesContinuo.hidden = !esInventario;
+  document.getElementById('cameraContinuousHelp').textContent = porPieza
+    ? 'Suma una pieza por lectura. Retira la etiqueta antes de escanear otra con el mismo código.'
+    : 'La cámara queda abierta para el siguiente producto después de confirmar la cantidad.';
   
   if (modal) modal.classList.add('activo');
   if (status) status.textContent = 'Iniciando cámara...';
 
   const run = ++cameraRun;
+  let ultimoCodigo = '';
+  let ultimaLectura = 0;
 
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
@@ -6058,35 +6064,100 @@ async function abrirCamara(origen) {
       }
     }
 
-    if (status) status.textContent = 'Centra el código en la imagen.';
+    if (run !== cameraRun) return;
 
-    // ZXing SIN hints (como en la versión que SÍ funcionaba)
+    if (status) {
+      status.textContent = esIOS
+        ? 'Centra el código completo. Si se ve borroso, aleja un poco el iPhone.'
+        : 'Centra el código en la imagen.';
+    }
+
     zxingReader = new ZXing.BrowserMultiFormatReader();
+
+    // Conserva los píxeles originales de la etiqueta al recortar el centro.
+    const canvas = esIOS ? document.createElement('canvas') : null;
+    const contexto = canvas?.getContext('2d', { willReadFrequently: true });
+    const lectorCentro = contexto ? new ZXing.MultiFormatReader() : null;
+    lectorCentro?.setHints(new Map([[ZXing.DecodeHintType.TRY_HARDER, true]]));
+    let intentosEnCentro = 0;
+    let grises = null;
 
     const readFrame = () => {
       if (run !== cameraRun) return;
-      
-      if (video.readyState >= 2) {
-        let result;
+      if (!modal.classList.contains('activo')) {
+        cerrarCamara();
+        return;
+      }
+      if (esInventario && document.querySelector('.modal-bg.activo:not(#modalCamara), [data-pausa-escaneo]')) {
+        camaraLoop = setTimeout(readFrame, 180);
+        return;
+      }
+
+      if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
+        let resultado;
         try {
-          result = zxingReader.decode(video);
-        } catch (e) {}
-        
-        if (result && result.getText()) {
-          const codigo = result.getText();
-          cerrarCamara();
-          procesarCodigoEscaneado(codigo, camaraOrigen);
-          return;
+          if (lectorCentro && intentosEnCentro < 3) {
+            intentosEnCentro++;
+            const ancho = Math.floor(video.videoWidth * 0.85);
+            const alto = Math.floor(video.videoHeight * 0.35);
+            if (canvas.width !== ancho) canvas.width = ancho;
+            if (canvas.height !== alto) canvas.height = alto;
+            const x = Math.floor((video.videoWidth - ancho) / 2);
+            const y = Math.floor((video.videoHeight - alto) / 2);
+            contexto.drawImage(video, x, y, ancho, alto, 0, 0, ancho, alto);
+
+            const pixeles = contexto.getImageData(0, 0, ancho, alto).data;
+            if (grises?.length !== ancho * alto) grises = new Uint8ClampedArray(ancho * alto);
+            for (let i = 0, j = 0; i < pixeles.length; i += 4, j++) {
+              grises[j] = (pixeles[i] + 2 * pixeles[i + 1] + pixeles[i + 2]) >> 2;
+            }
+            const luminancia = new ZXing.RGBLuminanceSource(grises, ancho, alto);
+            const imagen = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminancia));
+            resultado = lectorCentro.decodeWithState(imagen);
+          } else {
+            intentosEnCentro = 0;
+            resultado = zxingReader.decode(video);
+          }
+        } catch (error) {
+          if (!(error instanceof ZXing.NotFoundException
+            || error instanceof ZXing.ChecksumException
+            || error instanceof ZXing.FormatException)) {
+            console.error('Error al leer el código:', error);
+            cerrarCamara();
+            modal.classList.add('activo');
+            status.textContent = 'No se pudo leer con la cámara. Cierra y vuelve a abrir el escáner.';
+            return;
+          }
+        }
+
+        const codigo = resultado?.getText()?.trim();
+        if (codigo) {
+          if (!esInventario || !continuo.checked) {
+            cerrarCamara();
+            procesarCodigoEscaneado(codigo, origen);
+            return;
+          }
+          const normalizado = codigo.toUpperCase();
+          ultimaLectura = performance.now();
+          if (normalizado !== ultimoCodigo) {
+            ultimoCodigo = normalizado;
+            if (porPieza) escanearPorPieza(normalizado);
+            else procesarCodigoInv(normalizado, 'inventario-cantidad');
+          }
+        } else if (performance.now() - ultimaLectura >= 650) {
+          ultimoCodigo = '';
         }
       }
-      camaraLoop = setTimeout(readFrame, 180);
+      camaraLoop = setTimeout(readFrame, lectorCentro ? 100 : 180);
     };
-    
+
     readFrame();
 
   } catch (error) {
     if (run !== cameraRun) return;
     console.error("Error cámara:", error);
+    cerrarCamara();
+    modal?.classList.add('activo');
     if (status) {
       status.textContent = error.name === 'NotAllowedError' 
         ? 'Permiso denegado. Actívalo en los ajustes de tu navegador.' 
@@ -6170,134 +6241,16 @@ function procesarCodigoEscaneado(codigo, origen) {
   } 
   else if (origen === 'ventas') {
     setVal('ventaRapidaBusqueda', codigo);
-    if (typeof ventaRapidaBuscar === 'function') ventaRapidaBuscar();
-    setTimeout(() => {
-      if (typeof ventaRapidaTecla === 'function') {
-        ventaRapidaTecla({ key: 'Enter', preventDefault: () => {} });
-      }
-    }, 100);
+    ventaRapidaTecla({ key: 'Enter', preventDefault: () => {} });
+    ventaRapidaBuscar();
+  }
+  else if (origen === 'venta-inventario') {
+    setVal('ventaBusqueda', codigo);
+    teclaVenta({ key: 'Enter', preventDefault: () => {} });
   }
 }
 
-function iniciarLectorUniversal(video, status) {
-  escaneandoActivo = true;
-
-  // 1. Probar BarcodeDetector nativo (si el navegador lo tiene habilitado)
-  if ('BarcodeDetector' in window) {
-    try {
-      const detector = new BarcodeDetector({ 
-        formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code'] 
-      });
-      let procesando = false;
-      camaraLoop = setInterval(async () => {
-        if (!escaneandoActivo || procesando || !video.videoWidth) return;
-        procesando = true;
-        try {
-          const codigos = await detector.detect(video);
-          if (codigos && codigos.length > 0) {
-            onCamaraDetecta(codigos[0].rawValue);
-          }
-        } catch (e) {}
-        procesando = false;
-      }, 150);
-      return;
-    } catch (e) {
-      console.warn("Fallo BarcodeDetector, pasando a ZXing...");
-    }
-  }
-
-  // 2. Si no hay BarcodeDetector, usar ZXing mediante captura en Canvas (100% compatible con WebKit/iOS)
-  if (typeof ZXing !== 'undefined') {
-    try {
-      const hints = new Map();
-      const formatos = [
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.UPC_A,
-        ZXing.BarcodeFormat.UPC_E,
-        ZXing.BarcodeFormat.EAN_8,
-        ZXing.BarcodeFormat.QR_CODE
-      ];
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formatos);
-      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
-      const reader = new ZXing.MultiFormatReader();
-      reader.setHints(hints);
-
-      if (!canvasIOS) {
-        canvasIOS = document.createElement('canvas');
-        ctxIOS = canvasIOS.getContext('2d', { willReadFrequently: true });
-      }
-
-      let escaneandoFrame = false;
-      camaraLoop = setInterval(() => {
-        if (!escaneandoActivo || escaneandoFrame || !video.videoWidth || video.readyState < 2) return;
-        escaneandoFrame = true;
-
-        try {
-          const w = video.videoWidth;
-          const h = video.videoHeight;
-          if (canvasIOS.width !== w) canvasIOS.width = w;
-          if (canvasIOS.height !== h) canvasIOS.height = h;
-
-          ctxIOS.drawImage(video, 0, 0, w, h);
-          const imgData = ctxIOS.getImageData(0, 0, w, h);
-          
-          const luminanceSource = new ZXing.RGBLuminanceSource(imgData.data, w, h);
-          const binaryBitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminanceSource));
-          
-          const result = reader.decode(binaryBitmap);
-          if (result && result.getText()) {
-            onCamaraDetecta(result.getText());
-          }
-        } catch (errZXing) {
-          // Es normal que arroje NotFoundException en cada fotograma donde no hay código
-        }
-        escaneandoFrame = false;
-      }, 180);
-    } catch (errLector) {
-      console.error(errLector);
-      status.textContent = '⚠️ Error al inicializar lector ZXing';
-    }
-  } else {
-    status.textContent = '⚠️ Librería de escaneo no disponible';
-  }
-}
-
-function cerrarCamara() {
-  escaneandoActivo = false;
-  if (camaraLoop) { 
-    clearInterval(camaraLoop); 
-    camaraLoop = null; 
-  }
-  if (camaraStream) { 
-    camaraStream.getTracks().forEach(t => t.stop()); 
-    camaraStream = null; 
-  }
-  trackVideoActual = null;
-  linternaEncendida = false;
-  const m = document.getElementById('modalCamara'); 
-  if (m) m.classList.remove('activo');
-  const cont = document.getElementById('reader'); 
-  if (cont) cont.innerHTML = '';
-}
-function onCamaraDetecta(codigo) {
-  const c = String(codigo).toUpperCase().trim();
-  if (!c) return;
-  vibrar(80);
-  cerrarCamara();
-  setTimeout(() => {
-    if (camaraOrigen === 'vincular') { setVal('inputCodigo', c); capturarCodigo(); }
-    else if (camaraOrigen === 'inventario') { if (modoEscanearPz) escanearPorPieza(c); else procesarCodigoInv(c); }
-    else if (camaraOrigen === 'ventas') {
-      const items = skusDeCodigo(c);
-      ventaRapidaAgregar(items.length >= 1 ? items[0].sku : c);
-    }
-    else { procesarCodigoEnPedido(c); }
-  }, 200);
-}
-function procesarCodigoInv(codigo) {
+function procesarCodigoInv(codigo, contexto = 'inventario') {
   const items = skusDeCodigo(codigo);
   if (items.length === 1) {
     const p = inventarioBase.find(x => x.sku.toUpperCase() === items[0].sku.toUpperCase());
@@ -6310,7 +6263,7 @@ function procesarCodigoInv(codigo) {
     const candidatos = [];
     items.forEach(it => { const p = inventarioBase.find(x => x.sku.toUpperCase() === it.sku.toUpperCase()); if (p) candidatos.push(p); });
     if (candidatos.length === 1) { abrirModalConteo(candidatos[0]); return; }
-    if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, 'inventario'); return; }
+    if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, contexto); return; }
     toast('⚠️ Ninguno de los SKUs está en el inventario', 'error'); return;
   }
   const p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
@@ -6369,9 +6322,9 @@ function cerrarModalElegir() {
 function elegirProductoDeLista(sku) {
   const ctx = elegirContexto;
   cerrarModalElegir();
-  if (ctx === 'inventario') {
+  if (ctx === 'inventario' || ctx === 'inventario-cantidad') {
     const p = inventarioBase.find(x => x.sku.toUpperCase() === sku.toUpperCase());
-    if (p) { if (modoEscanearPz) escanearPorPieza(p.sku); else abrirModalConteo(p); }
+    if (p) { if (ctx === 'inventario' && modoEscanearPz) escanearPorPieza(p.sku); else abrirModalConteo(p); }
   } else {
     const p = buscarProductoPorSku(sku);
     if (p) abrirModalCantidad(p);
@@ -6417,9 +6370,9 @@ function buscar() {
       let exisTxt = '';
       if (exist !== null) {
         if (exist < 0) {
-          exisTxt = `<div class="small" style="color:#c0392b; font-weight:bold;">⚠️ Exist: ${exist}</div>`;
+          exisTxt = `<div class="small" style="color:var(--fc-danger-text, #c0392b); font-weight:bold;">⚠️ Exist: ${exist}</div>`;
         } else {
-          exisTxt = `<div class="small" style="color:#1e8449;">Exist: ${exist}</div>`;
+          exisTxt = `<div class="small" style="color:var(--fc-success-text, #1e8449);">Exist: ${exist}</div>`;
         }
       }
       return `<tr class="resultado" data-idx="${i}" onclick="seleccionar(${i})">
@@ -6458,7 +6411,7 @@ function abrirModalCantidad(p) {
   if (exist === null) {
     existHTML = `<span class="pill pill-sin-datos">⚠️ Existencias: no hay datos</span>`;
   } else if (exist < 0) {
-    existHTML = `<span class="pill" style="background:#fee; color:#c0392b; border:1px solid #c0392b; font-weight:bold;">⚠️ En existencia: ${exist} (NEGATIVO)</span>`;
+    existHTML = `<span class="pill" style="background:var(--fc-danger-surface, #fee); color:var(--fc-danger-text, #c0392b); border:1px solid #c0392b; font-weight:bold;">⚠️ En existencia: ${exist} (NEGATIVO)</span>`;
   } else {
     existHTML = `<span class="pill pill-existencias">📦 En existencia: ${exist}</span>`;
   }
@@ -6469,7 +6422,7 @@ function abrirModalCantidad(p) {
       <div class="modal-cant-sku">${esc(p.sku)}</div>
       <div class="modal-cant-desc">${esc(p.descripcion)}</div>
       <div><span class="badge ${claseUM(p.um)}">${p.um}</span>
-        <span style="color:#1a5fbf; font-weight:bold; margin-left:8px;">$${(p.precio || 0).toFixed(2)}</span></div>
+        <span style="color:var(--fc-info-text, #1a5fbf); font-weight:bold; margin-left:8px;">$${(p.precio || 0).toFixed(2)}</span></div>
     </div>
     <div class="modal-cant-info">${fuenteHTML} ${existHTML}</div>`;
   const inp = document.getElementById('inputCant');
@@ -6676,11 +6629,11 @@ function capturarCodigo() {
   if (items.length > 0) {
     const listaHTML = items.map(it => {
       const prod = buscarProductoPorSku(it.sku);
-      return `<div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:8px; border-radius:6px; margin-top:4px;">
+      return `<div style="display:flex; justify-content:space-between; align-items:center; background:var(--fc-card, white); padding:8px; border-radius:6px; margin-top:4px;">
         <div style="font-family:monospace;">
-          <div style="font-size:14px; font-weight:bold; color:#1a3a6b;">${esc(it.sku)}</div>
-          ${prod ? '<div style="font-size:11px; color:#666;">' +esc(prod.descripcion)+ '</div>' : ''}
-          <div style="font-size:10px; color:#888;">@${it.creadoPor || '—'} · ${it.sucursal || '—'} · ${fmtFecha(it.fecha)}</div>
+          <div style="font-size:14px; font-weight:bold; color:var(--fc-heading-text, #1a3a6b);">${esc(it.sku)}</div>
+          ${prod ? '<div style="font-size:11px; color:var(--fc-secondary-text, #666);">' +esc(prod.descripcion)+ '</div>' : ''}
+          <div style="font-size:10px; color:var(--fc-secondary-text, #888);">@${it.creadoPor || '—'} · ${it.sucursal || '—'} · ${fmtFecha(it.fecha)}</div>
         </div>
         <button class="rojo" style="padding:4px 8px; font-size:11px;" onclick="quitarSkuDeCodigo('${codigo.replace(/'/g, "\\'")}', '${it.sku.replace(/'/g, "\\'")}')">🗑</button></div>`;
     }).join('');
@@ -6988,11 +6941,11 @@ function renderPedido() {
       const exist = getExistencias(p.sku);
       const existTxt = (exist !== null) ? exist : '—';
       const totalPz = p.cantidad + (exist !== null ? exist : 0);
-      const claseExist = (exist !== null && exist < 0) ? 'color:#c0392b; font-weight:bold;' : '';
+      const claseExist = (exist !== null && exist < 0) ? 'color:var(--fc-danger-text, #c0392b); font-weight:bold;' : '';
       return `<tr><td>${esc(p.sku)}</td><td>${esc(p.descripcion)} ${ob}</td>
         <td><input class="cant" type="number" min="1" value="${p.cantidad}" onchange="cambiarCant(${idxOriginal}, this.value)"></td>
         <td style="text-align:center; font-family:monospace; ${claseExist}">${existTxt}</td>
-        <td style="text-align:center; font-family:monospace; font-weight:bold; color:#1a3a6b;">${totalPz}</td>
+        <td style="text-align:center; font-family:monospace; font-weight:bold; color:var(--fc-heading-text, #1a3a6b);">${totalPz}</td>
         <td><span class="badge ${claseUM(p.um)}">${p.um}</span></td>
         <td><button class="rojo" onclick="eliminar(${idxOriginal})" style="padding:6px 10px;">X</button></td></tr>`;
     }).join('');
@@ -7008,7 +6961,7 @@ function renderPedido() {
       const exist = getExistencias(p.sku);
       const existTxt = (exist !== null) ? exist : '—';
       const totalPz = p.cantidad + (exist !== null ? exist : 0);
-      const estiloExist = (exist !== null && exist < 0) ? 'color:#c0392b; font-weight:bold; background:#fee;' : '';
+      const estiloExist = (exist !== null && exist < 0) ? 'color:var(--fc-danger-text, #c0392b); font-weight:bold; background:var(--fc-danger-surface, #fee);' : '';
       return `<div class="pedido-card">
         <div class="pedido-card-top"><div class="pedido-card-sku">${esc(p.sku)}</div>
           <button class="btn-x" onclick="eliminar(${idxOriginal})">X</button></div>
@@ -7019,7 +6972,7 @@ function renderPedido() {
           <div class="pedido-card-field"><label>Exist.</label>
             <div class="valor" style="${estiloExist}">${existTxt}</div></div>
           <div class="pedido-card-field"><label>Total pz (${p.um})</label>
-            <div class="valor" style="background:#e3f2fd; color:#1a3a6b;">${totalPz}</div></div>
+            <div class="valor" style="background:var(--fc-info-surface, #e3f2fd); color:var(--fc-heading-text, #1a3a6b);">${totalPz}</div></div>
         </div></div>`;
     }).join('');
   }
@@ -7157,8 +7110,8 @@ document.addEventListener('DOMContentLoaded', () => {
 <style>
 button{min-height:40px} input,select,textarea{font-size:16px} :focus-visible{outline:2px solid #1a3a6b;outline-offset:2px}
 body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
-#estadoRed{position:fixed;left:8px;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:60;font:600 11px system-ui,sans-serif;padding:5px 10px;border-radius:99px;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.2)}
-#estadoRed.ok{color:#15803d}#estadoRed.sync{color:#b45309}#estadoRed.off{color:#b91c1c}
+#estadoRed{position:fixed;left:8px;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:60;font:600 11px system-ui,sans-serif;padding:5px 10px;border-radius:99px;background:var(--fc-card, #fff);box-shadow:0 1px 6px rgba(0,0,0,.2)}
+#estadoRed.ok{color:var(--fc-success-text, #15803d)}#estadoRed.sync{color:var(--fc-warning-text, #b45309)}#estadoRed.off{color:var(--fc-danger-text, #b91c1c)}
 </style>
 <script>
 (function(){
@@ -7244,6 +7197,7 @@ body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area
   td{font-size:13px;background:#fff}
   tbody tr:nth-child(even) td{background:#fafcff}
   tbody tr:hover td{background:#eef5ff}
+  tbody tr.fila-contada td{background:var(--fc-success-surface, #f0fdf4)}
   .tabla-scroll{border:1px solid var(--fc-line)!important;border-radius:10px!important;max-width:100%;overscroll-behavior:contain}
   .tabla-scroll table{margin:0}
   .tabla-scroll th{position:sticky;top:0;z-index:3}
@@ -7253,6 +7207,15 @@ body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area
   .info-vinculo{border-radius:10px;background:#f0faf4;border-left-color:#16804a}
   .modal-bg{backdrop-filter:blur(3px)}
   .modal{border:1px solid #e1e7f0;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.22);padding:24px}
+  .reasignar-dialogo{max-width:420px;color:var(--fc-text)}
+  .reasignar-fila{
+    display:grid;grid-template-columns:minmax(0,1fr) 68px auto 68px;gap:6px;align-items:center;
+    margin:8px 0;padding:8px;border:1px solid var(--fc-line);border-radius:8px;
+    background:var(--fc-subtle,#f5f5f5);font-size:13px
+  }
+  .reasignar-fila b{overflow-wrap:anywhere}
+  .reasignar-fila input[type=number]{min-width:0;text-align:center;padding:8px 4px}
+
   .dropdown-content{border:1px solid var(--fc-line);box-shadow:0 18px 50px rgba(0,0,0,.22)}
   .dropdown-item{border-radius:10px}
   .login-bg{background:radial-gradient(circle at 15% 10%,#2b5d9a 0%,transparent 36%),linear-gradient(135deg,#102747 0%,#173b70 58%,#245aa3 100%)}
@@ -7363,365 +7326,96 @@ function alternarTema() {
     --fc-bg: #0b1322;
     --fc-card: #152238;
     --fc-text: #e2e8f0;
-    --fc-muted: #94a3b8;
-    --fc-line: #233554;
+    --fc-muted: #aab9cc;
+    --fc-line: #334764;
     --fc-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+
+    --fc-subtle: #101c2e;
+    --fc-info-surface: #1a304f;
+    --fc-success-surface: #143629;
+    --fc-warning-surface: #392819;
+    --fc-danger-surface: #402531;
+    --fc-purple-surface: #312448;
+    --fc-selection: #243f63;
+    --fc-session-line: var(--fc-line);
+    --fc-body-text: var(--fc-text);
+    --fc-secondary-text: var(--fc-muted);
+    --fc-heading-text: var(--fc-primary-2);
+    --fc-info-text: var(--fc-primary-2);
+    --fc-success-text: #86efac;
+    --fc-warning-text: #ffc477;
+    --fc-danger-text: #fda4af;
+    --fc-purple-text: #dfb9ff;
+    --fc-warning-solid: #9a4b0d;
+    --fc-progress-fill: #4ade80;
   }
 
-  [data-theme="dark"] body { 
-    background: var(--fc-bg) !important; 
-    color: var(--fc-text) !important; 
+  [data-theme="dark"] :is(.modal, .login-card, .acciones-fijas) {
+    background: var(--fc-card);
+    border-color: var(--fc-line);
   }
 
-  /* Paneles, modales y tarjetas principales */
-  [data-theme="dark"] .panel,
-  [data-theme="dark"] .modal,
-  [data-theme="dark"] .dropdown-content,
-  [data-theme="dark"] .pedido-card,
-  [data-theme="dark"] .acciones-fijas,
-  [data-theme="dark"] .login-card {
-    background: var(--fc-card) !important;
+  [data-theme="dark"] .panel:hover,
+  [data-theme="dark"] :is(.config-row, .usuario-row, .sucursal-row, .dropdown-item) {
+    border-color: var(--fc-line);
+  }
+
+  [data-theme="dark"] :is(.config-row, .login-card .logo) { background: var(--fc-subtle); }
+  [data-theme="dark"] .dropdown-item.activo { border-color: #35845a; }
+  [data-theme="dark"] .dropdown-item.activo .texto { color: var(--fc-success-text); }
+  [data-theme="dark"] :is(.permiso-check, .sucursal-check):not(.permiso-admin) {
+    box-shadow: inset 0 0 0 1px var(--fc-line);
+  }
+
+  [data-theme="dark"] :is(input:not([type=checkbox]):not([type=range]), select, textarea) {
+    background: #0d1829;
+    color: var(--fc-text);
     border-color: var(--fc-line) !important;
-    color: var(--fc-text) !important;
   }
 
-  /* Corrección del input de subir archivo (Seleccionar archivo) */
-  [data-theme="dark"] input[type=file] {
-    background: #0d1829 !important;
-    color: #94a3b8 !important;
-    border: 1px dashed #2b3f5c !important;
-  }
-  [data-theme="dark"] input[type=file]::file-selector-button,
-  [data-theme="dark"] input[type=file]::-webkit-file-upload-button {
-    background: #1e3352 !important;
-    color: #f1f5f9 !important;
-    border: 1px solid #334155 !important;
+  [data-theme="dark"] :is(input, textarea)::placeholder { color: var(--fc-muted); }
+  [data-theme="dark"] input[type=file]::file-selector-button {
+    background: var(--fc-info-surface);
+    color: var(--fc-text);
+    border: 1px solid var(--fc-line);
     border-radius: 6px;
     padding: 6px 12px;
-    cursor: pointer;
   }
 
-  /* Inputs de texto, select y textareas */
-  [data-theme="dark"] input:not([type=checkbox]):not([type=range]):not([type=file]),
-  [data-theme="dark"] select,
-  [data-theme="dark"] textarea {
-    background: #0d1829 !important;
-    color: #f8fafc !important;
-    border-color: #2b3f5c !important;
-  }
+  [data-theme="dark"] .ayuda { background: var(--fc-info-surface); }
+  [data-theme="dark"] .paso { background: var(--fc-info-surface); }
+  [data-theme="dark"] .info-vinculo { background: var(--fc-success-surface); }
 
-  /* Corrección del marco de "Modo PZ / Registrar venta" y cajas con fondos claros fijos */
-  [data-theme="dark"] div[style*="background:#f0f7ff"],
-  [data-theme="dark"] div[style*="background: #f0f7ff"],
-  [data-theme="dark"] div[style*="background:#e3f2fd"],
-  [data-theme="dark"] div[style*="background: #e3f2fd"],
-  [data-theme="dark"] div[style*="background:#e8f5e9"],
-  [data-theme="dark"] div[style*="background: #e8f5e9"],
-  [data-theme="dark"] div[style*="background:#fff3e0"],
-  [data-theme="dark"] div[style*="background: #fff3e0"],
-  [data-theme="dark"] div[style*="background:#fafafa"],
-  [data-theme="dark"] div[style*="background: #fafafa"] {
-    background: #101d31 !important;
-    border-color: #223756 !important;
-    color: var(--fc-text) !important;
+  [data-theme="dark"] th {
+    background: var(--fc-info-surface) !important;
+    color: var(--fc-heading-text) !important;
   }
+  [data-theme="dark"] :is(th, td) { border-color: var(--fc-line) !important; }
+  [data-theme="dark"] td { background: var(--fc-card); }
+  [data-theme="dark"] tbody tr:nth-child(even) td { background: var(--fc-subtle); }
+  [data-theme="dark"] tbody tr:hover td { background: var(--fc-info-surface); }
+  [data-theme="dark"] tbody tr.fila-contada td,
+  [data-theme="dark"] tr.ya-vinculado td { background: var(--fc-success-surface); }
+  [data-theme="dark"] tr.alerta-venta td { background: var(--fc-warning-surface); }
+  [data-theme="dark"] tr.resultado.sel td { background: var(--fc-selection); }
 
-  /* Textos destacados en negrita y títulos para que se lean bien */
-  [data-theme="dark"] .ayuda b,
-  [data-theme="dark"] .ayuda strong,
-  [data-theme="dark"] [style*="color:#1a3a6b"],
-  [data-theme="dark"] [style*="color: #1a3a6b"] {
-    color: #93c5fd !important;
-  }
-  [data-theme="dark"] h3,
-  [data-theme="dark"] h4 {
-    color: #60a5fa !important;
-  }
+  [data-theme="dark"] .inv-stat { background: var(--fc-subtle); }
+  [data-theme="dark"] .inv-stat.ok { background: var(--fc-success-surface); border-color: #35845a; }
+  [data-theme="dark"] .inv-stat.warn { background: var(--fc-warning-surface); border-color: #9a692f; }
+  [data-theme="dark"] .inv-stat.err { background: var(--fc-danger-surface); border-color: #a55163; }
+  [data-theme="dark"] .pedido-card-field .valor { box-shadow: inset 0 0 0 1px var(--fc-line); }
+  [data-theme="dark"] .opcion-producto:active { background: var(--fc-selection); }
 
-  /* Chips de referencia, conteo y tiempo */
-  [data-theme="dark"] .chip-time,
-  [data-theme="dark"] .chip-counted,
-  [data-theme="dark"] .chip-pending {
-    background: #1c2e47 !important;
-    color: #93c5fd !important;
-    border: 1px solid #28446b !important;
+  [data-theme="dark"] :is(button.modo-activo, button.amarillo) {
+    background: var(--fc-warning-solid) !important;
   }
+  [data-theme="dark"] :is(button.verde, button.camara) { background: #14663d !important; }
+  [data-theme="dark"] button.gris { background: #465872 !important; }
+  [data-theme="dark"] :is(.badge-manual, .PZ) { background: #465872; }
+  [data-theme="dark"] .G { background: #1b638e; }
+  [data-theme="dark"] .badge-contado,
+  [data-theme="dark"] .chip-counted { background: #14663d; }
 
-  /* Tablas */
-  [data-theme="dark"] th { 
-    background: #1b2b44 !important; 
-    color: #93c5fd !important; 
-    border-color: var(--fc-line) !important; 
-  }
-  [data-theme="dark"] td { 
-    background: var(--fc-card) !important; 
-    color: var(--fc-text) !important; 
-    border-color: var(--fc-line) !important; 
-  }
-  [data-theme="dark"] tbody tr:nth-child(even) td { 
-    background: #121d30 !important; 
-  }
-  [data-theme="dark"] tbody tr:hover td,
-  [data-theme="dark"] tr.resultado:hover td { 
-    background: #1e3352 !important; 
-  }
-
-  /* Tarjetas de estadísticas (Contados, Pendientes, etc.) */
-  [data-theme="dark"] .inv-stat { 
-    background: #111b2d !important; 
-    border-color: var(--fc-line) !important; 
-  }
-  [data-theme="dark"] .inv-stat .num { 
-    color: #60a5fa !important; 
-  }
-  [data-theme="dark"] .inv-stat.ok {
-    background: rgba(30, 132, 73, 0.2) !important;
-    border-color: #1e8449 !important;
-  }
-  [data-theme="dark"] .inv-stat.warn {
-    background: rgba(230, 126, 34, 0.2) !important;
-    border-color: #e67e22 !important;
-  }
-  [data-theme="dark"] .inv-stat.err {
-    background: rgba(192, 57, 43, 0.2) !important;
-    border-color: #c0392b !important;
-  }
-
-  /* Secciones informativas y menús */
-  [data-theme="dark"] .ayuda, 
-  [data-theme="dark"] .paso { 
-    background: #10213b !important; 
-    border-color: #2563eb !important; 
-    color: #cbd5e1 !important; 
-  }
-  [data-theme="dark"] .config-row,
-  [data-theme="dark"] .usuario-row,
-  [data-theme="dark"] .sucursal-row,
-  [data-theme="dark"] .dropdown-item {
-    background: #101c2e !important;
-    border-color: var(--fc-line) !important;
-    color: var(--fc-text) !important;
-  }
-  [data-theme="dark"] .dropdown-user-header { 
-    background: #132744 !important; 
-  }
-  [data-theme="dark"] #estadoRed { 
-    background: #132238 !important; 
-    border-color: var(--fc-line) !important; 
-  }
-
-  /* =========================================
-     FIX: Textos que se quedaban oscuros 
-     ========================================= */
-  
-  /* Arregla los títulos de las cajas de configuración (Sonido, Vibración, etc.) */
-  [data-theme="dark"] .config-row label {
-    color: var(--fc-text) !important;
-  }
-  [data-theme="dark"] .config-row .subtexto {
-    color: var(--fc-muted) !important;
-  }
-
-  /* Arregla los textos generales, etiquetas pequeñas y ayudas */
-  [data-theme="dark"] label,
-  [data-theme="dark"] .small,
-  [data-theme="dark"] .diag,
-  [data-theme="dark"] p {
-    color: var(--fc-text) !important;
-  }
-
-  /* Arregla los textos dentro de los botones para que no se pierdan */
-  [data-theme="dark"] button,
-  [data-theme="dark"] .tab {
-    color: #ffffff !important;
-  }
-
-  /* Arregla los textos de la tabla y filas que usan clases específicas */
-  [data-theme="dark"] .usuario-row .nombre,
-  [data-theme="dark"] .sucursal-row .nombre {
-    color: var(--fc-primary-2) !important;
-  }
-
-  /* Arregla los textos de los modales */
-  [data-theme="dark"] .modal h3,
-  [data-theme="dark"] .modal label,
-  [data-theme="dark"] .modal div {
-    color: var(--fc-text);
-  }
-
-  /* =========================================
-     FIX: Modal de cantidad (el que sale en tu captura)
-     ========================================= */
-  [data-theme="dark"] .modal-cant-header {
-    background: #1e293b !important; /* Fondo oscuro elegante */
-    border-left-color: #3b82f6 !important;
-  }
-  [data-theme="dark"] .modal-cant-sku {
-    color: #93c5fd !important; /* Azul claro para el SKU */
-  }
-  [data-theme="dark"] .modal-cant-desc {
-    color: #f1f5f9 !important; /* Blanco para la descripción */
-  }
-
-  /* =========================================
-     FIX: Ticket de venta
-     ========================================= */
-  /* Mantenemos el ticket con fondo blanco y letras negras porque así se imprime,
-     pero nos aseguramos de que no se vuelva invisible en modo oscuro */
-  [data-theme="dark"] #ventaTicketContenido {
-    background: #ffffff !important;
-    color: #000000 !important;
-    border: 1px solid #cbd5e1;
-  }
-
-  /* =========================================
-     FIX: Etiquetas y textos en modales
-     ========================================= */
-  [data-theme="dark"] .modal label,
-  [data-theme="dark"] .modal .small {
-    color: #cbd5e1 !important;
-  }
-
-
-  /* =========================================
-     FIX: Modal de Registrar Venta (Inventario)
-     ========================================= */
-  [data-theme="dark"] #ventaProductoSel {
-    background: #101d31 !important; 
-    border-left-color: #3b82f6 !important;
-  }
-  [data-theme="dark"] #ventaProductoSel #ventaInfo,
-  [data-theme="dark"] #ventaProductoSel #ventaInfo * {
-    color: #e2e8f0 !important;
-  }
-  [data-theme="dark"] #ventaProductoSel #ventaInfo > div:first-child {
-    color: #93c5fd !important; 
-  }
-  [data-theme="dark"] #ventaProductoSel label.small {
-    color: #94a3b8 !important;
-  }
-
-  /* =========================================
-     FIX: Modal Elegir Producto (Varios con este código)
-     ========================================= */
-  [data-theme="dark"] .opcion-producto {
-    background: #101d31 !important;
-    border-color: #3b82f6 !important;
-  }
-  [data-theme="dark"] .opcion-producto .sku {
-    color: #93c5fd !important; /* SKU en azul claro */
-  }
-  [data-theme="dark"] .opcion-producto .desc {
-    color: #e2e8f0 !important; /* Descripción en blanco */
-  }
-  [data-theme="dark"] .opcion-producto .meta {
-    color: #94a3b8 !important; /* Textos de existencias/precio en gris claro */
-  }
-  /* Brillo extra para que los botones de PROMO/SISTEMA resalten en modo oscuro */
-  [data-theme="dark"] .opcion-producto .badge {
-    filter: brightness(1.2);
-  }
-
-  /* =========================================
-     FIX: Tarjetas de Pedido en Celular
-     ========================================= */
-  
-  /* El SKU en azul claro */
-  [data-theme="dark"] .pedido-card-sku {
-    color: #93c5fd !important; 
-  }
-  
-  /* La descripción en blanco/gris claro */
-  [data-theme="dark"] .pedido-card-desc {
-    color: #e2e8f0 !important; 
-  }
-  
-  /* El recuadro de "Exist." (que salía blanco) */
-  [data-theme="dark"] .pedido-card-field .valor {
-    background: #0d1829 !important;
-    color: #e2e8f0 !important;
-    border: 1px solid #233554 !important;
-  }
-
-  /* Si el producto tiene existencia negativa, que mantenga el rojo */
-  [data-theme="dark"] .pedido-card-field .valor[style*="color:#c0392b"] {
-    color: #f87171 !important;
-    background: rgba(192, 57, 43, 0.2) !important;
-    border-color: #c0392b !important;
-  }
-
-  /* También arreglamos la tabla (para PC) por si acaso */
-  [data-theme="dark"] #tablaPedido td {
-    color: #e2e8f0 !important;
-  }
- 
-    /* =========================================
-     FIX: Modal de Registro en Modo Oscuro
-     ========================================= */
-  [data-theme="dark"] #modalRegistro .modal {
-    background: var(--fc-card) !important;
-  }
-  [data-theme="dark"] #modalRegistro h3 {
-    color: #60a5fa !important;
-  }
-  [data-theme="dark"] #modalRegistro label {
-    color: var(--fc-text) !important;
-  }
- 
-    /* =========================================
-     FIX: Menús desplegables (Sucursales / Usuario)
-     ========================================= */
-  [data-theme="dark"] .dropdown-item .texto {
-    color: #e2e8f0 !important; /* Letras blancas/grisáceas */
-  }
-  
-  [data-theme="dark"] .dropdown-item .subtexto {
-    color: #94a3b8 !important; /* Subtítulos más tenues */
-  }
-
-  /* Cuando una sucursal está seleccionada (activa) */
-  [data-theme="dark"] .dropdown-item.activo {
-    background: rgba(30, 132, 73, 0.25) !important; 
-    border-color: #1e8449 !important;
-  }
-  [data-theme="dark"] .dropdown-item.activo .texto {
-    color: #4ade80 !important; /* Verde brillante para que resalte */
-  }
-
-  /* El botón de la "X" para cerrar el menú */
-  [data-theme="dark"] .dropdown-close {
-    background: #1e293b !important;
-    color: #e2e8f0 !important;
-  }
-
-  /* =========================================
-     FIX: Modal de Editar Usuario (Checkboxes)
-     ========================================= */
-  /* Fondo de las cajas de permisos y sucursales */
-  [data-theme="dark"] .permiso-check,
-  [data-theme="dark"] .sucursal-check {
-    background: #101c2e !important;
-    border: 1px solid var(--fc-line) !important;
-  }
-
-  /* Letras de los checkboxes */
-  [data-theme="dark"] .permiso-check label,
-  [data-theme="dark"] .sucursal-check label {
-    color: #e2e8f0 !important;
-  }
-
-  /* La caja naranja de "Es administrador" */
-  [data-theme="dark"] #modalUsuario div[style*="background:#fff7ed"] {
-    background: rgba(230, 126, 34, 0.15) !important; /* Naranja transparente */
-    border-color: #e67e22 !important;
-  }
-  
-  /* Letra de "Es administrador" */
-  [data-theme="dark"] #modalUsuario div[style*="background:#fff7ed"] label {
-    color: #f8fafc !important;
-  }
-
- 
   /* Impresión térmica */
   @media print {
     body * { visibility: hidden !important; }
@@ -7730,7 +7424,7 @@ function alternarTema() {
       position: absolute !important; left: 0 !important; top: 0 !important;
       width: 100% !important; background: transparent !important; padding: 0 !important;
     }
-    #modalVentaTicket .modal { box-shadow: none !important; border: none !important; max-width: 80mm !important; margin: 0 !important; }
+    #modalVentaTicket .modal { background: #fff !important; color: #000 !important; box-shadow: none !important; border: none !important; max-width: 80mm !important; margin: 0 !important; }
     #modalVentaTicket .modal-bg { position: static !important; background: none !important; }
     #modalVentaTicket .fila, #modalVentaTicket h3 { display: none !important; }
     #ventaTicketContenido {
