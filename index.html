@@ -421,9 +421,10 @@
     <summary>📋 Sesión de conteo</summary>
     <div id="invSesionEstado" class="small">Cargando...</div>
     <div id="invSesionAcciones" style="margin-top:10px;"></div>
+    <div id="sesionMueblesPanel"></div>
   </details>
   <details class="panel inv-plegable" id="invPanelMuebles" hidden>
-    <summary>Conteo por muebles</summary>
+    <summary>Inventarios por muebles anteriores</summary>
     <div id="mueblesAdminContenido"></div>
   </details>
   <details class="panel inv-plegable" id="invPanelCarga">
@@ -1056,6 +1057,13 @@
     <label class="small" style="display:block; margin-top:12px;">Sucursal *</label>
     <select id="sesionSucursal"></select>
 
+    <label class="small" for="sesionModalidad">Modalidad de conteo</label>
+    <select id="sesionModalidad"><option value="paginas">Por páginas</option><option value="muebles">Por muebles</option></select>
+    <div id="sesionMueblesConfiguracion" hidden>
+      <div id="sesionMueblesFilas"></div>
+      <button type="button" class="gris" data-sm="agregar">Agregar mueble</button>
+    </div>
+    <div id="sesionPaginasConfiguracion">
     <label class="small" style="display:block; margin-top:12px;">Tamaño de cada página</label>
     <input type="number" id="sesionPaginaTamano" value="200" min="50" max="500">
     <div class="small" style="margin-top:4px;">Recomendado: 200 productos por página</div>
@@ -1069,9 +1077,10 @@
     </div>
 
     <div id="sesionAsignaciones" style="margin-top:10px;"></div>
+    </div>
 
     <div class="fila" style="margin-top:16px;">
-      <button class="verde" style="flex:1;" onclick="guardarNuevaSesion()">💾 Crear sesión</button>
+      <button class="verde" style="flex:1;" onclick="this.disabled=true; guardarNuevaSesion().finally(() => this.disabled=false)">💾 Crear sesión</button>
       <button class="gris" onclick="cerrarModalNuevaSesion()">Cancelar</button>
     </div>
     <div id="sesionError" class="login-error" style="text-align:center;"></div>
@@ -2017,6 +2026,7 @@ async function abrirModalNuevaSesion() {
   const s = getSucursal(sucursalActual);
   if (s) setVal('sesionNombre', `Inventario ${s.nombre} ${mes}`);
 
+  window.sesionesMueble?.prepararModal();
   // Generar UI de asignaciones inicial
   await actualizarInfoPaginas();
 
@@ -2035,7 +2045,12 @@ function cerrarModalNuevaSesion() {
 }
 
 // Recalcular páginas y refrescar la lista de usuarios con rangos
+function esModalidadMuebles() {
+  return !!window.sesionesMueble && document.getElementById('sesionModalidad')?.value === 'muebles';
+}
+
 async function actualizarInfoPaginas() {
+  if (esModalidadMuebles()) return;
   const info = document.getElementById('sesionPaginasInfo');
   const contAsig = document.getElementById('sesionAsignaciones');
   if (!info || !contAsig) return;
@@ -2237,6 +2252,7 @@ function resumirPaginas(arr) {
 
 // Crear la sesión en Supabase
 async function guardarNuevaSesion() {
+  if (esModalidadMuebles()) return window.sesionesMueble.crear();
   const err = document.getElementById('sesionError');
   if (err) err.classList.remove('show');
 
@@ -2413,11 +2429,11 @@ function renderBannerSesion() {
   if (panelZona) panelZona.style.display = 'none';
 
   const sesionActiva = sesionesActuales.find(s =>
-    s.sucursal_id === sucursalActual && (s.estado === 'borrador' || s.estado === 'abierta')
+    !window.sesionesMueble?.esMuebles(s) && s.sucursal_id === sucursalActual && (s.estado === 'borrador' || s.estado === 'abierta')
   );
 
   if (!sesionActiva) {
-    estado.innerHTML = '📭 <b>No hay sesión activa</b> en esta sucursal.<br><span class="small">Una sesión permite que varias personas cuenten el inventario al mismo tiempo.</span>';
+    estado.innerHTML = '📄 <b>Sin sesión por páginas activa.</b>';
     if (puedeCrear) {
       acciones.innerHTML = `<button class="verde" style="width:100%;" onclick="abrirModalNuevaSesion()">➕ Crear sesión de conteo</button>`;
     } else {
@@ -2700,7 +2716,7 @@ function otroYaConto(sku) {
 async function unirseASesion(id) {
   if (!supabaseClient) return;
   const sesion = sesionesActuales.find(s => s.id === id);
-  if (!sesion) { toast('❌ Sesión no encontrada', 'error'); return; }
+  if (!sesion || window.sesionesMueble?.esMuebles(sesion)) { toast('❌ Sesión no encontrada', 'error'); return; }
   if (sesion.estado !== 'abierta') { toast('⚠️ La sesión no está abierta', 'warn'); return; }
 
   // Verificar que el usuario tenga asignación
@@ -2889,7 +2905,7 @@ async function cerrarSesionConteo(id){
 }
 function _extraBanner(){
   const a = document.getElementById('invSesionAcciones'); if (!a) return;
-  const s = sesionActivaUsuario || sesionesActuales.find(x => x.sucursal_id === sucursalActual && (x.estado === 'borrador' || x.estado === 'abierta')); if (!s) return;
+  const s = sesionActivaUsuario || sesionesActuales.find(x => !window.sesionesMueble?.esMuebles(x) && x.sucursal_id === sucursalActual && (x.estado === 'borrador' || x.estado === 'abierta')); if (!s) return;
   let h2 = '';
   if (sesionActivaUsuario && s.estado !== 'cerrada') { const t = ((s.asignaciones || {})[usuarioLogueado] || {}).terminado; h2 += `<button class="verde" style="width:100%;margin-top:6px" onclick="marcarTerminado()">${t ? '↩️ Reabrir mi zona' : '✅ Terminé mi zona'}</button>`; }
   if (_esAdminSesion() && s.estado === 'abierta') h2 += `<button class="gris" style="width:100%;margin-top:6px" onclick="toggleDashboard('${s.id}')">📊 Ver estatus</button><div id="invDashSesion" style="display:none;margin-top:6px"></div><button class="gris" style="width:100%;margin-top:6px" onclick="reporteSesion('${s.id}',true)">📥 Reporte preliminar</button><button class="gris" style="width:100%;margin-top:6px" onclick="reasignarSesion('${s.id}')">🔁 Reasignar páginas</button><button class="gris" style="width:100%;margin-top:6px;color:var(--fc-danger-text, #c0392b);font-weight:bold" onclick="cerrarSesionConteo('${s.id}')">🔒 Cerrar sesión de conteo</button>`;
@@ -2990,14 +3006,15 @@ async function reasignarSesion(id){
   };
 }
 const _renderBannerBase = renderBannerSesion;
-renderBannerSesion = function(){ _renderBannerBase(); try { _extraBanner(); } catch (e) { console.error(e); } };
+renderBannerSesion = function(){ _renderBannerBase(); try { _extraBanner(); window.sesionesMueble?.render(); } catch (e) { console.error(e); } };
 
 // Renderizar la lista
 function renderSesiones() {
   const cont = document.getElementById('listaSesiones');
   if (!cont) return;
 
-  if (!sesionesActuales.length) {
+  const sesionesPorPaginas = sesionesActuales.filter(s => !window.sesionesMueble?.esMuebles(s));
+  if (!sesionesPorPaginas.length) {
     cont.innerHTML = '<p class="small" style="text-align:center; padding:14px;">Sin sesiones creadas todavía.</p>';
     return;
   }
@@ -3008,7 +3025,7 @@ function renderSesiones() {
     'cerrada': 'var(--fc-heading-text, #1a3a6b)'
   };
 
-  cont.innerHTML = sesionesActuales.map(s => {
+  cont.innerHTML = sesionesPorPaginas.map(s => {
     const suc = getSucursal(s.sucursal_id);
     const asignados = Object.keys(s.asignaciones || {}).length;
     const color = colorEstado[s.estado] || 'var(--fc-secondary-text, #666)';
@@ -3495,7 +3512,9 @@ function cerrarMenuSucursal() { const m = document.getElementById('menuSucursal'
 function cambiarSucursal(id) {
   cerrarMenuSucursal();
   if (id === sucursalActual) return;
+  window.sesionesMueble?.salir();
   sucursalActual = id;
+  void cargarListaSesiones();
    actualizarInventarioActual();
   if (typeof supabaseClient !== 'undefined' && supabaseClient) {
     bajarInventarioSupabase(id);
@@ -6066,7 +6085,7 @@ async function abrirCamara(origen) {
     const audio = getAudioCtx();
     if (audio?.state === 'suspended') void audio.resume().catch(() => {});
   }
-  const muebles = esMueble ? window.conteoMuebles : null;
+  const muebles = esMueble ? (window.sesionesMueble?.activa() ? window.sesionesMueble : window.conteoMuebles) : null;
   const porPieza = esInventario && modoEscanearPz && !sesionActivaUsuario;
   modal.classList.toggle('camara-venta', origen === 'venta-inventario');
   opcionesContinuo.hidden = !esInventario;
@@ -7600,7 +7619,15 @@ window.addEventListener('pagehide', () => {
   }
 </style>
 <div id="destelloEscaneo" aria-hidden="true"></div>
+<style>
+  .sesion-mueble-asignacion {display:grid;gap:8px;margin:10px 0;padding:10px;border:1px solid var(--fc-line);border-radius:8px}
+  .sesion-mueble-asignacion label {display:grid;gap:4px}
+  .sesion-mueble-tarjeta {padding:12px;margin:10px 0;border:1px solid var(--fc-line);border-radius:8px;background:var(--fc-session-detail,var(--fc-card))}
+  .sesion-mueble-botones {display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+  .sesion-mueble-activa :is(#invSesionEstado,#invSesionAcciones,#invPanelContar,#invPanelResumen,#invAcciones,#invPanelMuebles) {display:none!important}
+</style>
 <script defer src="muebles.js"></script>
+<script defer src="sesiones-muebles.js"></script>
 </body>
 </html>
 
