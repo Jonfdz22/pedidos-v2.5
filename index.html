@@ -742,7 +742,6 @@
 </dialog>
 
 <div class="modal-bg" id="modalCamara">
-  <div id="mueblesDestello" aria-hidden="true"></div>
   <div class="modal">
     <h3>📷 Escanear</h3>
     <!-- Video nativo con atributos obligatorios para iPhone -->
@@ -5175,12 +5174,12 @@ function escanearPorPieza(codigo) {
     else if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, 'inventario'); return; }
   }
    if (!p) p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
-  if (!p) { feedbackError(); toast('❌ No encontrado: ' + codigo, 'error'); return; }
+  if (!p) { confirmarEscaneoVisual(false, 'Código no encontrado: ' + codigo); toast('❌ No encontrado: ' + codigo, 'error'); return; }
 
   // 🆕 Bloqueo de zona
   const permiso = puedoContarSku(p.sku);
   if (!permiso.ok) {
-    feedbackError();
+    confirmarEscaneoVisual(false, permiso.razon);
     toast('⛔ ' + permiso.razon, 'error');
     return;
   }
@@ -5207,7 +5206,7 @@ function escanearPorPieza(codigo) {
   ultimoEscanerPz = { sku: p.sku, cantidadAnterior: actual };
   persistirInventarioActual();
   sincronizarInventarioAuto();
-  feedbackExito();
+  confirmarEscaneoVisual(true, `+1 ${p.sku} · ${nuevo} piezas`);
   toast(`✔ ${p.sku} = ${nuevo}/${ajustado}`, 'big');
   renderInvTopStats();
   renderInventario();
@@ -5226,7 +5225,7 @@ function confirmarSuperaTotal() {
   sincronizarInventarioAuto();
   const m = document.getElementById('modalSuperaTotal'); if (m) m.classList.remove('activo');
   superaTotalPendiente = null;
-  feedbackExito();
+  confirmarEscaneoVisual(true, `+1 ${producto.sku} · ${cantidadNueva} piezas`);
   toast(`⚠️ ${producto.sku} = ${cantidadNueva} (supera el esperado)`, 'warn');
   renderInvTopStats();
   renderInventario();
@@ -5676,11 +5675,13 @@ async function confirmarConteo() {
   const inp = document.getElementById('inputConteo');
   const cant = Math.max(0, parseInt(inp ? inp.value : 0) || 0);
   const p = invProductoActual;
+  const camaraActiva = document.getElementById('modalCamara')?.classList.contains('activo');
 
   // 🆕 Verificar que puedo contar este SKU
   const permiso = puedoContarSku(p.sku);
   if (!permiso.ok) {
-    feedbackError();
+    if (camaraActiva) confirmarEscaneoVisual(false, permiso.razon);
+    else feedbackError();
     alert('⛔ ' + permiso.razon);
     return;
   }
@@ -5699,11 +5700,21 @@ async function confirmarConteo() {
       `[Cancelar] = REEMPLAZAR (queda ${cant})`
     );
     const modo = opcion ? 'sumar' : 'reemplazar';
-    await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, modo);
+    if (!(await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, modo))) {
+      if (camaraActiva) confirmarEscaneoVisual(false, 'No se pudo guardar el conteo.');
+      else feedbackError();
+      toast('No se pudo guardar el conteo.', 'error');
+      return;
+    }
     await aplicarConteosIndividuales(sesionActivaUsuario.id);
   } else if (sesionActivaUsuario) {
     // Es el primero (o soy yo el único): reemplazar limpio
-    await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, 'reemplazar');
+    if (!(await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, 'reemplazar'))) {
+      if (camaraActiva) confirmarEscaneoVisual(false, 'No se pudo guardar el conteo.');
+      else feedbackError();
+      toast('No se pudo guardar el conteo.', 'error');
+      return;
+    }
     await aplicarConteosIndividuales(sesionActivaUsuario.id);
   } else {
     // Sin sesión: comportamiento viejo
@@ -5718,7 +5729,8 @@ async function confirmarConteo() {
     sincronizarInventarioAuto();
   }
 
-  feedbackExito();
+  if (camaraActiva) confirmarEscaneoVisual(true, `Guardado · ${p.sku} · ${cant} piezas`);
+  else feedbackExito();
   toast(`✔ ${p.sku} = ${cant}`);
   const bi = document.getElementById('invBusqueda');
   if (bi) bi.value = p.sku;
@@ -6024,6 +6036,21 @@ const esAndroid = /Android/i.test(navigator.userAgent);
 let zxingReader = null;
 let camaraStream = null;
 let cameraRun = 0;
+let temporizadorDestelloEscaneo;
+function confirmarEscaneoVisual(exito, mensaje) {
+  const nodo = document.getElementById('destelloEscaneo');
+  const camara = document.getElementById('modalCamara');
+  if (camara?.classList.contains('activo') && mensaje) {
+    document.getElementById('cameraStatus').textContent = mensaje;
+  }
+  if (nodo) {
+    nodo.className = exito ? 'escaneo-exito' : 'escaneo-error';
+    clearTimeout(temporizadorDestelloEscaneo);
+    temporizadorDestelloEscaneo = setTimeout(() => { nodo.className = ''; }, 320);
+  }
+  if (exito) feedbackExito();
+  else feedbackError();
+}
 let camaraLoop = null;
 
 async function abrirCamara(origen) {
@@ -6035,8 +6062,10 @@ async function abrirCamara(origen) {
   const continuo = document.getElementById('cameraContinuous');
   const esInventario = origen === 'inventario';
   const esMueble = origen === 'muebles';
-  const destello = document.getElementById('mueblesDestello');
-  if (destello) destello.className = '';
+  if (configSonido.activo) {
+    const audio = getAudioCtx();
+    if (audio?.state === 'suspended') void audio.resume().catch(() => {});
+  }
   const muebles = esMueble ? window.conteoMuebles : null;
   const porPieza = esInventario && modoEscanearPz && !sesionActivaUsuario;
   modal.classList.toggle('camara-venta', origen === 'venta-inventario');
@@ -6292,6 +6321,7 @@ function procesarCodigoInv(codigo, contexto = 'inventario') {
     const p = inventarioBase.find(x => x.sku.toUpperCase() === items[0].sku.toUpperCase());
     if (p) { abrirModalConteo(p); return; }
     // El código está vinculado pero el SKU no está en el inventario
+    if (contexto === 'inventario-cantidad') confirmarEscaneoVisual(false, 'Producto fuera del Excel: ' + codigo);
     mostrarNoEncontradoInventario(codigo, items[0].sku);
     return;
   }
@@ -6300,11 +6330,13 @@ function procesarCodigoInv(codigo, contexto = 'inventario') {
     items.forEach(it => { const p = inventarioBase.find(x => x.sku.toUpperCase() === it.sku.toUpperCase()); if (p) candidatos.push(p); });
     if (candidatos.length === 1) { abrirModalConteo(candidatos[0]); return; }
     if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, contexto); return; }
+    if (contexto === 'inventario-cantidad') confirmarEscaneoVisual(false, 'Producto fuera del Excel: ' + codigo);
     toast('⚠️ Ninguno de los SKUs está en el inventario', 'error'); return;
   }
   const p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
   if (p) { abrirModalConteo(p); return; }
   // No se encontró
+  if (contexto === 'inventario-cantidad') confirmarEscaneoVisual(false, 'Código no encontrado: ' + codigo);
   mostrarNoEncontradoInventario(codigo, null);
 }
 /* ============ PROCESAR CÓDIGO EN PEDIDO ============ */
@@ -7560,13 +7592,14 @@ window.addEventListener('pagehide', () => {
   .muebles-asignacion{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.55rem 0;border-top:1px solid var(--fc-line)}
   #mueblesCompartir::backdrop{background:#0009}
   #mueblesCompartir form{margin-top:1rem}
-  #mueblesDestello{display:none;position:fixed;inset:0;z-index:1;pointer-events:none}
-  #mueblesDestello.muebles-exito{display:block;background:#23ff5d44;box-shadow:inset 0 0 0 14px #22ed55}
-  #mueblesDestello.muebles-error{display:block;background:#ff273f55;box-shadow:inset 0 0 0 14px #ff453a}
+  #destelloEscaneo{display:none;position:fixed;inset:0;z-index:10000;pointer-events:none}
+  #destelloEscaneo.escaneo-exito{display:block;background:#22ff654d;box-shadow:inset 0 0 0 16px #22ed55}
+  #destelloEscaneo.escaneo-error{display:block;background:#ff273f4d;box-shadow:inset 0 0 0 16px #ff453a}
   @media(prefers-reduced-motion:reduce){
-    #mueblesDestello.muebles-exito,#mueblesDestello.muebles-error{background:none}
+    #destelloEscaneo.escaneo-exito,#destelloEscaneo.escaneo-error{background:none}
   }
 </style>
+<div id="destelloEscaneo" aria-hidden="true"></div>
 <script defer src="muebles.js"></script>
 </body>
 </html>
