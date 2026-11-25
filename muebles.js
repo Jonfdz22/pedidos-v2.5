@@ -29,34 +29,15 @@
   }
 
   function contenedorActual() {
-    return acceso === 'trabajador' ? $('#mueblesTrabajo') : $('#mueblesAdminContenido');
+    if (acceso !== 'trabajador') return $('#mueblesAdminContenido');
+    return $('#mueblesTrabajoEnApp');
   }
 
   async function comprobarCuenta() {
     const {data, error} = await cliente.auth.getUser();
     if (data?.user && !error) return true;
-    contenedorActual().innerHTML = `
-      <p>Para entrar a este inventario, verifica tu correo. Usa el correo asignado a tus muebles.</p>
-      <form id="mueblesIdentificar" class="muebles-form">
-        <label>Correo electrónico <input name="correo" type="email" required autocomplete="email"></label>
-        <button class="verde">Enviar enlace de acceso</button>
-      </form>`;
+    contenedorActual().innerHTML = '<p>Tu usuario de FC‑Relma todavía no está habilitado para conteo por muebles.</p>';
     return false;
-  }
-
-  async function enviarAcceso(formulario) {
-    const url = new URL(location.href);
-    url.search = '';
-    url.hash = '';
-    if (acceso === 'trabajador') url.searchParams.set('muebles', inventario.id);
-    else url.searchParams.set('muebles-admin', '1');
-    const {error} = await cliente.auth.signInWithOtp({
-      email: formulario.correo.value.trim().toLowerCase(),
-      options: {emailRedirectTo: url.href}
-    });
-    if (error) throw error;
-    if (acceso === 'trabajador') mostrarMensaje('Revisa tu correo y abre el enlace en este navegador.');
-    else toast('Revisa tu correo y abre el enlace en este navegador.');
   }
 
   async function datos(consulta) {
@@ -73,11 +54,6 @@
 
   function existePermisoLocal() {
     return !!usuarios[usuarioLogueado]?.permisos?.ajustes;
-  }
-
-  function mostrarMensaje(texto) {
-    const nodo = $('#mueblesMensaje');
-    if (nodo) nodo.textContent = texto;
   }
 
   async function iniciarEncargado() {
@@ -135,10 +111,11 @@
   async function actualizarUbicaciones() {
     ubicaciones = await datos(cliente.from(tablas.ubicaciones)
       .select('id,nombre,persona,correo,terminada').eq('inventario', inventario.id).order('nombre'));
-    const contenedor = acceso === 'encargado' ? $('#mueblesAdminContenido') : $('#mueblesTrabajo');
+    if (acceso === 'trabajador') ubicaciones = ubicaciones.filter(area => area.persona === usuarioLogueado);
+    const contenedor = contenedorActual();
     if (acceso === 'trabajador') {
-      contenedor.innerHTML = ubicaciones.length ? ubicaciones.map(area => `<button class="gris muebles-item" data-area="${area.id}">${html(area.nombre)} · ${area.terminada ? 'Terminado' : 'Abrir'}</button>`).join('')
-        : '<p>Este enlace no tiene muebles asignados.</p>';
+      contenedor.innerHTML = '<button class="gris" data-muebles-accion="ver-sesiones">Mis sesiones</button>' + (ubicaciones.length ? ubicaciones.map(area => `<button class="gris muebles-item" data-area="${area.id}">${html(area.nombre)} · ${area.terminada ? 'Terminado' : 'Abrir'}</button>`).join('')
+        : '<p>No tienes muebles asignados en esta sesión.</p>');
       return;
     }
     const personas = Object.entries(usuarios).filter(([, u]) =>
@@ -153,7 +130,7 @@
         <label>Correo del responsable <input name="correo" type="email" required maxlength="254"></label>
         <button class="verde">Asignar mueble</button>
       </form>
-      ${ubicaciones.map(a => `<div class="muebles-asignacion"><span><strong>${html(a.nombre)}</strong> · ${html(usuarios[a.persona]?.nombre || a.persona)}<br><small>${a.terminada ? 'Terminado' : 'Pendiente'}</small></span><button class="gris" data-enlace="1">Ver enlace</button></div>`).join('')}
+      ${ubicaciones.map(a => `<div class="muebles-asignacion"><span><strong>${html(a.nombre)}</strong> · ${html(usuarios[a.persona]?.nombre || a.persona)}<br><small>${a.terminada ? 'Terminado' : 'Pendiente'}</small></span></div>`).join('')}
       ${ubicaciones.length ? '<button class="verde muebles-item" data-muebles-accion="exportar">Exportar conteo a Excel</button>' : ''}`;
   }
 
@@ -168,29 +145,31 @@
     await actualizarUbicaciones();
   }
 
-  function verEnlace() {
-    const url = new URL(location.href);
-    url.search = '';
-    url.hash = '';
-    url.searchParams.set('muebles', inventario.id);
-    const dialogo = $('#mueblesCompartir');
-    dialogo.querySelector('input').value = url.href;
-    dialogo.showModal();
-  }
-
-  async function abrirEnlace(inventarioId) {
-    if (!formatoId.test(inventarioId)) return;
+  async function verSesionesAsignadas() {
     acceso = 'trabajador';
-    inventario = {id: inventarioId};
-    document.documentElement.classList.add('muebles-enlace');
-    $('#mueblesExterno').hidden = false;
+    inventario = null;
+    ubicacion = null;
     cliente ||= conectar();
     if (!(await comprobarCuenta())) return;
-    await actualizarUbicaciones();
-    if (ubicaciones.length) {
-      const fila = await datos(cliente.from(tablas.catalogos).select('productos').eq('inventario', inventario.id).single());
-      catalogo = fila.productos;
+    const filas = await datos(cliente.from(tablas.ubicaciones)
+      .select('inventario,nombre').eq('persona', usuarioLogueado).order('nombre'));
+    const sesiones = new Map();
+    for (const fila of filas) {
+      const muebles = sesiones.get(fila.inventario) || [];
+      muebles.push(fila.nombre);
+      sesiones.set(fila.inventario, muebles);
     }
+    contenedorActual().innerHTML = sesiones.size
+      ? [...sesiones].map(([id, muebles]) => `<div class="muebles-asignacion"><span>${html(muebles.join(', '))}</span><button class="verde" data-unirme="${id}">Unirse</button></div>`).join('')
+      : '<p>Aún no tienes muebles asignados. Cuando un administrador te asigne uno, aparecerá aquí.</p>';
+  }
+
+  async function unirseInventario(inventarioId) {
+    if (!formatoId.test(inventarioId) || guardando) return;
+    const fila = await datos(cliente.from(tablas.catalogos).select('productos').eq('inventario', inventarioId).single());
+    inventario = {id: inventarioId};
+    catalogo = fila.productos;
+    await actualizarUbicaciones();
   }
 
   async function cargarCapturas(ubicacionId) {
@@ -211,7 +190,7 @@
   }
 
   function mostrarUbicacion() {
-    $('#mueblesTrabajo').innerHTML = `
+    contenedorActual().innerHTML = `
       <button class="gris" data-muebles-accion="mis-muebles">Mis muebles</button>
       <h2>${html(ubicacion.nombre)}</h2>
       ${ubicacion.terminada ? '<p>Mueble terminado.</p>' : `
@@ -281,7 +260,7 @@
     const anterior = capturas.find(p => p.sku === producto.sku)?.cantidad || 0;
     try {
       const total = await guardar(producto, formulario.cantidad.valueAsNumber, anterior);
-      mostrarMensaje(`Guardado · ${producto.descripcion || producto.sku} · ${total} piezas`);
+      toast(`Guardado · ${producto.descripcion || producto.sku} · ${total} piezas`);
       formulario.reset();
     } catch (error) {
       capturas = await cargarCapturas(ubicacion.id).catch(() => capturas);
@@ -344,35 +323,52 @@
     if (boton) boton.disabled = true;
     try { await operacion(); }
     catch (error) {
-      if (acceso === 'trabajador') mostrarMensaje(error.message);
-      else toast(error.message, 'error');
+      toast(error.message, 'error');
     } finally { if (boton) boton.disabled = false; }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     const panel = $('#invPanelMuebles');
+    function prepararPanel() {
+      panel.hidden = !usuarios[usuarioLogueado]?.permisos?.inventario;
+      if (panel.hidden) { panel.open = false; return; }
+      if ($('#mueblesTrabajoEnApp')) return;
+      $('#mueblesAdminContenido').insertAdjacentHTML('beforebegin',
+        '<div class="fila muebles-acciones"><button class="verde" data-muebles-accion="ver-sesiones">Mis sesiones</button><button class="gris" id="mueblesAdministrar" data-muebles-accion="administrar">Administrar sesiones</button></div><div id="mueblesTrabajoEnApp"></div>');
+    }
     panel.addEventListener('toggle', () => {
-      if (panel.open && !document.documentElement.classList.contains('muebles-enlace')) operar(null, iniciarEncargado);
+      if (!panel.open) return;
+      prepararPanel();
+      if (panel.hidden) return;
+      $('#mueblesAdministrar').hidden = !existePermisoLocal();
+      $('#mueblesAdminContenido').hidden = true;
+      $('#mueblesTrabajoEnApp').hidden = false;
+      operar(null, verSesionesAsignadas);
     });
-    const vigilante = new MutationObserver(() => {
-      panel.hidden = !existePermisoLocal();
-      if (panel.open && panel.hidden) panel.open = false;
-    });
+    const vigilante = new MutationObserver(prepararPanel);
     vigilante.observe($('#pestanaInventario'), {attributes:true, attributeFilter:['style']});
-    panel.hidden = !existePermisoLocal();
-    const refrescar = $('#mueblesActualizarExterno');
-    refrescar.addEventListener('click', () => operar(refrescar, () => {
-      if (!guardando) { ubicacion = null; return abrirEnlace(inventario.id); }
-    }));
+    prepararPanel();
     document.addEventListener('click', evento => {
       const boton = evento.target.closest('button');
       if (!boton) return;
-      const {inventario: destino, area, enlace, mueblesAccion} = boton.dataset;
+      const {inventario: destino, area, unirme, mueblesAccion} = boton.dataset;
       if (destino) operar(boton, () => abrirInventario(destino));
       if (area) operar(boton, () => abrirUbicacion(area));
-      if (enlace) verEnlace();
+      if (unirme) operar(boton, () => unirseInventario(unirme));
       const accion = {
         lista: listaInventarios, actualizar: actualizarUbicaciones,
+        'ver-sesiones': () => {
+          if (guardando) return;
+          $('#mueblesAdminContenido').hidden = true;
+          $('#mueblesTrabajoEnApp').hidden = false;
+          return verSesionesAsignadas();
+        },
+        administrar: () => {
+          if (!existePermisoLocal() || guardando) return;
+          $('#mueblesAdminContenido').hidden = false;
+          $('#mueblesTrabajoEnApp').hidden = true;
+          return iniciarEncargado();
+        },
         'mis-muebles': () => { if (!guardando) { ubicacion = null; return actualizarUbicaciones(); } }, camara: () => abrirCamara('muebles'),
         terminar, exportar
       }[mueblesAccion];
@@ -380,18 +376,11 @@
     });
     document.addEventListener('submit', evento => {
       const formulario = evento.target;
-      const accion = {mueblesCrear: crearInventario, mueblesAsignar: asignar, mueblesManual: capturarManual, mueblesIdentificar: enviarAcceso}[formulario.id];
+      const accion = {mueblesCrear: crearInventario, mueblesAsignar: asignar, mueblesManual: capturarManual}[formulario.id];
       if (!accion) return;
       evento.preventDefault();
       operar(formulario.querySelector('button'), () => accion(formulario));
     });
-    const parametros = new URLSearchParams(location.search);
-    const enlace = parametros.get('muebles');
-    if (enlace) operar(null, () => abrirEnlace(enlace));
-    else if (parametros.has('muebles-admin') && existePermisoLocal()) {
-      cambiarPestana('inventario');
-      panel.open = true;
-    }
   });
 
   window.conteoMuebles = {
