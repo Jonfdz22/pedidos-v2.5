@@ -459,14 +459,19 @@
       acumulados.delete(sku);
       const observado = t.cantidad - t.descuentoFisico;
       const sistema = p.exis - t.antes - t.despues;
-      const diferencia = observado - sistema;
-      const estado = completa
-        ? (diferencia === 0 ? 'Cuadra' : diferencia < 0 ? 'Faltante' : 'Sobrante')
-        : diferencia > 0 ? 'Sobrante preliminar' : 'Pendiente de conciliar';
+      const diferencia = calcularDif(sistema,observado);
+      let estado = 'Pendiente de conciliar';
+      if (completa) estado = diferencia === 0 ? 'Cuadra' : diferencia < 0 ? 'Faltante' : 'Sobrante';
+      else if (diferencia > 0) estado = 'Sobrante preliminar';
+      else if (sistema < 0 && t.contado) estado = diferencia < 0 ? 'Saldo negativo preliminar' : 'Saldo compensado preliminar';
       return {...p,...t,sku,observado,sistema,diferencia,estado};
     });
     for (const [sku,t] of acumulados) if (t.contado || t.antes || t.despues) resumen.push({sku,...t, descripcion:'Fuera del Excel', estado:'Fuera del Excel'});
     return {porLugar,resumen,completa};
+  }
+
+  function diferenciaVisible(p, completa) {
+    return completa || p.diferencia > 0 || (p.sistema < 0 && p.contado) ? p.diferencia ?? null : null;
   }
 
   function render() {
@@ -677,10 +682,11 @@
     });
     tabla.querySelector('tbody').innerHTML = visibles.map(p => {
       const prod = base.get(p.sku);
-      const diferencia = global && (completa || p.diferencia > 0) ? p.diferencia : null;
+      const diferencia = global ? diferenciaVisible(p,completa) : null;
+      const importeConfirmable = completa || diferencia > 0;
       const costo = leerCosto(p.costo);
-      const importe = diferencia === 0 ? 0 :
-        costo == null || diferencia == null ? null : Math.sign(diferencia) * aMoneda(costo * Math.abs(diferencia));
+      const importe = !importeConfirmable || diferencia == null ? null :
+        diferencia === 0 ? 0 : costo == null ? null : Math.sign(diferencia) * aMoneda(costo * Math.abs(diferencia));
       const clase = diferencia > 0 ? 'dif-pos' : diferencia < 0 ? 'dif-neg' : '';
       const cuentas = global ? [...p.usuarios] : [...p.aportes.keys()];
       const editar = zona.get(p.sku)?.contado && puedeCapturar();
@@ -967,11 +973,11 @@
         const costo = leerCosto(p.costo);
         const faltante = completa && p.diferencia < 0 ? -p.diferencia : null;
         const sobrante = p.diferencia > 0 ? p.diferencia : null;
-        return {...p,costo,faltante,sobrante,
+        return {...p,costo,faltante,sobrante,difPiezas:diferenciaVisible(p,completa),
           valorFaltante:costo != null && faltante != null ? aMoneda(faltante*costo) : null,
           valorSobrante:costo != null && sobrante != null ? aMoneda(sobrante*costo) : null};
       });
-      const diferencias = global.filter(p => p.faltante || p.sobrante);
+      const diferencias = global.filter(p => p.difPiezas != null && p.difPiezas !== 0);
       const faltaCosto = diferencias.filter(p => p.costo == null).length;
       const conIncidencias = global.filter(p => p.estado === 'Fuera del Excel');
       filasResumen.push(['Moneda de la valuación','MXN · costo unitario del Excel'],['Conciliación',completa ? 'Completa' : 'Preliminar. Hay áreas pendientes; los faltantes no están confirmados.'],
@@ -982,6 +988,7 @@
         ['Piezas sobrantes',total(diferencias,'sobrante')],
         ['SKU con diferencia sin costo',faltaCosto],['SKU fuera del Excel',conIncidencias.length],
         ['Cálculo','Sistema ajustado = sistema al cargar menos ventas registradas. Físico al corte = conteo vigente menos ventas posteriores aún no reflejadas.'],
+        ['Dif. pz','Con sistema ajustado negativo se suman las piezas físicas al saldo del sistema. Con saldo de cero o mayor se resta el sistema ajustado del físico.'],
         ['Valuación','Los importes incluyen las diferencias con costo disponible. Consulta Diferencias para identificar costos faltantes.']);
       const valoresMoneda = [
         ['Valor faltante',completa ? aMoneda(total(diferencias,'valorFaltante')) : 'Pendiente'],
@@ -990,11 +997,11 @@
       agregarHoja('Resumen',['Concepto','Resultado'],[...filasResumen,...valoresMoneda],
         {anchos:[34,82],texto:1,valorMoneda:[filasResumen.length+1,filasResumen.length+2],filtro:false});
       const columnas = ['SKU','Descripción','Estado','Sistema al cargar','Ventas antes','Ventas después','Sistema ajustado',
-        'Conteo vigente','Físico al corte','Faltan pz','Sobran pz','Costo unitario','Valor faltante','Valor sobrante','Áreas registradas','Quién contó'];
+        'Conteo vigente','Físico al corte','Faltan pz','Sobran pz','Costo unitario','Valor faltante','Valor sobrante','Áreas registradas','Quién contó','Dif. pz'];
       const resultado = p => [p.sku,p.descripcion,p.estado,p.exis ?? null,p.antes,p.despues,p.sistema ?? null,p.cantidad,
         p.observado ?? null,p.faltante,p.sobrante,p.costo,p.valorFaltante,p.valorSobrante,
-        p.muebles.join(', '),[...p.usuarios].map(nombreUsuario).join(', ')];
-      const opciones = {anchos:[17,42,25,16,14,14,16,15,15,12,12,16,16,16,34,30],moneda:[11,12,13]};
+        p.muebles.join(', '),[...p.usuarios].map(nombreUsuario).join(', '),p.difPiezas];
+      const opciones = {anchos:[17,42,29,16,14,14,16,15,15,12,12,16,16,16,34,30,12],moneda:[11,12,13]};
       agregarHoja('Diferencias',columnas,[...diferencias,...conIncidencias].sort((a,b) => a.sku.localeCompare(b.sku)).map(resultado),opciones);
       agregarHoja('Conciliación por SKU',columnas,global.map(resultado),opciones);
     }

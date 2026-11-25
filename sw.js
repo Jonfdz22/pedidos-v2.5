@@ -1,4 +1,4 @@
-const C = 'fc-relma-v16-capturas-reportes';
+const C = 'fc-relma-v17-saldos-negativos';
 
 // Recursos que SIEMPRE se cachean al instalar
 const PRECACHE = [
