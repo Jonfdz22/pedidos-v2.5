@@ -23,6 +23,7 @@
   let generacion = 0;
   let camaraMueble = false;
   let gestion = null, productoEdicion = null;
+  let sugerencias = [], sugerenciaActiva = -1;
   const descargados = new Map();
   const miLugar = () => propios(activa).find(m => m.id === lugarId);
   const puedeCapturar = () => abierta(activa) && !!miLugar() && !miLugar().terminado;
@@ -402,6 +403,7 @@
             existenciaDeCaptura(null,$('cameraExistenciaSistema'));
             existenciaDeCaptura(null,$('muebleExistenciaCaptura'));
             existenciaDeCaptura(productoEdicion?.p,$('muebleExistenciaSistema'));
+            mostrarSugerencias();
           }
           if (!miLugar() || miLugar().terminado !== ubicacionAnterior?.terminado) {
             pausarCamara();
@@ -610,7 +612,10 @@
       ${tarjetas.join('') || '<p class="small">No hay sesiones disponibles.</p>'}</details>
       ${activa ? renderTrabajo(filtro,codigo) : ''}`;
     actualizarAvisoConexion();
-    if (activa) mostrarProductos();
+    if (activa) {
+      mostrarProductos();
+      mostrarSugerencias();
+    }
   }
 
   function actualizarAvisoConexion() {
@@ -637,9 +642,12 @@
         </div>
         <div class="inv-stats" id="muebleMetricas" aria-live="polite"></div>
         <form id="muebleCaptura" class="fila">
-          <input id="muebleCodigo" value="${esc(codigo)}" required autocomplete="off" placeholder="SKU o código"${puedeCapturar() ? '' : ' disabled'}>
-          <button class="verde"${puedeCapturar() ? '' : ' disabled'}>Capturar</button>${boton('camara','📷','','camara',!puedeCapturar()).replace('<button ', '<button aria-label="Escanear para contar" ')}
+          <input id="muebleCodigo" value="${esc(codigo)}" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-label="Buscar productos para contar"
+            aria-autocomplete="list" aria-expanded="false" aria-controls="muebleOpciones" enterkeyhint="go"
+            placeholder="SKU, descripción o código de barras"${puedeCapturar() ? '' : ' disabled'}>
+          ${boton('camara','📷','','camara',!puedeCapturar()).replace('<button ', '<button aria-label="Escanear para contar" ')}
         </form>
+        <div id="muebleSugerencias" hidden></div>
         <p id="muebleAviso" role="status" class="small"></p>
         <p class="small" id="muebleExistenciaCaptura" hidden></p></section>
       <section class="panel" id="muebleMiZona"><h3>📊 Mi Zona en la Sesión</h3>
@@ -804,6 +812,108 @@
     }).join('') || `<tr><td colspan="${global ? 10 : 6}" class="small mueble-resumen-vacio">${!filtro && completa && !todos ? 'No hay diferencias.' : 'Sin productos que coincidan.'}</td></tr>`;
   }
 
+  function buscarParaCaptura(consulta) {
+    const q = textoBusqueda(consulta);
+    const partes = q.split(/\s+/);
+    const porSku = [], porCodigo = [], similares = [];
+    for (const p of activa?.snapshot_base || []) {
+      const sku = textoBusqueda(p.sku);
+      const codigos = (p.codigos || []).map(textoBusqueda);
+      const descripcion = textoBusqueda(p.descripcion);
+      if (sku === q) porSku.push(p);
+      else if (codigos.includes(q)) porCodigo.push(p);
+      else if (similares.length < 30 && partes.every(t => [sku,descripcion,...codigos].some(valor => valor.includes(t)))) {
+        similares.push(p);
+      }
+    }
+    return {productos:[...porSku,...porCodigo,...similares].slice(0,30), codigoCompartido:!porSku.length && porCodigo.length > 1};
+  }
+
+  function actualizarSugerencia(moverVista = false) {
+    const campo = $('muebleCodigo');
+    const filasSugeridas = $('muebleOpciones').querySelectorAll('[role="option"]');
+    filasSugeridas.forEach((fila, i) => {
+      const seleccionada = i === sugerenciaActiva;
+      fila.classList.toggle('sel',seleccionada);
+      fila.setAttribute('aria-selected',String(seleccionada));
+    });
+    const filaActiva = filasSugeridas[sugerenciaActiva];
+    if (filaActiva) {
+      campo.setAttribute('aria-activedescendant',filaActiva.id);
+      if (moverVista) filaActiva.scrollIntoView({block:'nearest'});
+    } else campo.removeAttribute('aria-activedescendant');
+  }
+
+  function mostrarSugerencias() {
+    const campo = $('muebleCodigo'), lista = $('muebleSugerencias');
+    if (!campo || !lista) return;
+    sugerencias = [];
+    sugerenciaActiva = -1;
+    lista.hidden = !campo.value.trim() || !puedeCapturar();
+    campo.setAttribute('aria-expanded','false');
+    campo.removeAttribute('aria-activedescendant');
+    if (lista.hidden) {
+      lista.replaceChildren();
+      lista.classList.remove('tabla-scroll');
+      return;
+    }
+    const resultados = buscarParaCaptura(campo.value);
+    sugerencias = resultados.productos;
+    lista.classList.toggle('tabla-scroll',sugerencias.length > 0);
+    if (!sugerencias.length) {
+      lista.innerHTML = modoPz ? '<p class="small" role="status">Sin coincidencias.</p>'
+        : '<p class="small" role="status">Sin coincidencias. Presiona Enter para registrar el SKU fuera del Excel.</p>';
+      return;
+    }
+
+    sugerenciaActiva = resultados.codigoCompartido ? -1 : 0;
+    const verExistencia = puedeVerExistencia(activa);
+    const conteos = agrupar(activa,filas).get(lugarId);
+    lista.innerHTML = `<table id="muebleOpciones" role="listbox" aria-label="Productos encontrados">
+      <thead aria-hidden="true"><tr><th>SKU</th><th>Descripción</th>${verExistencia ? '<th>Exis</th>' : ''}<th></th></tr></thead>
+      <tbody role="presentation">${sugerencias.map((p,i) => {
+        const conteo = conteos?.get(normalizar(p.sku));
+        const indicador = conteo?.contado ? `<span class="chip-counted">✔ ${conteo.cantidad}</span>`
+          : '<span class="chip-pending">pendiente</span>';
+        return `<tr class="resultado" id="muebleOpcion${i}" role="option" data-sugerencia="${i}">
+          <td role="presentation">${esc(p.sku)} ${indicador}</td>
+          <td role="presentation">${esc(p.descripcion)}</td>
+          ${verExistencia ? `<td role="presentation" class="mueble-opcion-exis${p.exis < 0 ? ' neg-num' : ''}">${esc(p.exis ?? '—')}</td>` : ''}
+          <td role="presentation" aria-hidden="true">→</td></tr>`;
+      }).join('')}</tbody></table>`;
+    campo.setAttribute('aria-expanded','true');
+    actualizarSugerencia();
+  }
+
+  function limpiarBusquedaCaptura() {
+    const campo = $('muebleCodigo');
+    if (!campo) return;
+    campo.value = '';
+    mostrarSugerencias();
+  }
+
+  async function elegirParaCaptura(p) {
+    if (!p || ocupada || !puedeCapturar()) return;
+    const sesion = activa.id, mueble = lugarId;
+    limpiarBusquedaCaptura();
+    existenciaDeCaptura(null,$('muebleExistenciaCaptura'));
+    if (!modoPz) {
+      abrirCantidad(p);
+      return;
+    }
+    $('muebleCodigo')?.focus();
+    try {
+      const total = await guardar(p,1,'sumar');
+      if (activa?.id !== sesion || lugarId !== mueble || !$('muebleAviso')) return;
+      $('muebleAviso').textContent = p.sku + ' · ' + total + ' pz';
+      existenciaDeCaptura(p,$('muebleExistenciaCaptura'));
+      feedbackExito();
+    } catch (error) {
+      feedbackError();
+      toast(error.message,'error');
+    }
+  }
+
   function etiqueta(op) {
     return {sumar:'Escaneo +1',fijar:'Corrección de total',quitar:'Conteo quitado','venta-antes':'Venta antes de contar','venta-despues':'Venta después de contar'}[op] || op;
   }
@@ -858,10 +968,9 @@
     feedbackResultadoConteo(exito,mensaje);
   }
 
-  async function escanear(codigo) {
+  async function escanear(p) {
     const corrida = cameraRun;
     try {
-      const p = producto(codigo);
       const total = await guardar(p,1,'sumar');
       if (corrida !== cameraRun) return;
       avisarEscaneo(true,`+1 ${p.descripcion || p.sku} · ${total} en ${miLugar()?.nombre || 'este mueble'}`,p);
@@ -885,10 +994,11 @@
     try {
       if (!puedeCapturar()) throw new Error('Este mueble ya está terminado.');
       existenciaDeCaptura(null,$('cameraExistenciaSistema'));
-      const p = producto(codigo,editar || (!modoPz && !desdeContinuo));
-      if (modoPz && !editar) { void escanear(codigo); return; }
+      const desdeBusqueda = typeof codigo === 'object';
+      const p = desdeBusqueda ? codigo : producto(codigo,editar || (!modoPz && !desdeContinuo));
+      if (modoPz && !editar) { void escanear(p); return; }
       const actual = agrupar(activa,filas).get(lugarId)?.get(normalizar(p.sku));
-      productoEdicion = {modo:editar ? 'editar' : 'contar',p};
+      productoEdicion = {modo:editar ? 'editar' : 'contar',p,desdeBusqueda};
       $('muebleProductoCuerpo').innerHTML = `<h3>${esc(p.sku)}</h3><p>${esc(p.descripcion)}</p>
         <p class="small" id="muebleExistenciaSistema" hidden></p>
         <p class="small">Contado en ${esc(miLugar()?.nombre)} · ${actual?.cantidad || 0} pz</p>
@@ -923,8 +1033,9 @@
     } catch (error) { toast(error.message,'error'); }
   }
 
-  function cerrarProducto() {
+  function cerrarProducto(restaurarFoco = false) {
     $('modalMuebleProducto')?.classList.remove('activo');
+    if (restaurarFoco && productoEdicion?.desdeBusqueda) $('muebleCodigo')?.focus();
     productoEdicion = null;
   }
 
@@ -948,9 +1059,9 @@
       if (camaraEnCurso && corrida === cameraRun) avisarEscaneo(false,error.message);
       throw error;
     }
-    cerrarProducto();
+    cerrarProducto(true);
     if (camaraEnCurso && corrida === cameraRun) avisarEscaneo(true,`Guardado · ${p.sku} · ${cantidad} pz`,p);
-    if ($('muebleCodigo')) $('muebleCodigo').value = '';
+    limpiarBusquedaCaptura();
     toast(op.startsWith('venta-') ? 'Venta registrada en la sesión' : 'Conteo actualizado');
   }
 
@@ -1227,6 +1338,7 @@
     if (!propios(activa).some(m=>m.id === nuevo)) return;
     pausarCamara();
     cerrarProducto();
+    limpiarBusquedaCaptura();
     lugarId = nuevo;
     render();
   }
@@ -1237,16 +1349,34 @@
       <input type="file" id="muebleValoresArchivo" hidden accept=".xlsx,.xls,.csv">`);
     document.addEventListener('input',e=>{
       if (e.target.id === 'muebleTotal') $('muebleReparto').hidden = !e.target.value;
+      if (e.target.id === 'muebleCodigo') mostrarSugerencias();
       if (e.target.id === 'muebleFiltro') mostrarProductos();
       if (e.target.id === 'muebleResumenFiltro') mostrarResumen();
     });
+    document.addEventListener('keydown',e=>{
+      if (e.target.id !== 'muebleCodigo' || e.isComposing) return;
+      if (e.key === 'Escape' && e.target.value) {
+        e.preventDefault();
+        limpiarBusquedaCaptura();
+      }
+      if (!sugerencias.length || !['ArrowDown','ArrowUp'].includes(e.key)) return;
+      e.preventDefault();
+      sugerenciaActiva = e.key === 'ArrowDown'
+        ? Math.min(sugerenciaActiva + 1,sugerencias.length - 1) : Math.max(sugerenciaActiva - 1,0);
+      actualizarSugerencia(true);
+    });
     document.addEventListener('paste',e=>{
       if (e.target.id !== 'muebleCodigo' || !puedeCapturar() || ocupada || pendiente) return;
-      const codigo = e.clipboardData?.getData('text').match(/(?:^|\D)(\d{8,14})(?!\d)/);
+      const texto = e.clipboardData?.getData('text');
+      const codigo = texto?.match(/(?:^|\s)(\d{8,14})(?=\s|$)/)?.[1];
       if (!codigo) return;
+      const resultado = buscarParaCaptura(codigo);
+      if (!resultado.productos.some(p => normalizar(p.sku) === codigo ||
+        p.codigos?.some(c => normalizar(c) === codigo))) return;
       e.preventDefault();
-      e.target.value = codigo[1];
-      e.target.form.requestSubmit();
+      e.target.value = codigo;
+      mostrarSugerencias();
+      if (!resultado.codigoCompartido) e.target.form.requestSubmit();
     });
     document.addEventListener('change',e=>{
       if (e.target.id === 'muebleValoresArchivo') {
@@ -1283,6 +1413,11 @@
       }
     });
     document.addEventListener('click',e=>{
+      const opcion = e.target.closest('#muebleOpciones [data-sugerencia]');
+      if (opcion) {
+        void elegirParaCaptura(sugerencias[Number(opcion.dataset.sugerencia)]);
+        return;
+      }
       const control = e.target.closest('button[data-sm]');
       if (!control) return;
       const {sm,valor} = control.dataset;
@@ -1306,28 +1441,35 @@
         'buscar-camara':()=>abrirCamaraMueble('mueble-busqueda'),
         venta:()=>abrirVenta(), 'camara-venta':()=>abrirCamaraMueble('mueble-venta'),
         editar:()=>abrirCantidad(valor,true),'guardar-producto':()=>guardarProducto(),
-        'quitar-conteo':()=>guardarProducto(true),'cancelar-producto':cerrarProducto
+        'quitar-conteo':()=>guardarProducto(true),'cancelar-producto':()=>cerrarProducto(true)
       };
       if (tareas[sm]) void ejecutar(control,tareas[sm]);
     });
     document.addEventListener('submit',e=>{
       if (e.target.id !== 'muebleCaptura') return;
       e.preventDefault();
-      const input = $('muebleCodigo'), codigo = input.value.trim();
-      if (!codigo) return;
-      existenciaDeCaptura(null,$('muebleExistenciaCaptura'));
+      const codigo = $('muebleCodigo').value.trim();
+      if (!codigo || ocupada || !puedeCapturar()) return;
+      if (sugerenciaActiva >= 0) {
+        void elegirParaCaptura(sugerencias[sugerenciaActiva]);
+        return;
+      }
+      if (sugerencias.length) {
+        toast('Selecciona un producto de la lista.');
+        return;
+      }
       if (modoPz) {
-        void ejecutar(e.target.querySelector('button'),async()=>{
-          const p = producto(codigo);
-          const total = await guardar(p,1,'sumar');
-          if (!$('muebleAviso')) return;
-          $('muebleAviso').textContent = p.sku + ' · ' + total + ' pz';
-          existenciaDeCaptura(p,$('muebleExistenciaCaptura'));
-          feedbackExito();
-          input.value = '';
-          input.focus();
-        });
-      } else abrirCantidad(codigo);
+        feedbackError();
+        toast('Código fuera del Excel. Verifica el SKU.','error');
+        return;
+      }
+      const sku = normalizar(codigo);
+      if (sku.length > 120) {
+        toast('La clave debe tener hasta 120 caracteres.','error');
+        return;
+      }
+      limpiarBusquedaCaptura();
+      abrirCantidad({sku,descripcion:'Fuera del Excel'});
     });
     setInterval(()=>{ if (usuarioLogueado && !document.hidden) void refrescar(); },12000);
   });

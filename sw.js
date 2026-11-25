@@ -1,4 +1,4 @@
-const C = 'fc-relma-v19-precio-inventario';
+const C = 'fc-relma-v20-buscador-muebles';
 
 // Recursos que SIEMPRE se cachean al instalar
 const PRECACHE = [
