@@ -503,9 +503,33 @@
       <section class="panel" id="muebleMiZona"><h3>📊 Mi Zona en la Sesión</h3>
         <div class="fila"><input id="muebleFiltro" value="${esc(filtro)}" placeholder="Buscar por nombre, SKU o código">
         ${boton('buscar-camara','Escanear')}</div><div id="muebleProductos" class="mueble-lista"></div></section>
-      <section class="panel"><h3>3 · Resumen del conteo</h3>
-        <p class="small">La existencia esperada corresponde a toda la sucursal. Las diferencias globales se confirman al terminar todos los muebles.</p>
-        <div id="muebleDiferencias" class="mueble-lista"></div>${boton('reporte-zona','Exportar mi conteo','','verde')}</section>` : ''}`;
+      ${renderPanelResumen()}` : ''}`;
+  }
+
+  function renderPanelResumen() {
+    const global = creador(activa);
+    const filtro = $('muebleResumenFiltro')?.value || '';
+    const todos = $('muebleResumenTodos')?.checked;
+    return `<section class="panel" id="muebleResumen"><h3>3 · Resumen del conteo</h3>
+      <div class="inv-stats${global ? '' : ' mueble-resumen-zona'}" id="muebleResumenStats"></div>
+      <input type="search" id="muebleResumenFiltro" aria-label="Filtrar productos del resumen"
+        placeholder="Filtrar productos…" value="${esc(filtro)}">
+      <div class="tabla-scroll">
+        <table id="muebleResumenTabla" class="${global ? 'mueble-resumen-global' : ''}">
+          <thead><tr><th scope="col">Clave</th><th scope="col">Descripción</th>
+          ${global ? '<th scope="col">Esperado</th>' : ''}<th scope="col">Vendido</th>
+          ${global ? '<th scope="col">Ajustado</th>' : ''}<th scope="col">Contado</th>
+          ${global ? '<th scope="col">Dif</th><th scope="col">Dif $</th>' : ''}
+          <th scope="col">Contó</th><th scope="col" aria-label="Acciones"></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="muebleResumenNota" class="small"></p>
+      <div class="sesion-mueble-botones">
+        ${boton('reporte-zona','Exportar mi conteo','','verde')}
+        ${global ? `<label class="small"><input type="checkbox" id="muebleResumenTodos"${todos ? ' checked' : ''}> Mostrar también los que cuadran</label>` : ''}
+      </div>
+    </section>`;
   }
 
   function continuo() {
@@ -514,7 +538,7 @@
   }
 
   function mapaProductos() {
-    return new Map((activa?.snapshot_base || []).map(p => [p.sku,p]));
+    return new Map((activa?.snapshot_base || []).map(p => [normalizar(p.sku),p]));
   }
 
   function mostrarProductos() {
@@ -543,10 +567,96 @@
     </details>`).join('') || '<p class="small">Sin productos contados que coincidan.</p>';
     $('muebleMetricas').innerHTML = `<div class="inv-stat ok"><div class="num">${capturados.reduce((n,p)=>n+p.cantidad,0)}</div><div class="lbl">Pz contadas</div></div>
       <div class="inv-stat"><div class="num">${items.reduce((n,p)=>n+p.antes+p.despues,0)}</div><div class="lbl">Pz vendidas</div></div>`;
-    const diferencias = diferenciasZona(items,base);
-    $('muebleDiferencias').innerHTML = diferencias.map(p => `<p class="small"><strong>${esc(p.sku)}</strong> · ${esc(p.descripcion)} · ${esc(p.estado)}</p>`).join('')
-      || `<p class="small">${creador(activa) ? 'Sin diferencias para los productos registrados en este mueble.'
-        : 'Sin incidencias locales. El creador puede revisar las diferencias de la sucursal.'}</p>`;
+    mostrarResumen(agrupados);
+  }
+
+  function mostrarResumen(agrupados = agrupar(activa,filas)) {
+    const tabla = $('muebleResumenTabla');
+    if (!tabla) return;
+    const zona = agrupados.get(lugarId) || new Map();
+    const base = mapaProductos();
+    const actividad = p => p.contado || p.antes || p.despues;
+    const global = creador(activa);
+    const consulta = global ? conciliar(activa,filas,agrupados) : null;
+    const completa = consulta?.completa;
+    const productos = global
+      ? consulta.resumen.filter(p => actividad(p) || (completa && p.diferencia !== 0))
+      : [...zona.values()].filter(actividad);
+    const totales = {cuadran:0,sobran:0,faltan:0,negativos:0,piezas:0,pesos:0,sinCosto:0,conCosto:0};
+    for (const p of productos) {
+      if (p.exis < 0) totales.negativos++;
+      if (p.diferencia > 0) totales.sobran++;
+      if (!completa || p.diferencia == null) continue;
+      if (p.diferencia < 0) totales.faltan++;
+      if (p.diferencia === 0) totales.cuadran++;
+      totales.piezas += p.diferencia;
+      if (p.diferencia === 0) continue;
+      const costo = leerCosto(p.costo);
+      if (costo == null) totales.sinCosto++;
+      else {
+        totales.conCosto++;
+        totales.pesos += Math.sign(p.diferencia) * aMoneda(Math.abs(p.diferencia) * costo);
+      }
+    }
+    const tarjeta = (titulo,valor,tono = '') => `<div class="inv-stat ${tono}"><div class="num">${valor}</div><div class="lbl">${titulo}</div></div>`;
+    const signo = n => n > 0 ? '+' : '';
+    const color = n => n > 0 ? 'ok' : n < 0 ? 'err' : '';
+    const sinImporte = totales.sinCosto > 0 && totales.conCosto === 0;
+    $('muebleResumenStats').innerHTML = global
+      ? [
+          tarjeta('Cuadran',completa ? totales.cuadran : '—',completa ? 'ok' : ''),
+          tarjeta('Sobrantes',totales.sobran,totales.sobran ? 'ok' : ''),
+          tarjeta('Faltantes',completa ? totales.faltan : '—',totales.faltan ? 'err' : ''),
+          tarjeta('Neg. sistema',totales.negativos,totales.negativos ? 'err' : ''),
+          tarjeta('Dif $',completa && !sinImporte ? `$${aMoneda(totales.pesos).toFixed(2)}` : '—',color(totales.pesos)),
+          tarjeta('Dif piezas',completa ? signo(totales.piezas) + totales.piezas : '—',color(totales.piezas))
+        ].join('')
+      : [
+          tarjeta('Productos contados',productos.filter(p => p.contado).length,'ok'),
+          tarjeta('Pz contadas',productos.reduce((n,p) => n + p.cantidad,0)),
+          tarjeta('Pz vendidas',productos.reduce((n,p) => n + p.antes + p.despues,0)),
+          tarjeta('Fuera del Excel',productos.filter(p => !base.has(p.sku)).length)
+        ].join('');
+
+    $('muebleResumenNota').textContent = global
+      ? [
+          completa ? 'Conciliación de toda la sucursal.' : 'Conciliación preliminar de la sucursal. Los faltantes se confirman al terminar todos los muebles.',
+          totales.sinCosto ? `Importes calculados con costo unitario. ${totales.sinCosto} SKU con diferencia sin costo.` : ''
+        ].filter(Boolean).join(' ')
+      : `Conteo de ${miLugar().nombre}. Las diferencias se calculan para toda la sucursal.`;
+
+    const filtro = textoBusqueda($('muebleResumenFiltro').value);
+    const verTodos = $('muebleResumenTodos');
+    if (verTodos) verTodos.disabled = !completa;
+    const todos = verTodos?.checked;
+    const visibles = productos.filter(p => {
+      if (global && completa && !todos && p.diferencia === 0) return false;
+      const ficha = base.get(p.sku);
+      return [p.sku,p.descripcion || ficha?.descripcion,...(ficha?.codigos || [])].some(v => textoBusqueda(v).includes(filtro));
+    });
+    tabla.querySelector('tbody').innerHTML = visibles.map(p => {
+      const prod = base.get(p.sku);
+      const diferencia = global && (completa || p.diferencia > 0) ? p.diferencia : null;
+      const costo = leerCosto(p.costo);
+      const importe = diferencia === 0 ? 0 :
+        costo == null || diferencia == null ? null : Math.sign(diferencia) * aMoneda(costo * Math.abs(diferencia));
+      const clase = diferencia > 0 ? 'dif-pos' : diferencia < 0 ? 'dif-neg' : '';
+      const cuentas = global ? [...p.usuarios] : [...p.aportes.keys()];
+      const editar = zona.get(p.sku)?.contado && puedeCapturar();
+      const incidencia = !prod ? 'Fuera del Excel' : global && !completa ? p.estado : '';
+      return `<tr>
+        <td class="mueble-resumen-clave">${esc(p.sku)}</td>
+        <td class="small">${esc(p.descripcion || prod?.descripcion)}${incidencia ? `<small class="mueble-resumen-estado">${esc(incidencia)}</small>` : ''}</td>
+        ${global ? `<td class="${p.exis < 0 ? 'neg-num' : ''}">${p.exis ?? '—'}</td>` : ''}
+        <td>${p.antes + p.despues}</td>
+        ${global ? `<td>${p.sistema ?? '—'}</td>` : ''}
+        <td><strong>${global ? p.observado ?? p.cantidad : p.cantidad}</strong></td>
+        ${global ? `<td class="${clase}">${diferencia == null ? '—' : signo(diferencia) + diferencia}</td>
+        <td class="${importe == null ? '' : clase}">${importe == null ? '—' : signo(importe) + '$' + importe.toFixed(2)}</td>` : ''}
+        <td class="small">${cuentas.map(u => '@' + esc(u)).join(', ') || '—'}</td>
+        <td>${editar ? boton('editar', '🗑', p.sku, 'rojo').replace('<button ', `<button aria-label="Editar o quitar conteo de ${esc(p.sku)}" `) : ''}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="${global ? 10 : 6}" class="small mueble-resumen-vacio">${!filtro && completa && !todos ? 'No hay diferencias.' : 'Sin productos que coincidan.'}</td></tr>`;
   }
 
   function diferenciasZona(items,base) {
@@ -951,6 +1061,7 @@
     document.addEventListener('input',e=>{
       if (e.target.id === 'muebleTotal') $('muebleReparto').hidden = !e.target.value;
       if (e.target.id === 'muebleFiltro') mostrarProductos();
+      if (e.target.id === 'muebleResumenFiltro') mostrarResumen();
     });
     document.addEventListener('paste',e=>{
       if (e.target.id !== 'muebleCodigo' || !puedeCapturar() || ocupada || pendiente) return;
@@ -961,6 +1072,7 @@
       e.target.form.requestSubmit();
     });
     document.addEventListener('change',e=>{
+      if (e.target.id === 'muebleResumenTodos') mostrarResumen();
       if (e.target.id === 'muebleArchivoCosto' && gestion) {
         gestion.archivoCosto = e.target.files[0] || null;
         $('muebleNombreArchivo').textContent = gestion.archivoCosto?.name || 'Sin archivo adicional de costos.';
