@@ -3095,13 +3095,17 @@ async function subirInventarioEstadoSupabase(sucId) {
   } catch(e) { console.error(e); return false; }
 }
 
+function consultarBaseInventario(sucId) {
+  return supabaseClient.from('app_data').select('data')
+    .eq('section', 'inventario_base_' + sucId).maybeSingle();
+}
+
 // Bajar base + estado de una sucursal
 async function bajarInventarioSupabase(sucId) {
   if (!supabaseClient) return false;
   try {
     const [baseRes, estadoRes] = await Promise.all([
-      supabaseClient.from('app_data').select('data')
-        .eq('section', 'inventario_base_' + sucId).maybeSingle(),
+      consultarBaseInventario(sucId),
       supabaseClient.from('app_data').select('data')
         .eq('section', 'inventario_estado_' + sucId).maybeSingle()
     ]);
