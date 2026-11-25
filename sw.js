@@ -1,4 +1,4 @@
-const C = 'fc-relma-v17-saldos-negativos';
+const C = 'fc-relma-v18-excel-valuacion';
 
 // Recursos que SIEMPRE se cachean al instalar
 const PRECACHE = [

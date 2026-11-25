@@ -5102,7 +5102,8 @@ async function cargarExcelInventario(file, modoCarga) {
       if (skusVistos.has(sku)) { const prev = nuevos.find(p => p.sku === sku); if (prev) prev.exis += exis; continue; }
       skusVistos.add(sku);
       const costo = idxCosto < 0 ? null : window.sesionesMueble.leerCosto(r[idxCosto]);
-      nuevos.push({ sku, descripcion, precio, exis, costo });
+      const precioValuacion = idxPrecio < 0 ? null : window.sesionesMueble?.leerCosto(precioRaw);
+      nuevos.push({ sku, descripcion, precio, exis, costo, precioValuacion });
     }
     if (modoCarga === 'noContados') {
       const nuevosMap = new Map();
@@ -7641,6 +7642,8 @@ window.addEventListener('pagehide', () => {
   #muebleMiZona { border:2px solid #1e8449 }
   #muebleCaptura input, #muebleFiltro { min-width:0 }
   #muebleResumenFiltro { width:100% }
+  #muebleResumen .mueble-cuadra { background:var(--fc-info-surface); border-color:var(--fc-line) }
+  #muebleResumen .mueble-dif-cero { color:var(--fc-primary); font-weight:bold }
   #muebleResumenTabla { min-width:480px }
   #muebleResumenTabla.mueble-resumen-global { min-width:740px }
   #muebleResumenTabla :is(th,td) { overflow-wrap:anywhere }

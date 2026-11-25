@@ -44,6 +44,19 @@
     return limpio && Number.isFinite(numero) && numero >= 0 ? numero : null;
   }
 
+  function precioDeInventario(p) {
+    if (Object.hasOwn(p,'precioValuacion')) return leerCosto(p.precioValuacion);
+    const precio = leerCosto(p.precio);
+    return precio > 0 ? precio : null;
+  }
+
+  function valoresUnitarios(p) {
+    const costo = leerCosto(p.costo);
+    const precio = precioDeInventario(p);
+    return {costo, precio, valorUnitario:costo ?? precio,
+      origenValor:costo != null ? 'Costo unitario' : precio != null ? 'Precio U.' : 'Sin valor unitario'};
+  }
+
   async function datos(consulta) {
     if (!supabaseClient) throw new Error('La conexión del inventario no está disponible.');
     const {data, error} = await consulta;
@@ -125,8 +138,8 @@
       ${sesion ? `<p>${esc(nombre)}</p>` : `<label>Nombre de sesión<input id="muebleNombreSesion" maxlength="120" value="${esc(nombre)}"></label>
       <label>Sucursal<select id="muebleSucursal">${sucursales.map(s => `<option value="${esc(s.id)}"${s.id === sucursal ? ' selected' : ''}>${esc(s.nombre)}</option>`).join('')}</select></label>
       <label>Total de muebles o áreas (opcional)<input id="muebleTotal" type="number" min="1" max="250" value="${esc(total)}"></label>
-      <label>Excel para completar costos (opcional)<input id="muebleArchivoCosto" type="file" accept=".xlsx,.xls,.csv"></label>
-      <p class="small" id="muebleNombreArchivo">${gestion.archivoCosto ? esc(gestion.archivoCosto.name) : 'Usa el Excel de esta sucursal si se cargó antes de que la app guardara el costo.'}</p>
+      <label>Excel con costos o precios unitarios (opcional)<input id="muebleArchivoCosto" type="file" accept=".xlsx,.xls,.csv"></label>
+      <p class="small" id="muebleNombreArchivo">${gestion.archivoCosto ? esc(gestion.archivoCosto.name) : 'Puedes usar el Excel de inventario o un reporte con SKU y Precio U.'}</p>
       <div id="muebleReparto"${total ? '' : ' hidden'}>${boton('repartir','Repartir automáticamente')}</div>`}
       ${gruposHtml}
       <div class="sesion-mueble-asignacion"><label>Usuario<select id="muebleNuevoUsuario"><option value="">Selecciona un usuario</option>${opciones}</select></label>
@@ -193,38 +206,80 @@
         codigos.get(clave).push(normalizar(codigo));
       }
     }
-    return base.map(({sku, descripcion, exis, costo}) => ({
-      sku:normalizar(sku), descripcion:descripcion || '', exis:Number(exis) || 0,
-      costo:leerCosto(costo), codigos:codigos.get(normalizar(sku)) || []
+    return base.map(p => ({
+      sku:normalizar(p.sku), descripcion:p.descripcion || '', exis:Number(p.exis) || 0,
+      costo:leerCosto(p.costo), precioValuacion:precioDeInventario(p), codigos:codigos.get(normalizar(p.sku)) || []
     }));
   }
 
-  async function completarCostos(base, archivo) {
-    if (!archivo) return base;
+  async function completarValores(base, archivo) {
     if (!window.XLSX) throw new Error('El lector de Excel no está disponible.');
     const libro = XLSX.read(await archivo.arrayBuffer(),{type:'array'});
-    const tabla = XLSX.utils.sheet_to_json(libro.Sheets[libro.SheetNames[0]],{header:1,defval:'',raw:true});
-    const fila = tabla.findIndex(r => columnaCosto(r) >= 0 && r.some(v => /^(SKU|REX|CLAVE|C[ÓO]DIGO)(\s|$)/i.test(String(v).trim())));
-    if (fila < 0) throw new Error('No se encontró la clave de producto y el costo unitario en el Excel.');
-    const colSku = tabla[fila].findIndex(v => /^(SKU|REX|CLAVE|C[ÓO]DIGO)(\s|$)/i.test(String(v).trim()));
-    const colCosto = columnaCosto(tabla[fila]);
-    const precios = new Map();
-    for (const r of tabla.slice(fila+1)) {
-      const sku = normalizar(r[colSku]);
-      const costo = leerCosto(r[colCosto]);
-      if (!sku || costo === null) continue;
-      if (precios.has(sku) && precios.get(sku) !== costo) precios.set(sku,null);
-      else precios.set(sku,costo);
+    const referencias = new Map();
+    const esClave = h => /^(SKU|REX|CLAVE|CODIGO)(\s|$)/.test(textoBusqueda(h));
+    const columnaPrecio = fila => fila.findIndex(h => /^PRECIO(?:\s+(?:U\.?|UNIT\.?|UNITARIO|(?:DE\s+)?VENTA))?$/.test(textoBusqueda(h)));
+    let columnasValidas = false;
+
+    for (const nombre of libro.SheetNames) {
+      const tabla = XLSX.utils.sheet_to_json(libro.Sheets[nombre],{header:1,defval:'',raw:true});
+      const cabecera = tabla.findIndex(fila => fila.some(esClave) && (columnaCosto(fila) >= 0 || columnaPrecio(fila) >= 0));
+      if (cabecera < 0) continue;
+      columnasValidas = true;
+      const encabezado = tabla[cabecera];
+      const clave = encabezado.findIndex(esClave);
+      const columnas = [['costo',columnaCosto(encabezado)],['precioValuacion',columnaPrecio(encabezado)]];
+      for (const fila of tabla.slice(cabecera + 1)) {
+        const sku = normalizar(fila[clave]);
+        if (!sku) continue;
+        const registro = referencias.get(sku) || {};
+        for (const [campo,columna] of columnas) {
+          const valor = columna < 0 ? null : leerCosto(fila[columna]);
+          if (valor == null) continue;
+          registro[campo] = Object.hasOwn(registro,campo) && registro[campo] !== valor ? null : valor;
+        }
+        referencias.set(sku,registro);
+      }
     }
+    if (!columnasValidas) throw new Error('El Excel necesita una columna SKU o Clave y Costo unitario o Precio U.');
+
     let encontrados = 0;
-    const mezcla = base.map(p=>{
-      const sku = normalizar(p.sku);
-      if (!precios.has(sku)) return p;
+    const snapshot = base.map(p => {
+      const referencia = referencias.get(normalizar(p.sku));
+      if (referencia?.costo == null && referencia?.precioValuacion == null) return p;
       encontrados++;
-      return {...p,costo:precios.get(sku)};
+      return {...p,costo:referencia.costo ?? leerCosto(p.costo),
+        precioValuacion:referencia.precioValuacion ?? precioDeInventario(p)};
     });
-    if (!encontrados) throw new Error('El Excel de costos no coincide con los SKU del inventario cargado.');
-    return mezcla;
+    if (!encontrados) throw new Error('No hay costos o precios válidos que coincidan con los SKU de la sesión.');
+    return {snapshot,encontrados};
+  }
+
+  function snapshotConValoresBase(s) {
+    const snapshot = s.snapshot_base || [];
+    const fecha = meta(s)?.baseFecha;
+    const base = inventariosPorSucursal[s.sucursal_id];
+    if (!fecha || base?.fechaCargaBase !== fecha || !base.base?.length ||
+      snapshot.every(p => Object.hasOwn(p,'precioValuacion'))) return snapshot;
+    const productos = new Map(base.base.map(p => [normalizar(p.sku),p]));
+    return snapshot.map(p => {
+      const origen = productos.get(normalizar(p.sku));
+      if (!origen) return p;
+      return {...p,costo:leerCosto(p.costo) ?? leerCosto(origen.costo),
+        precioValuacion:precioDeInventario(p) ?? precioDeInventario(origen)};
+    });
+  }
+
+  async function cargarValoresSesion(idSesion, archivo) {
+    const s = await actual(idSesion);
+    if (!creador(s) || meta(s).archivada) return;
+    const {snapshot,encontrados} = await completarValores(snapshotConValoresBase(s),archivo);
+    if (!creador(s)) return;
+    const guardada = await actualizarSesion(s,{snapshot_base:snapshot,asignaciones:{[marcador]:{
+      ...meta(s), valoresActualizadosEn:new Date().toISOString()
+    }}});
+    if (activa?.id === s.id) activa = guardada;
+    await refrescar();
+    toast(`Valores unitarios cargados para ${encontrados} SKU.`);
   }
 
   async function guardarGestion() {
@@ -252,13 +307,14 @@
         base = inventariosPorSucursal[sucursal]?.base;
       }
       if (!base?.length || !nombre.trim()) throw new Error('Escribe el nombre y carga el Excel de esa sucursal.');
-      const snapshot = armarSnapshot(await completarCostos(base,gestion.archivoCosto));
+      const conValores = gestion.archivoCosto ? (await completarValores(base,gestion.archivoCosto)).snapshot : base;
+      const snapshot = armarSnapshot(conValores);
       await datos(supabaseClient.from('sesiones_conteo').insert({
         nombre:nombre.trim(), sucursal_id:sucursal, estado:'borrador', creada_por:usuarioLogueado,
         asignaciones:{[marcador]:{lugares:ubicaciones, version:3, verExistencias, baseFecha:inventariosPorSucursal[sucursal]?.fechaCargaBase || null}},
         total_productos:snapshot.length, pagina_tamano:200, snapshot_base:snapshot
       }));
-      if (!snapshot.some(p => p.costo !== null)) toast('Sesión creada. El Excel cargado no tiene costos disponibles.');
+      if (!snapshot.some(p => valoresUnitarios(p).valorUnitario != null)) toast('Sesión creada. El Excel no tiene costos ni precios unitarios.');
     }
     $('modalMuebleGestion').classList.remove('activo');
     gestion = null;
@@ -309,8 +365,12 @@
           toast('Tu acceso a esta sesión terminó.');
         } else {
           const ubicacionAnterior = miLugar();
-          const veiaExistencia = puedeVerExistencia(activa);
-          activa = {...activa, ...vigente};
+          const sesionAnterior = activa;
+          const veiaExistencia = puedeVerExistencia(sesionAnterior);
+          const actualizada = meta(sesionAnterior).valoresActualizadosEn !== meta(vigente).valoresActualizadosEn
+            ? await actual(vigente.id) : {...sesionAnterior, ...vigente};
+          if (generacionActual !== generacion || activa !== sesionAnterior) return;
+          activa = actualizada;
           if (veiaExistencia !== puedeVerExistencia(activa)) {
             existenciaDeCaptura(null,$('cameraExistenciaSistema'));
             existenciaDeCaptura(null,$('muebleExistenciaCaptura'));
@@ -451,7 +511,7 @@
       acumulados.set(p.sku,total);
     }
     const completa = lugares(s).length > 0 && lugares(s).every(m => m.terminado);
-    const resumen = (s.snapshot_base || []).map(p => {
+    const resumen = snapshotConValoresBase(s).map(p => {
       const sku = normalizar(p.sku);
       const t = acumulados.get(sku) || {
         cantidad:0, antes:0, despues:0, contado:false, descuentoFisico:0, muebles:[], usuarios:new Set()
@@ -460,10 +520,11 @@
       const observado = t.cantidad - t.descuentoFisico;
       const sistema = p.exis - t.antes - t.despues;
       const diferencia = calcularDif(sistema,observado);
-      let estado = 'Pendiente de conciliar';
-      if (completa) estado = diferencia === 0 ? 'Cuadra' : diferencia < 0 ? 'Faltante' : 'Sobrante';
-      else if (diferencia > 0) estado = 'Sobrante preliminar';
-      else if (sistema < 0 && t.contado) estado = diferencia < 0 ? 'Saldo negativo preliminar' : 'Saldo compensado preliminar';
+      const cuadra = sistema < 0 ? 'Saldo compensado' : 'Cuadra';
+      const falta = sistema < 0 ? 'Saldo negativo' : 'Faltante';
+      const estado = completa ? (diferencia === 0 ? 'Cuadra' : diferencia < 0 ? 'Faltante' : 'Sobrante')
+        : diferencia > 0 ? 'Sobrante preliminar'
+        : t.contado ? (diferencia < 0 ? falta : cuadra) + ' preliminar' : 'Sin conteo';
       return {...p,...t,sku,observado,sistema,diferencia,estado};
     });
     for (const [sku,t] of acumulados) if (t.contado || t.antes || t.despues) resumen.push({sku,...t, descripcion:'Fuera del Excel', estado:'Fuera del Excel'});
@@ -471,7 +532,7 @@
   }
 
   function diferenciaVisible(p, completa) {
-    return completa || p.diferencia > 0 || (p.sistema < 0 && p.contado) ? p.diferencia ?? null : null;
+    return completa || p.contado || p.diferencia > 0 ? p.diferencia ?? null : null;
   }
 
   function render() {
@@ -494,7 +555,7 @@
       }
       if (creador(s) && s.estado !== 'borrador') {
         const etiqueta = s.estado === 'abierta' ? '📊 Reporte global preliminar (Excel)' : '📊 Reporte global de cierre (Excel)';
-        reportes.push(boton('reporte-global',etiqueta,s.id));
+        reportes.push(boton('reporte-global',etiqueta,s.id), boton('cargar-valores','Cargar costos o precios (Excel)',s.id));
       }
       const visibles = creador(s) ? lugares(s) : propios(s);
       const estado = {borrador:'Borrador',abierta:'Abierta',cerrada:'Cerrada'}[s.estado] || s.estado;
@@ -616,6 +677,12 @@
     mostrarResumen(agrupados);
   }
 
+  function importeDeDiferencia(diferencia, valor) {
+    if (diferencia == null) return null;
+    if (diferencia === 0) return 0;
+    return valor == null ? null : Math.sign(diferencia) * aMoneda(Math.abs(diferencia) * valor);
+  }
+
   function mostrarResumen(agrupados = agrupar(activa,filas)) {
     const tabla = $('muebleResumenTabla');
     if (!tabla) return;
@@ -631,17 +698,18 @@
     const totales = {cuadran:0,sobran:0,faltan:0,negativos:0,piezas:0,pesos:0,sinCosto:0,conCosto:0};
     for (const p of productos) {
       if (p.exis < 0) totales.negativos++;
-      if (p.diferencia > 0) totales.sobran++;
-      if (!completa || p.diferencia == null) continue;
-      if (p.diferencia < 0) totales.faltan++;
-      if (p.diferencia === 0) totales.cuadran++;
-      totales.piezas += p.diferencia;
-      if (p.diferencia === 0) continue;
-      const costo = leerCosto(p.costo);
-      if (costo == null) totales.sinCosto++;
+      const diferencia = diferenciaVisible(p,completa);
+      if (diferencia == null) continue;
+      if (diferencia > 0) totales.sobran++;
+      if (diferencia < 0) totales.faltan++;
+      if (diferencia === 0) totales.cuadran++;
+      totales.piezas += diferencia;
+      if (diferencia === 0) continue;
+      const importe = importeDeDiferencia(diferencia,valoresUnitarios(p).valorUnitario);
+      if (importe == null) totales.sinCosto++;
       else {
         totales.conCosto++;
-        totales.pesos += Math.sign(p.diferencia) * aMoneda(Math.abs(p.diferencia) * costo);
+        totales.pesos += importe;
       }
     }
     const tarjeta = (titulo,valor,tono = '') => `<div class="inv-stat ${tono}"><div class="num">${valor}</div><div class="lbl">${titulo}</div></div>`;
@@ -650,12 +718,12 @@
     const sinImporte = totales.sinCosto > 0 && totales.conCosto === 0;
     $('muebleResumenStats').innerHTML = global
       ? [
-          tarjeta('Cuadran',completa ? totales.cuadran : '—',completa ? 'ok' : ''),
+          tarjeta('Cuadran',totales.cuadran,totales.cuadran ? 'mueble-cuadra' : ''),
           tarjeta('Sobrantes',totales.sobran,totales.sobran ? 'ok' : ''),
-          tarjeta('Faltantes',completa ? totales.faltan : '—',totales.faltan ? 'err' : ''),
+          tarjeta('Faltantes',totales.faltan,totales.faltan ? 'err' : ''),
           tarjeta('Neg. sistema',totales.negativos,totales.negativos ? 'err' : ''),
-          tarjeta('Dif $',completa && !sinImporte ? `$${aMoneda(totales.pesos).toFixed(2)}` : '—',color(totales.pesos)),
-          tarjeta('Dif piezas',completa ? signo(totales.piezas) + totales.piezas : '—',color(totales.piezas))
+          tarjeta('Dif $',!sinImporte ? `$${aMoneda(totales.pesos).toFixed(2)}` : '—',color(totales.pesos)),
+          tarjeta('Dif piezas',signo(totales.piezas) + totales.piezas,color(totales.piezas))
         ].join('')
       : [
           tarjeta('Productos contados',productos.filter(p => p.contado).length,'ok'),
@@ -667,7 +735,7 @@
     $('muebleResumenNota').textContent = global
       ? [
           completa ? 'Conciliación de toda la sucursal.' : 'Conciliación preliminar de la sucursal. Los faltantes se confirman al terminar todos los muebles.',
-          totales.sinCosto ? `Importes calculados con costo unitario. ${totales.sinCosto} SKU con diferencia sin costo.` : ''
+          totales.sinCosto ? `${totales.sinCosto} SKU con diferencia sin costo ni precio unitario.` : ''
         ].filter(Boolean).join(' ')
       : `Conteo de ${miLugar().nombre}. Las diferencias se calculan para toda la sucursal.`;
 
@@ -683,11 +751,9 @@
     tabla.querySelector('tbody').innerHTML = visibles.map(p => {
       const prod = base.get(p.sku);
       const diferencia = global ? diferenciaVisible(p,completa) : null;
-      const importeConfirmable = completa || diferencia > 0;
-      const costo = leerCosto(p.costo);
-      const importe = !importeConfirmable || diferencia == null ? null :
-        diferencia === 0 ? 0 : costo == null ? null : Math.sign(diferencia) * aMoneda(costo * Math.abs(diferencia));
-      const clase = diferencia > 0 ? 'dif-pos' : diferencia < 0 ? 'dif-neg' : '';
+      const valores = valoresUnitarios(p);
+      const importe = importeDeDiferencia(diferencia,valores.valorUnitario);
+      const clase = diferencia > 0 ? 'dif-pos' : diferencia < 0 ? 'dif-neg' : diferencia === 0 ? 'mueble-dif-cero' : '';
       const cuentas = global ? [...p.usuarios] : [...p.aportes.keys()];
       const editar = zona.get(p.sku)?.contado && puedeCapturar();
       const incidencia = !prod ? 'Fuera del Excel' : global && !completa ? p.estado : '';
@@ -699,7 +765,7 @@
         ${global ? `<td>${p.sistema ?? '—'}</td>` : ''}
         <td><strong>${global ? p.observado ?? p.cantidad : p.cantidad}</strong></td>
         ${global ? `<td class="${clase}">${diferencia == null ? '—' : signo(diferencia) + diferencia}</td>
-        <td class="${importe == null ? '' : clase}">${importe == null ? '—' : signo(importe) + '$' + importe.toFixed(2)}</td>` : ''}
+        <td class="${importe == null ? '' : clase}" title="${valores.origenValor}">${importe == null ? '—' : signo(importe) + '$' + importe.toFixed(2)}</td>` : ''}
         <td class="small">${cuentas.map(u => '@' + esc(u)).join(', ') || '—'}</td>
         <td>${editar ? boton('editar', '🗑', p.sku, 'rojo').replace('<button ', `<button aria-label="Editar o quitar conteo de ${esc(p.sku)}" `) : ''}</td>
       </tr>`;
@@ -896,7 +962,7 @@
   }
 
   function huella(eventos,s) {
-    return JSON.stringify([eventos.length,eventos.at(-1)?.id,lugares(s)]);
+    return JSON.stringify([eventos.length,eventos.at(-1)?.id,lugares(s),meta(s)?.valoresActualizadosEn]);
   }
 
   function aMoneda(valor) {
@@ -910,7 +976,10 @@
     const porLugar = agrupar(s,eventos);
     const sucursal = getSucursal(s.sucursal_id)?.nombre || s.sucursal_id;
     const wb = XLSX.utils.book_new();
-    const moneda = '"$"#,##0.00;[Red]("$"#,##0.00)';
+    const moneda = '"$"#,##0.00;-"$"#,##0.00';
+    const diferenciaPositiva = {font:{bold:true,color:{rgb:'006100'}},fill:{fgColor:{rgb:'C6EFCE'}}};
+    const diferenciaNegativa = {font:{bold:true,color:{rgb:'9C0006'}},fill:{fgColor:{rgb:'FFC7CE'}}};
+    const diferenciaCero = {font:{bold:true,color:{rgb:'1E4E79'}},fill:{fgColor:{rgb:'DDEBF7'}}};
     const fecha = 'yyyy-mm-dd hh:mm:ss';
     const cabecera = {
       font:{bold:true,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'1A3A6B'}},
@@ -927,10 +996,17 @@
         for (let c = 0; c < filasHoja[r].length; c++) {
           const celda = hoja[XLSX.utils.encode_cell({r,c})];
           if (!celda) continue;
-          if (titulos.has(r)) celda.s = cabecera;
-          else if (!opciones.moneda?.includes(c) && !opciones.valorMoneda?.includes(r)) {
-            celda.s = {alignment:{vertical:'center',wrapText:c === opciones.texto}};
-          } else if (celda.t === 'n') celda.z = moneda;
+          if (titulos.has(r)) {
+            celda.s = cabecera;
+            continue;
+          }
+          celda.s = {alignment:{vertical:'center',wrapText:c === opciones.texto}};
+          if (celda.t === 'n' && (opciones.moneda?.includes(c) || opciones.valorMoneda?.includes(r))) celda.z = moneda;
+          const dif = filasHoja[r][opciones.columnaDiferencia];
+          if (dif != null && opciones.destacar?.includes(c)) {
+            const estilo = dif > 0 ? diferenciaPositiva : dif < 0 ? diferenciaNegativa : diferenciaCero;
+            celda.s = {...celda.s,...estilo};
+          }
         }
       }
       if (registros.length && opciones.filtro !== false) {
@@ -970,39 +1046,49 @@
     } else {
       const {resumen,completa} = conciliar(s,eventos,porLugar);
       const global = resumen.map(p => {
-        const costo = leerCosto(p.costo);
-        const faltante = completa && p.diferencia < 0 ? -p.diferencia : null;
-        const sobrante = p.diferencia > 0 ? p.diferencia : null;
-        return {...p,costo,faltante,sobrante,difPiezas:diferenciaVisible(p,completa),
-          valorFaltante:costo != null && faltante != null ? aMoneda(faltante*costo) : null,
-          valorSobrante:costo != null && sobrante != null ? aMoneda(sobrante*costo) : null};
+        const valores = valoresUnitarios(p);
+        const difPiezas = diferenciaVisible(p,completa);
+        const difImporte = importeDeDiferencia(difPiezas,valores.valorUnitario);
+        return {...p,...valores,difPiezas,difImporte,
+          faltante:difPiezas < 0 ? -difPiezas : null, sobrante:difPiezas > 0 ? difPiezas : null,
+          valorFaltante:difPiezas < 0 && difImporte != null ? -difImporte : null,
+          valorSobrante:difPiezas > 0 ? difImporte : null};
       });
       const diferencias = global.filter(p => p.difPiezas != null && p.difPiezas !== 0);
-      const faltaCosto = diferencias.filter(p => p.costo == null).length;
+      const sinValor = diferencias.filter(p => p.valorUnitario == null).length;
+      const valuadosConPrecio = diferencias.filter(p => p.origenValor === 'Precio U.').length;
       const conIncidencias = global.filter(p => p.estado === 'Fuera del Excel');
-      filasResumen.push(['Moneda de la valuación','MXN · costo unitario del Excel'],['Conciliación',completa ? 'Completa' : 'Preliminar. Hay áreas pendientes; los faltantes no están confirmados.'],
+      filasResumen.push(['Moneda de la valuación','MXN'],['Conciliación',completa ? 'Completa' : 'Preliminar. Los faltantes y sobrantes pueden cambiar al terminar los muebles.'],
         ['Áreas totales',lugares(s).length],['Áreas pendientes',pendientes],
         ['SKU en el inventario base',base.size],['SKU con conteo',global.filter(p => p.contado).length],
         ['Piezas vendidas',total(global,'antes')+total(global,'despues')],
-        ['Piezas faltantes',completa ? total(diferencias,'faltante') : 'Pendiente'],
-        ['Piezas sobrantes',total(diferencias,'sobrante')],
-        ['SKU con diferencia sin costo',faltaCosto],['SKU fuera del Excel',conIncidencias.length],
+        [completa ? 'Piezas faltantes' : 'Piezas faltantes preliminares',total(diferencias,'faltante')],
+        [completa ? 'Piezas sobrantes' : 'Piezas sobrantes preliminares',total(diferencias,'sobrante')],
+        ['SKU con diferencia valuados a precio',valuadosConPrecio],
+        ['SKU con diferencia sin costo ni precio',sinValor],['SKU fuera del Excel',conIncidencias.length],
         ['Cálculo','Sistema ajustado = sistema al cargar menos ventas registradas. Físico al corte = conteo vigente menos ventas posteriores aún no reflejadas.'],
         ['Dif. pz','Con sistema ajustado negativo se suman las piezas físicas al saldo del sistema. Con saldo de cero o mayor se resta el sistema ajustado del físico.'],
-        ['Valuación','Los importes incluyen las diferencias con costo disponible. Consulta Diferencias para identificar costos faltantes.']);
+        ['Valuación','Se usa el costo unitario si está disponible y, en su defecto, Precio U. La columna Base de valuación identifica qué se usó por SKU.'],        ['Colores','Rojo = faltante. Verde = sobrante. Azul = cuadra. Las celdas vacías quedan pendientes o carecen de datos.']);
+      const totalValuado = (items,campo) =>
+        !items.length || items.some(p => p[campo] != null) ? aMoneda(total(items,campo)) : null;
       const valoresMoneda = [
-        ['Valor faltante',completa ? aMoneda(total(diferencias,'valorFaltante')) : 'Pendiente'],
-        [completa ? 'Valor sobrante' : 'Valor sobrante preliminar',aMoneda(total(diferencias,'valorSobrante'))]
+        [completa ? 'Valor faltante' : 'Valor faltante preliminar',totalValuado(diferencias.filter(p => p.faltante),'valorFaltante')],
+        [completa ? 'Valor sobrante' : 'Valor sobrante preliminar',totalValuado(diferencias.filter(p => p.sobrante),'valorSobrante')],
+        ['Dif. $ neta',totalValuado(diferencias,'difImporte')]
       ];
       agregarHoja('Resumen',['Concepto','Resultado'],[...filasResumen,...valoresMoneda],
-        {anchos:[34,82],texto:1,valorMoneda:[filasResumen.length+1,filasResumen.length+2],filtro:false});
+        {anchos:[37,82],texto:1,valorMoneda:valoresMoneda.map((_,i) => filasResumen.length+i+1),filtro:false});
       const columnas = ['SKU','Descripción','Estado','Sistema al cargar','Ventas antes','Ventas después','Sistema ajustado',
-        'Conteo vigente','Físico al corte','Faltan pz','Sobran pz','Costo unitario','Valor faltante','Valor sobrante','Áreas registradas','Quién contó','Dif. pz'];
+        'Conteo vigente','Físico al corte','Dif. pz','Faltan pz','Sobran pz','Costo unitario','Precio U.','Base de valuación',
+        'Dif. $','Valor faltante','Valor sobrante','Áreas registradas','Quién contó'];
       const resultado = p => [p.sku,p.descripcion,p.estado,p.exis ?? null,p.antes,p.despues,p.sistema ?? null,p.cantidad,
-        p.observado ?? null,p.faltante,p.sobrante,p.costo,p.valorFaltante,p.valorSobrante,
-        p.muebles.join(', '),[...p.usuarios].map(nombreUsuario).join(', '),p.difPiezas];
-      const opciones = {anchos:[17,42,29,16,14,14,16,15,15,12,12,16,16,16,34,30,12],moneda:[11,12,13]};
-      agregarHoja('Diferencias',columnas,[...diferencias,...conIncidencias].sort((a,b) => a.sku.localeCompare(b.sku)).map(resultado),opciones);
+        p.observado ?? null,p.difPiezas,p.faltante,p.sobrante,p.costo,p.precio,p.origenValor,p.difImporte,
+        p.valorFaltante,p.valorSobrante,p.muebles.join(', '),[...p.usuarios].map(nombreUsuario).join(', ')];
+      const opciones = {anchos:[17,42,29,16,14,14,16,15,15,12,12,12,16,14,19,15,16,16,34,30],
+        moneda:[12,13,15,16,17],columnaDiferencia:9,destacar:[2,9,10,11,15,16,17]};
+      agregarHoja('Diferencias',columnas,[
+        ...diferencias.sort((a,b) => a.difPiezas - b.difPiezas || a.sku.localeCompare(b.sku)),...conIncidencias
+      ].map(resultado),opciones);
       agregarHoja('Conciliación por SKU',columnas,global.map(resultado),opciones);
     }
     agregarHoja('Por mueble',['Mueble o área','SKU','Descripción','Estado del conteo','Pz registradas','Pz al corte','Ventas antes','Ventas después','Quién contó'],
@@ -1107,7 +1193,8 @@
 
   document.addEventListener('DOMContentLoaded',()=>{
     document.body.insertAdjacentHTML('beforeend',`<div class="modal-bg" id="modalMuebleGestion"><div class="modal" id="muebleGestionCuerpo"></div></div>
-      <div class="modal-bg" id="modalMuebleProducto"><div class="modal" id="muebleProductoCuerpo"></div></div>`);
+      <div class="modal-bg" id="modalMuebleProducto"><div class="modal" id="muebleProductoCuerpo"></div></div>
+      <input type="file" id="muebleValoresArchivo" hidden accept=".xlsx,.xls,.csv">`);
     document.addEventListener('input',e=>{
       if (e.target.id === 'muebleTotal') $('muebleReparto').hidden = !e.target.value;
       if (e.target.id === 'muebleFiltro') mostrarProductos();
@@ -1122,6 +1209,12 @@
       e.target.form.requestSubmit();
     });
     document.addEventListener('change',e=>{
+      if (e.target.id === 'muebleValoresArchivo') {
+        const archivo = e.target.files[0];
+        const sesion = e.target.dataset.sesion;
+        e.target.value = '';
+        if (archivo && sesion) void ejecutar(e.target,()=>cargarValoresSesion(sesion,archivo));
+      }
       if (e.target.id === 'muebleResumenTodos') mostrarResumen();
       if (e.target.id === 'muebleArchivoCosto' && gestion) {
         gestion.archivoCosto = e.target.files[0] || null;
@@ -1163,6 +1256,11 @@
         salir:()=>{if(ocupada || pendiente) throw new Error('Resuelve la captura pendiente.'); salir(); render();},
         abrir:()=>cambiarEstado(valor,'abrir'), cerrar:()=>cambiarEstado(valor,'cerrar'), archivar:()=>cambiarEstado(valor,'archivar'),
         'reporte-global':()=>reporteGlobal(valor), 'reporte-personal':()=>reportePersonal(valor),
+        'cargar-valores':()=>{
+          const input = $('muebleValoresArchivo');
+          input.dataset.sesion = valor;
+          input.click();
+        },
         modo:()=>{if (pendiente) throw new Error('Resuelve la captura pendiente.'); modoPz=!modoPz; render();},
         camara:()=>abrirCamaraMueble(continuo() ? 'mueble-captura' : 'mueble-captura-unica'),
         'buscar-camara':()=>abrirCamaraMueble('mueble-busqueda'),
