@@ -10,7 +10,6 @@
   const normalizar = valor => String(valor ?? '').trim().toUpperCase();
   const textoBusqueda = valor => normalizar(valor).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const momento = valor => valor ? new Date(valor).toLocaleString('es-MX') : '';
-  const cuenta = () => usuarios[usuarioLogueado]?.permisos?.inventario === true;
   const admin = () => !!usuarioLogueado && _esAdminSesion();
   const creador = s => admin() && s?.creada_por === usuarioLogueado;
   const propios = s => lugares(s).filter(m => m.usuario === usuarioLogueado);
@@ -26,9 +25,8 @@
   const descargados = new Map();
   const miLugar = () => propios(activa).find(m => m.id === lugarId);
   const puedeCapturar = () => abierta(activa) && !!miLugar() && !miLugar().terminado;
-  const accesoTemporal = () => !!usuarioLogueado && !cuenta()
-    && sesiones.some(s => abierta(s) && propios(s).length);
-  const puedeVer = () => !!usuarioLogueado && (admin() || cuenta() || accesoTemporal());
+  const accesoTemporal = () => sesiones.some(s => abierta(s) && propios(s).length > 0);
+  const puedeVer = () => !!usuarioLogueado && (admin() || accesoTemporal());
 
   function columnaCosto(encabezados) {
     const valores = encabezados.map(textoBusqueda);
