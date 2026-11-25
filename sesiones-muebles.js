@@ -14,6 +14,7 @@
   const creador = s => admin() && s?.creada_por === usuarioLogueado;
   const propios = s => lugares(s).filter(m => m.usuario === usuarioLogueado);
   const abierta = s => s?.estado === 'abierta' && !meta(s)?.archivada;
+  const puedeEditarSesion = s => creador(s) && !meta(s)?.archivada && ['borrador','abierta'].includes(s.estado);
   const operaciones = ['sumar', 'fijar', 'quitar', 'venta-antes', 'venta-despues'];
   const filasPorPagina = 500;
   let sesiones = [], activa = null, lugarId = '', filas = [];
@@ -70,11 +71,27 @@
     return usuarios[usuario]?.nombre || usuario;
   }
 
+  function puedeVerExistencia(s) {
+    const habilitados = meta(s)?.verExistencias;
+    return Array.isArray(habilitados) ? habilitados.includes(usuarioLogueado) : admin();
+  }
+
+  function existenciaDeCaptura(p, nodo) {
+    if (!nodo) return;
+    nodo.textContent = p?.exis != null && puedeVerExistencia(activa)
+      ? `Existencia esperada en la sucursal · ${p.exis} pz` : '';
+    nodo.hidden = !nodo.textContent;
+  }
+
   function abrirGestion(sesion) {
-    if (sesion ? !creador(sesion) || !abierta(sesion) : !admin()) return;
+    if (sesion ? !puedeEditarSesion(sesion) : !admin()) return;
+    const verExistencias = meta(sesion)?.verExistencias;
     gestion = {sesion, nombre: sesion?.nombre || `Inventario ${getSucursal(sucursalActual)?.nombre || ''} ${new Date().toLocaleDateString('es-MX', {month:'short', year:'numeric'})}`,
       sucursal: sesion?.sucursal_id || sucursalActual, total: '', archivoCosto:null,
-      grupos: new Map()};
+      grupos: new Map(),
+      verExistencias: new Set(Array.isArray(verExistencias) ? verExistencias :
+        [usuarioLogueado,...lugares(sesion).map(m => m.usuario)
+          .filter(u => u === 'admin' || usuarios[u]?.permisos?.ajustes)])};
     for (const m of lugares(sesion)) {
       if (!gestion.grupos.has(m.usuario)) gestion.grupos.set(m.usuario, []);
       gestion.grupos.get(m.usuario).push({...m});
@@ -94,13 +111,17 @@
       `<option value="${esc(u)}">${esc(p.nombre || u)} · @${esc(u)}</option>`).join('');
     const gruposHtml = [...grupos].map(([u, muebles]) => `<section class="sesion-mueble-tarjeta">
       <strong>${esc(nombreUsuario(u))} · @${esc(u)}</strong>
+      <label class="mueble-permiso">
+        <input type="checkbox" data-ver-existencias="${esc(u)}"${gestion.verExistencias.has(u) ? ' checked' : ''}>
+        Ver la existencia esperada al escanear
+      </label>
       ${muebles.map(m => `<div class="sesion-mueble-asignacion">
         <label>Mueble o área<input maxlength="100" value="${esc(m.nombre)}" data-mueble-nombre="${esc(m.id)}"></label>
         ${sesion ? `<label>Asignado a<select data-traslado="${esc(m.id)}">${listaUsuarios.map(([k,p]) => `<option value="${esc(k)}"${u === k ? ' selected' : ''}>${esc(p.nombre || k)} · @${esc(k)}</option>`).join('')}</select></label>` : boton('quitar-fila','Quitar',m.id,'rojo')}
       </div>`).join('')}
       ${boton('agregar-mueble', 'Agregar mueble', u)}
     </section>`).join('');
-    $('muebleGestionCuerpo').innerHTML = `<h3>${sesion ? 'Reasignar muebles o áreas' : 'Crear sesión por mueble'}</h3>
+    $('muebleGestionCuerpo').innerHTML = `<h3>${sesion ? 'Editar áreas y permisos' : 'Crear sesión por mueble'}</h3>
       ${sesion ? `<p>${esc(nombre)}</p>` : `<label>Nombre de sesión<input id="muebleNombreSesion" maxlength="120" value="${esc(nombre)}"></label>
       <label>Sucursal<select id="muebleSucursal">${sucursales.map(s => `<option value="${esc(s.id)}"${s.id === sucursal ? ' selected' : ''}>${esc(s.nombre)}</option>`).join('')}</select></label>
       <label>Total de muebles o áreas (opcional)<input id="muebleTotal" type="number" min="1" max="250" value="${esc(total)}"></label>
@@ -110,7 +131,7 @@
       ${gruposHtml}
       <div class="sesion-mueble-asignacion"><label>Usuario<select id="muebleNuevoUsuario"><option value="">Selecciona un usuario</option>${opciones}</select></label>
       ${boton('agregar-usuario','Agregar usuario')}</div>
-      <div class="sesion-mueble-botones">${boton('guardar-gestion',sesion ? 'Guardar asignaciones' : 'Crear sesión','','verde')}${boton('cancelar-gestion','Cancelar')}</div>`;
+      <div class="sesion-mueble-botones">${boton('guardar-gestion',sesion ? 'Guardar áreas y permisos' : 'Crear sesión','','verde')}${boton('cancelar-gestion','Cancelar')}</div>`;
   }
 
   function recogerGestion() {
@@ -118,6 +139,10 @@
       gestion.nombre = $('muebleNombreSesion').value;
       gestion.sucursal = $('muebleSucursal').value;
       gestion.total = $('muebleTotal').value;
+    }
+    for (const campo of $('muebleGestionCuerpo').querySelectorAll('[data-ver-existencias]')) {
+      if (campo.checked) gestion.verExistencias.add(campo.dataset.verExistencias);
+      else gestion.verExistencias.delete(campo.dataset.verExistencias);
     }
     const campos = new Map([...$('muebleGestionCuerpo').querySelectorAll('[data-mueble-nombre]')].map(e => [e.dataset.muebleNombre, e.value]));
     for (const m of [...gestion.grupos.values()].flat()) if (campos.has(m.id)) m.nombre = campos.get(m.id);
@@ -205,7 +230,7 @@
   async function guardarGestion() {
     recogerGestion();
     const {sesion, sucursal, nombre} = gestion;
-    if (sesion ? !creador(sesion) || !abierta(sesion) : !admin()) return;
+    if (sesion ? !puedeEditarSesion(sesion) : !admin()) return;
     const nombres = new Set(), ubicaciones = [];
     for (const m of [...gestion.grupos.values()].flat()) {
       const nombre = m.nombre.trim();
@@ -217,8 +242,9 @@
     if (!ubicaciones.length) throw new Error('Agrega al menos un mueble con nombre.');
     if (ubicaciones.length > 250) throw new Error('La sesión admite hasta 250 muebles.');
     if (!sesion && !sucursales.some(s => s.id === sucursal)) throw new Error('Selecciona una sucursal válida.');
+    const verExistencias = [...gestion.verExistencias].filter(u => ubicaciones.some(m => m.usuario === u));
     if (sesion) {
-      await actualizarSesion(sesion, {asignaciones:{[marcador]:{...meta(sesion), lugares:ubicaciones}}});
+      await actualizarSesion(sesion, {asignaciones:{[marcador]:{...meta(sesion), lugares:ubicaciones, verExistencias}}});
     } else {
       let base = inventariosPorSucursal[sucursal]?.base;
       if (!base?.length) {
@@ -229,7 +255,7 @@
       const snapshot = armarSnapshot(await completarCostos(base,gestion.archivoCosto));
       await datos(supabaseClient.from('sesiones_conteo').insert({
         nombre:nombre.trim(), sucursal_id:sucursal, estado:'borrador', creada_por:usuarioLogueado,
-        asignaciones:{[marcador]:{lugares:ubicaciones, version:3, baseFecha:inventariosPorSucursal[sucursal]?.fechaCargaBase || null}},
+        asignaciones:{[marcador]:{lugares:ubicaciones, version:3, verExistencias, baseFecha:inventariosPorSucursal[sucursal]?.fechaCargaBase || null}},
         total_productos:snapshot.length, pagina_tamano:200, snapshot_base:snapshot
       }));
       if (!snapshot.some(p => p.costo !== null)) toast('Sesión creada. El Excel cargado no tiene costos disponibles.');
@@ -283,7 +309,13 @@
           toast('Tu acceso a esta sesión terminó.');
         } else {
           const ubicacionAnterior = miLugar();
+          const veiaExistencia = puedeVerExistencia(activa);
           activa = {...activa, ...vigente};
+          if (veiaExistencia !== puedeVerExistencia(activa)) {
+            existenciaDeCaptura(null,$('cameraExistenciaSistema'));
+            existenciaDeCaptura(null,$('muebleExistenciaCaptura'));
+            existenciaDeCaptura(productoEdicion?.p,$('muebleExistenciaSistema'));
+          }
           if (!miLugar() || miLugar().terminado !== ubicacionAnterior?.terminado) {
             pausarCamara();
             cerrarProducto();
@@ -323,11 +355,11 @@
     return refrescando;
   }
 
-  async function capturas(s, ubicaciones = null) {
+  async function capturas(s, ubicaciones = null, usuario = null) {
     // Limita el tamaño del filtro de PostgREST cuando un usuario tiene muchas áreas.
     if (ubicaciones?.length > 16) {
-      const lote = await capturas(s, ubicaciones.slice(0, 16));
-      const resto = await capturas(s, ubicaciones.slice(16));
+      const lote = await capturas(s, ubicaciones.slice(0, 16), usuario);
+      const resto = await capturas(s, ubicaciones.slice(16), usuario);
       return [...lote, ...resto].sort(ordenCapturas);
     }
     const resultado = [];
@@ -335,6 +367,7 @@
     for (let desde = 0; ; desde += filasPorPagina) {
       let consulta = supabaseClient.from('conteos_individuales').select('id,sku,usuario,cantidad,dispositivo,timestamp')
         .eq('sesion_id',s.id).order('timestamp').order('id');
+      if (usuario !== null) consulta = consulta.eq('usuario',usuario);
       if (ubicaciones) consulta = consulta.in('dispositivo', ubicaciones.flatMap(m => operaciones.map(op => prefijo + m + ':' + op)));
       const lote = await datos(consulta.range(desde,desde + filasPorPagina - 1));
       resultado.push(...lote);
@@ -442,22 +475,32 @@
     const lista = sesiones.filter(s => !meta(s).archivada && (
       (admin() && (s.sucursal_id === sucursalActual || creador(s))) || (abierta(s) && propios(s).length)));
     const tarjetas = lista.map(s => {
-      const controles = [];
-      if (abierta(s) && propios(s).length && activa?.id !== s.id) controles.push(boton('unirse','Unirse a la sesión',s.id,'verde'));
+      const controles = [], reportes = [];
+      const asignado = abierta(s) && propios(s).length > 0;
+      if (asignado && activa?.id !== s.id) controles.push(boton('unirse','Unirse a la sesión',s.id,'verde'));
       if (creador(s)) {
         if (s.estado === 'borrador') controles.push(boton('abrir','Abrir sesión',s.id,'verde'));
-        if (s.estado === 'abierta') {
-          controles.push(boton('reasignar','Reasignar áreas',s.id), boton('cerrar','Cerrar sesión',s.id,'rojo'));
-        }
-        if (s.estado !== 'borrador') controles.push(boton('reporte',s.estado === 'abierta' ? 'Reporte preliminar' : 'Reporte final',s.id));
+        if (puedeEditarSesion(s)) controles.push(boton('reasignar','Editar áreas y permisos',s.id));
+        if (s.estado === 'abierta') controles.push(boton('cerrar','Cerrar sesión',s.id,'rojo'));
         controles.push(boton('archivar','Eliminar sesión',s.id,'rojo'));
+      }
+      if (asignado || (creador(s) && s.estado !== 'borrador')) {
+        reportes.push(boton('reporte-personal','📥 Descargar mi conteo (Excel)',s.id,'verde'));
+      }
+      if (creador(s) && s.estado !== 'borrador') {
+        const etiqueta = s.estado === 'abierta' ? '📊 Reporte global preliminar (Excel)' : '📊 Reporte global de cierre (Excel)';
+        reportes.push(boton('reporte-global',etiqueta,s.id));
       }
       const visibles = creador(s) ? lugares(s) : propios(s);
       const estado = {borrador:'Borrador',abierta:'Abierta',cerrada:'Cerrada'}[s.estado] || s.estado;
       return `<section class="sesion-mueble-tarjeta"><strong>${esc(s.nombre)}</strong>
         <p class="small">${esc(estado)} · ${esc(getSucursal(s.sucursal_id)?.nombre || s.sucursal_id)} · Creada por @${esc(s.creada_por)}</p>
         <p class="small">${visibles.filter(m => m.terminado).length}/${visibles.length} muebles terminados</p>
-        <div class="sesion-mueble-botones">${controles.join('')}</div></section>`;
+        ${controles.length ? `<div class="sesion-mueble-botones">${controles.join('')}</div>` : ''}
+        ${reportes.length ? `<div class="mueble-reportes">
+          <strong class="small">Descargas de la sesión</strong>
+          <div class="sesion-mueble-botones">${reportes.join('')}</div>
+        </div>` : ''}</section>`;
     });
     const filtro = $('muebleFiltro')?.value || '';
     const codigo = $('muebleCodigo')?.value || '';
@@ -499,7 +542,8 @@
           <input id="muebleCodigo" value="${esc(codigo)}" required autocomplete="off" placeholder="SKU o código"${puedeCapturar() ? '' : ' disabled'}>
           <button class="verde"${puedeCapturar() ? '' : ' disabled'}>Capturar</button>${boton('camara','📷','','camara',!puedeCapturar()).replace('<button ', '<button aria-label="Escanear para contar" ')}
         </form>
-        <p id="muebleAviso" role="status" class="small"></p></section>
+        <p id="muebleAviso" role="status" class="small"></p>
+        <p class="small" id="muebleExistenciaCaptura" hidden></p></section>
       <section class="panel" id="muebleMiZona"><h3>📊 Mi Zona en la Sesión</h3>
         <div class="fila"><input id="muebleFiltro" value="${esc(filtro)}" placeholder="Buscar por nombre, SKU o código">
         ${boton('buscar-camara','Escanear')}</div><div id="muebleProductos" class="mueble-lista"></div></section>
@@ -525,10 +569,7 @@
         </table>
       </div>
       <p id="muebleResumenNota" class="small"></p>
-      <div class="sesion-mueble-botones">
-        ${boton('reporte-zona','Exportar mi conteo','','verde')}
-        ${global ? `<label class="small"><input type="checkbox" id="muebleResumenTodos"${todos ? ' checked' : ''}> Mostrar también los que cuadran</label>` : ''}
-      </div>
+      ${global ? `<label class="small"><input type="checkbox" id="muebleResumenTodos"${todos ? ' checked' : ''}> Mostrar también los que cuadran</label>` : ''}
     </section>`;
   }
 
@@ -659,20 +700,6 @@
     }).join('') || `<tr><td colspan="${global ? 10 : 6}" class="small mueble-resumen-vacio">${!filtro && completa && !todos ? 'No hay diferencias.' : 'Sin productos que coincidan.'}</td></tr>`;
   }
 
-  function diferenciasZona(items,base) {
-    const conciliacion = creador(activa) ? new Map(conciliar(activa,filas).resumen.map(p=>[p.sku,p])) : new Map();
-    return items.filter(p => p.contado || p.antes || p.despues).flatMap(p => {
-      const prod = base.get(p.sku);
-      if (!prod) return [{sku:p.sku,descripcion:'Fuera del Excel',estado:'Revisar'}];
-      const global = conciliacion.get(p.sku);
-      if (!global) return [];
-      if (global?.diferencia === 0 && (global.contado || global.estado === 'Cuadra')) return [];
-      const estado = ['Faltante','Sobrante','Sobrante preliminar'].includes(global?.estado)
-        ? `${global.estado} global de ${Math.abs(global.diferencia)} pz` : 'Pendiente de conciliar';
-      return [{sku:p.sku,descripcion:prod.descripcion,estado}];
-    });
-  }
-
   function etiqueta(op) {
     return {sumar:'Escaneo +1',fijar:'Corrección de total',quitar:'Conteo quitado','venta-antes':'Venta antes de contar','venta-despues':'Venta después de contar'}[op] || op;
   }
@@ -720,19 +747,22 @@
     } finally { ocupada = false; }
   }
 
-  function avisarEscaneo(exito,mensaje) {
-    const estado = $('cameraStatus');
-    if ($('modalCamara')?.classList.contains('activo') && estado) estado.textContent = mensaje;
-    if (exito) feedbackExito();
-    else feedbackError();
+  function avisarEscaneo(exito,mensaje,producto = null) {
+    if ($('modalCamara')?.classList.contains('activo')) {
+      existenciaDeCaptura(producto,$('cameraExistenciaSistema'));
+    }
+    feedbackResultadoConteo(exito,mensaje);
   }
 
   async function escanear(codigo) {
+    const corrida = cameraRun;
     try {
       const p = producto(codigo);
       const total = await guardar(p,1,'sumar');
-      avisarEscaneo(true,`+1 ${p.descripcion || p.sku} · ${total} en ${miLugar()?.nombre || 'este mueble'}`);
+      if (corrida !== cameraRun) return;
+      avisarEscaneo(true,`+1 ${p.descripcion || p.sku} · ${total} en ${miLugar()?.nombre || 'este mueble'}`,p);
     } catch (error) {
+      if (corrida !== cameraRun) return;
       avisarEscaneo(false,error.message);
       if (!$('modalCamara')?.classList.contains('activo')) toast(error.message,'error');
     }
@@ -747,20 +777,22 @@
     if (resultados?.length === 1) resultados[0].open = true;
   }
 
-  function abrirCantidad(codigo, editar = false) {
+  function abrirCantidad(codigo, editar = false, desdeContinuo = false) {
     try {
       if (!puedeCapturar()) throw new Error('Este mueble ya está terminado.');
-      const p = producto(codigo,editar || !modoPz);
+      existenciaDeCaptura(null,$('cameraExistenciaSistema'));
+      const p = producto(codigo,editar || (!modoPz && !desdeContinuo));
       if (modoPz && !editar) { void escanear(codigo); return; }
       const actual = agrupar(activa,filas).get(lugarId)?.get(normalizar(p.sku));
       productoEdicion = {modo:editar ? 'editar' : 'contar',p};
       $('muebleProductoCuerpo').innerHTML = `<h3>${esc(p.sku)}</h3><p>${esc(p.descripcion)}</p>
-        ${admin() && p.exis != null ? `<p class="small">Sistema en sucursal · ${p.exis} pz</p>` : ''}
+        <p class="small" id="muebleExistenciaSistema" hidden></p>
         <p class="small">Contado en ${esc(miLugar()?.nombre)} · ${actual?.cantidad || 0} pz</p>
         ${editar && actual?.historial.length ? `<details><summary>Aportaciones en esta sesión</summary><ul>${actual.historial.map(e=>`<li>@${esc(e.usuario)} · ${esc(momento(e.timestamp))} · ${esc(etiqueta(e.op))} · ${e.cantidad} pz</li>`).join('')}</ul></details>` : ''}
         <label>¿Cuántas piezas hay físicamente en este mueble?<input id="muebleCantidad" class="cant-grande" type="number" min="0" max="10000000" step="1" value="${actual?.cantidad ?? 0}" inputmode="numeric"></label>
         <div class="sesion-mueble-botones">${boton('guardar-producto','Guardar','','verde')}${boton('cancelar-producto','Cancelar')}
         ${editar ? boton('quitar-conteo','Quitar conteo de este producto','','rojo') : ''}</div>`;
+      existenciaDeCaptura(p,$('muebleExistenciaSistema'));
       $('modalMuebleProducto').classList.add('activo');
       $('muebleCantidad').focus();
     } catch (error) { avisarEscaneo(false,error.message); toast(error.message,'error'); }
@@ -803,8 +835,17 @@
       if (!op) throw new Error('Indica si las piezas ya estaban contadas.');
     }
     if (quitar && !confirm('¿Quitar el conteo de este producto en este mueble?')) return;
-    await guardar(p,cantidad,op);
+    const conteo = productoEdicion.modo === 'contar';
+    const camaraEnCurso = conteo && $('modalCamara')?.classList.contains('activo');
+    const corrida = cameraRun;
+    try {
+      await guardar(p,cantidad,op);
+    } catch (error) {
+      if (camaraEnCurso && corrida === cameraRun) avisarEscaneo(false,error.message);
+      throw error;
+    }
     cerrarProducto();
+    if (camaraEnCurso && corrida === cameraRun) avisarEscaneo(true,`Guardado · ${p.sku} · ${cantidad} pz`,p);
     if ($('muebleCodigo')) $('muebleCodigo').value = '';
     toast(op.startsWith('venta-') ? 'Venta registrada en la sesión' : 'Conteo actualizado');
   }
@@ -856,11 +897,11 @@
     return Math.round((valor + Number.EPSILON) * 100) / 100;
   }
 
-  function descargar(s, eventos, soloZona = '') {
+  function descargar(s, eventos, cuentaPersonal = '') {
     if (!window.XLSX) throw new Error('Excel no está disponible.');
     const ubicaciones = new Map(lugares(s).map(m => [m.id,m]));
     const base = new Map((s.snapshot_base || []).map(p => [normalizar(p.sku),p]));
-    const {porLugar,resumen,completa} = conciliar(s,eventos);
+    const porLugar = agrupar(s,eventos);
     const sucursal = getSucursal(s.sucursal_id)?.nombre || s.sucursal_id;
     const wb = XLSX.utils.book_new();
     const moneda = '"$"#,##0.00;[Red]("$"#,##0.00)';
@@ -892,48 +933,48 @@
       XLSX.utils.book_append_sheet(wb,hoja,nombre);
     }
 
-    const movimientos = [...porLugar].flatMap(([lugar,items]) => {
-      if (soloZona && soloZona !== lugar) return [];
-      return [...items.values()].map(p => ({...p, lugar, nombre:ubicaciones.get(lugar).nombre}));
-    });
+    const movimientos = [...porLugar].flatMap(([lugar,items]) =>
+      [...items.values()].map(p => ({...p, nombre:ubicaciones.get(lugar).nombre})));
     const fechaCorte = s.fecha_cierre || new Date().toISOString();
     const pendientes = lugares(s).filter(m => !m.terminado).length;
     const filasResumen = [
+      ['Tipo de reporte',cuentaPersonal ? 'Mi conteo' : 'Reporte global de la sesión'],
       ['Sesión',s.nombre],['Sucursal',sucursal],['Creó la sesión',nombreUsuario(s.creada_por)],
       ['Estado de sesión',({borrador:'Borrador',abierta:'Abierta',cerrada:'Cerrada'})[s.estado] || s.estado],
       ['Fecha del inventario base',momento(meta(s).baseFecha) || 'Sin fecha registrada'],
-      ['Fecha de apertura',momento(s.fecha_apertura)],['Fecha de corte',momento(fechaCorte)],
-      ['Moneda de la valuación','MXN · costo unitario del Excel']
+      ['Fecha de apertura',momento(s.fecha_apertura)],['Fecha de corte',momento(fechaCorte)]
     ];
-    const global = resumen.map(p => {
-      const costo = leerCosto(p.costo);
-      const faltante = completa && p.diferencia < 0 ? -p.diferencia : null;
-      const sobrante = p.diferencia > 0 ? p.diferencia : null;
-      return {...p,costo,faltante,sobrante,
-        valorFaltante:costo != null && faltante != null ? aMoneda(faltante*costo) : null,
-        valorSobrante:costo != null && sobrante != null ? aMoneda(sobrante*costo) : null};
-    });
-    const diferencias = global.filter(p => p.faltante || p.sobrante);
-    const faltaCosto = diferencias.filter(p => p.costo == null).length;
     const total = (items,campo) => items.reduce((n,p) => n + (p[campo] || 0),0);
-    const conIncidencias = global.filter(p => p.estado === 'Fuera del Excel');
     const ventas = eventos.flatMap(e => {
       const [tipo,lugar,op] = String(e.dispositivo || '').split(':');
       const m = ubicaciones.get(lugar);
-      if (tipo !== 'mueble' || !m || (soloZona && soloZona !== lugar) || !op?.startsWith('venta-')) return [];
+      if (tipo !== 'mueble' || !m || !op?.startsWith('venta-')) return [];
       return [[m.nombre,nombreUsuario(e.usuario),e.usuario,normalizar(e.sku),
         base.get(normalizar(e.sku))?.descripcion || 'Fuera del Excel',etiqueta(op),e.cantidad,momento(e.timestamp),e.id]];
     });
 
-    if (soloZona) {
-      const m = ubicaciones.get(soloZona);
-      filasResumen.push(['Mueble o área',m.nombre],['Asignado a',nombreUsuario(m.usuario)],
-        ['Estado del área',m.terminado ? 'Terminada' : 'En conteo'],
-        ['SKU contados',movimientos.filter(p => p.contado).length],['Piezas registradas',total(movimientos,'cantidad')],
+    if (cuentaPersonal) {
+      filasResumen.push(['Usuario',nombreUsuario(cuentaPersonal)],['Cuenta',cuentaPersonal],
+        ['Áreas con capturas',new Set(movimientos.map(p => p.nombre)).size],
+        ['SKU contados',new Set(movimientos.filter(p => p.contado).map(p => p.sku)).size],
+        ['Piezas registradas',total(movimientos,'cantidad')],
         ['Piezas vendidas',total(movimientos,'antes')+total(movimientos,'despues')],
-        ['Conciliación','Las diferencias se calculan con los totales de toda la sucursal.']);
+        ['Alcance','Capturas y ventas registradas por esta cuenta. La conciliación global considera también correcciones de otros usuarios.']);
+      agregarHoja('Resumen',['Concepto','Resultado'],filasResumen,{anchos:[33,68],texto:1,filtro:false});
     } else {
-      filasResumen.push(['Conciliación',completa ? 'Completa' : 'Preliminar. Hay áreas pendientes; los faltantes no están confirmados.'],
+      const {resumen,completa} = conciliar(s,eventos,porLugar);
+      const global = resumen.map(p => {
+        const costo = leerCosto(p.costo);
+        const faltante = completa && p.diferencia < 0 ? -p.diferencia : null;
+        const sobrante = p.diferencia > 0 ? p.diferencia : null;
+        return {...p,costo,faltante,sobrante,
+          valorFaltante:costo != null && faltante != null ? aMoneda(faltante*costo) : null,
+          valorSobrante:costo != null && sobrante != null ? aMoneda(sobrante*costo) : null};
+      });
+      const diferencias = global.filter(p => p.faltante || p.sobrante);
+      const faltaCosto = diferencias.filter(p => p.costo == null).length;
+      const conIncidencias = global.filter(p => p.estado === 'Fuera del Excel');
+      filasResumen.push(['Moneda de la valuación','MXN · costo unitario del Excel'],['Conciliación',completa ? 'Completa' : 'Preliminar. Hay áreas pendientes; los faltantes no están confirmados.'],
         ['Áreas totales',lugares(s).length],['Áreas pendientes',pendientes],
         ['SKU en el inventario base',base.size],['SKU con conteo',global.filter(p => p.contado).length],
         ['Piezas vendidas',total(global,'antes')+total(global,'despues')],
@@ -957,13 +998,11 @@
       agregarHoja('Diferencias',columnas,[...diferencias,...conIncidencias].sort((a,b) => a.sku.localeCompare(b.sku)).map(resultado),opciones);
       agregarHoja('Conciliación por SKU',columnas,global.map(resultado),opciones);
     }
-    if (soloZona) agregarHoja('Resumen',['Concepto','Resultado'],filasResumen,{anchos:[33,68],texto:1,filtro:false});
-
     agregarHoja('Por mueble',['Mueble o área','SKU','Descripción','Estado del conteo','Pz registradas','Pz al corte','Ventas antes','Ventas después','Quién contó'],
       movimientos.map(p => [p.nombre,p.sku,base.get(p.sku)?.descripcion || 'Fuera del Excel',p.contado ? 'Contado' : 'Sin conteo vigente',
         p.cantidad,p.cantidad-p.descuentoFisico,p.antes,p.despues,[...p.aportes.keys()].map(nombreUsuario).join(', ')]),
       {anchos:[27,16,40,23,16,15,15,15,32]});
-    agregarHoja('Aportaciones',['Mueble o área','SKU','Descripción','Usuario','Cuenta','Pz de conteo vigente'],
+    agregarHoja('Aportaciones',['Mueble o área','SKU','Descripción','Usuario','Cuenta',cuentaPersonal ? 'Pz de tu conteo' : 'Pz de conteo vigente'],
       movimientos.flatMap(p => [...p.aportes].map(([usuario,cantidad]) => [
         p.nombre,p.sku,base.get(p.sku)?.descripcion || 'Fuera del Excel',nombreUsuario(usuario),usuario,cantidad])),
       {anchos:[27,16,40,26,20,20]});
@@ -974,36 +1013,40 @@
         const ultimaCorreccion = p.historial.findLastIndex(e => e.op === 'fijar' || e.op === 'quitar');
         return p.historial.map((e,i) => [p.nombre,nombreUsuario(e.usuario),e.usuario,p.sku,
           base.get(p.sku)?.descripcion || 'Fuera del Excel',etiqueta(e.op),e.cantidad,
-          e.op.startsWith('venta-') ? 'Registrada como salida' : i < ultimaCorreccion ? 'Sustituido' : e.op === 'quitar' ? 'Conteo quitado' : 'Vigente',
+          e.op.startsWith('venta-') ? 'Registrada como salida' : i < ultimaCorreccion ? 'Sustituido' : e.op === 'quitar' ? 'Conteo quitado' : cuentaPersonal ? 'En tu conteo' : 'Vigente',
           momento(e.timestamp),e.id]);
       }),{anchos:[27,25,20,16,40,27,12,24,24,38]});
-    if (!soloZona) agregarHoja('Avance',['Mueble o área','Asignado a','Cuenta','Estado','SKU contados','Pz registradas'],
+    if (!cuentaPersonal) agregarHoja('Avance',['Mueble o área','Asignado a','Cuenta','Estado','SKU contados','Pz registradas'],
       lugares(s).map(m => {
         const activos = [...porLugar.get(m.id).values()].filter(p => p.contado);
         return [m.nombre,nombreUsuario(m.usuario),m.usuario,m.terminado ? 'Terminado' : 'Pendiente',activos.length,total(activos,'cantidad')];
       }),{anchos:[28,26,20,18,16,16]});
 
-    const nombre = [s.nombre,soloZona ? ubicaciones.get(soloZona).nombre : (s.estado === 'cerrada' ? 'Cerrada' : 'Corte preliminar')]
-      .join(' - ').replace(/[<>:"/\\|?*\u0000-\u001f]/g,'-').slice(0,140);
-    XLSX.writeFile(wb,nombre + '.xlsx');
-    if (!soloZona) descargados.set(s.id,huella(eventos,s));
+    const tipoArchivo = cuentaPersonal ? `MI CONTEO - ${cuentaPersonal}`
+      : `GLOBAL - ${s.estado === 'cerrada' ? 'CIERRE' : 'PRELIMINAR'}`;
+    const fechaArchivo = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Mexico_City'}).format(new Date(fechaCorte));
+    const prefijoArchivo = [tipoArchivo,s.nombre,sucursal].join(' - ')
+      .replace(/[<>:"/\\|?*\u0000-\u001f]/g,'-').slice(0,120);
+    XLSX.writeFile(wb,`${prefijoArchivo} - ${fechaArchivo}.xlsx`);
+    if (!cuentaPersonal) descargados.set(s.id,huella(eventos,s));
   }
 
-  async function reporte(idSesion) {
+  async function reporteGlobal(idSesion) {
     const s = await actual(idSesion);
-    if (creador(s)) await descargar(s,await capturas(s));
+    if (creador(s) && s.estado !== 'borrador' && !meta(s).archivada) await descargar(s,await capturas(s));
   }
 
-  async function reporteZona() {
-    if (!miLugar()) return;
-    if (ocupada || pendiente) throw new Error('Confirma la captura pendiente antes de exportar.');
-    await cargarCapturas();
-    if (!miLugar()) return;
-    const captura = filas.filter(e=>String(e.dispositivo).split(':')[1] === lugarId);
-    const items = [...(agrupar(activa,captura).get(lugarId)?.values() || [])];
-    const diferencias = diferenciasZona(items,mapaProductos());
-    if (diferencias.length && !confirm(`Hay ${diferencias.length} productos con diferencias o pendientes de conciliar. ¿Descargar de todos modos?`)) return;
-    await descargar(activa,captura,lugarId);
+  async function reportePersonal(idSesion) {
+    const usuario = usuarioLogueado;
+    if (activa?.id === idSesion && (ocupada || pendiente)) throw new Error('Confirma la captura pendiente antes de exportar.');
+    const s = await actual(idSesion);
+    const autorizado = () => usuario === usuarioLogueado && !meta(s).archivada &&
+      ((abierta(s) && propios(s).length > 0) || (creador(s) && s.estado !== 'borrador'));
+    if (!autorizado()) return;
+    const propias = (await capturas(s,null,usuario)).filter(e => e.usuario === usuario && String(e.dispositivo).startsWith(prefijo));
+    if (!autorizado()) return;
+    if (!propias.length) throw new Error('Esta cuenta todavía no tiene capturas en la sesión.');
+    descargar(s,propias,usuario);
   }
 
   function pausarCamara() {
@@ -1112,7 +1155,7 @@
         unirse:()=>unirse(valor), seleccionar:()=>seleccionar(valor), terminar,
         salir:()=>{if(ocupada || pendiente) throw new Error('Resuelve la captura pendiente.'); salir(); render();},
         abrir:()=>cambiarEstado(valor,'abrir'), cerrar:()=>cambiarEstado(valor,'cerrar'), archivar:()=>cambiarEstado(valor,'archivar'),
-        reporte:()=>reporte(valor), 'reporte-zona':reporteZona,
+        'reporte-global':()=>reporteGlobal(valor), 'reporte-personal':()=>reportePersonal(valor),
         modo:()=>{if (pendiente) throw new Error('Resuelve la captura pendiente.'); modoPz=!modoPz; render();},
         camara:()=>abrirCamaraMueble(continuo() ? 'mueble-captura' : 'mueble-captura-unica'),
         'buscar-camara':()=>abrirCamaraMueble('mueble-busqueda'),
@@ -1127,12 +1170,14 @@
       e.preventDefault();
       const input = $('muebleCodigo'), codigo = input.value.trim();
       if (!codigo) return;
+      existenciaDeCaptura(null,$('muebleExistenciaCaptura'));
       if (modoPz) {
         void ejecutar(e.target.querySelector('button'),async()=>{
           const p = producto(codigo);
           const total = await guardar(p,1,'sumar');
           if (!$('muebleAviso')) return;
           $('muebleAviso').textContent = p.sku + ' · ' + total + ' pz';
+          existenciaDeCaptura(p,$('muebleExistenciaCaptura'));
           feedbackExito();
           input.value = '';
           input.focus();
