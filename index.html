@@ -7568,6 +7568,20 @@ window.addEventListener('pagehide', () => {
   #muebleContar .mueble-controles button { flex:1; font-size:13px; padding:12px }
   #muebleMiZona { border:2px solid #1e8449 }
   #muebleCaptura input, #muebleFiltro { min-width:0 }
+  #muebleResumenFiltro { width:100% }
+  #muebleResumenTabla { min-width:480px }
+  #muebleResumenTabla.mueble-resumen-global { min-width:740px }
+  #muebleResumenTabla :is(th,td) { overflow-wrap:anywhere }
+  #muebleResumenTabla :is(th,td):nth-child(n+3):not(:nth-last-child(-n+2)) { text-align:right }
+  #muebleResumenTabla td:nth-child(n+3):not(:nth-last-child(-n+2)),
+  #muebleResumenTabla .mueble-resumen-clave { font-family:monospace }
+  #muebleResumenTabla .mueble-resumen-estado { display:block; margin-top:4px; color:var(--fc-muted) }
+  #muebleResumenTabla td.mueble-resumen-vacio { text-align:center; padding:20px }
+  #muebleResumenTabla td:last-child button { padding:4px 8px; font-size:11px }
+  #muebleResumen .sesion-mueble-botones { align-items:center }
+  @media(max-width:500px) {
+    #muebleResumenStats.mueble-resumen-zona { grid-template-columns:repeat(2,minmax(0,1fr)) }
+  }
   #modalMuebleGestion .modal, #modalMuebleProducto .modal { max-height:90dvh; overflow:auto }
 </style>
 <script defer src="sesiones-muebles.js"></script>
