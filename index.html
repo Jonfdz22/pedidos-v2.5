@@ -307,7 +307,6 @@
     <div class="tabs">
       <button class="tab" id="tabPedido" onclick="cambiarPestana('pedido')">🛒 Pedido</button>
       <button class="tab" id="tabInventario" onclick="cambiarPestana('inventario')">📦 Inventario</button>
-      <button class="tab" id="tabMuebles" onclick="cambiarPestana('muebles')" hidden>📦 Inventario por mueble</button>
       <button class="tab" id="tabVincular" onclick="cambiarPestana('vincular')">🔗 Vincular</button>
       <button class="tab" id="tabBaseDatos" onclick="cambiarPestana('baseDatos')">🗄️ Base de datos</button>
       <button class="tab" id="tabVentas" onclick="cambiarPestana('ventas')">💰 Ventas</button>
@@ -723,29 +722,6 @@
   </div>
 </div>
 
-<div id="pestanaMuebles" style="display:none">
-  <div id="sesionMueblesPanel"></div>
-  <details class="panel inv-plegable" id="invPanelMuebles" hidden>
-    <summary>Inventarios por muebles anteriores</summary>
-    <div id="mueblesAdminContenido"></div>
-  </details>
-</div>
-
-<section id="mueblesExterno" hidden>
-  <header><h1>Inventario por muebles</h1></header>
-  <main class="panel">
-    <button id="mueblesActualizarExterno" class="gris">Actualizar mis muebles</button>
-    <p id="mueblesMensaje" role="status"></p>
-    <div id="mueblesTrabajo">Cargando ubicaciones…</div>
-  </main>
-</section>
-<dialog id="mueblesCompartir" class="modal">
-  <h3>Enlace del responsable</h3>
-  <p>Comparte este enlace con la persona asignada. Verá sus muebles cuando verifique su correo.</p>
-  <label>Enlace <input type="url" readonly onclick="this.select()"></label>
-  <form method="dialog"><button class="gris">Cerrar</button></form>
-</dialog>
-
 <div class="modal-bg" id="modalCamara">
   <div class="modal">
     <h3>📷 Escanear</h3>
@@ -1076,7 +1052,7 @@
     <div id="sesionAsignaciones" style="margin-top:10px;"></div>
 
     <div class="fila" style="margin-top:16px;">
-      <button class="verde" style="flex:1;" onclick="this.disabled=true; guardarNuevaSesion().finally(() => this.disabled=false)">💾 Crear sesión</button>
+      <button class="verde" style="flex:1;" onclick="guardarNuevaSesion()">💾 Crear sesión</button>
       <button class="gris" onclick="cerrarModalNuevaSesion()">Cancelar</button>
     </div>
     <div id="sesionError" class="login-error" style="text-align:center;"></div>
@@ -2419,11 +2395,11 @@ function renderBannerSesion() {
   if (panelZona) panelZona.style.display = 'none';
 
   const sesionActiva = sesionesActuales.find(s =>
-    !window.sesionesMueble?.esMuebles(s) && s.sucursal_id === sucursalActual && (s.estado === 'borrador' || s.estado === 'abierta')
+    s.sucursal_id === sucursalActual && (s.estado === 'borrador' || s.estado === 'abierta')
   );
 
   if (!sesionActiva) {
-    estado.innerHTML = '📄 <b>Sin sesión por páginas activa.</b>';
+    estado.innerHTML = '📭 <b>No hay sesión activa</b> en esta sucursal.<br><span class="small">Una sesión permite que varias personas cuenten el inventario al mismo tiempo.</span>';
     if (puedeCrear) {
       acciones.innerHTML = `<button class="verde" style="width:100%;" onclick="abrirModalNuevaSesion()">➕ Crear sesión de conteo</button>`;
     } else {
@@ -2706,7 +2682,7 @@ function otroYaConto(sku) {
 async function unirseASesion(id) {
   if (!supabaseClient) return;
   const sesion = sesionesActuales.find(s => s.id === id);
-  if (!sesion || window.sesionesMueble?.esMuebles(sesion)) { toast('❌ Sesión no encontrada', 'error'); return; }
+  if (!sesion) { toast('❌ Sesión no encontrada', 'error'); return; }
   if (sesion.estado !== 'abierta') { toast('⚠️ La sesión no está abierta', 'warn'); return; }
 
   // Verificar que el usuario tenga asignación
@@ -2895,7 +2871,7 @@ async function cerrarSesionConteo(id){
 }
 function _extraBanner(){
   const a = document.getElementById('invSesionAcciones'); if (!a) return;
-  const s = sesionActivaUsuario || sesionesActuales.find(x => !window.sesionesMueble?.esMuebles(x) && x.sucursal_id === sucursalActual && (x.estado === 'borrador' || x.estado === 'abierta')); if (!s) return;
+  const s = sesionActivaUsuario || sesionesActuales.find(x => x.sucursal_id === sucursalActual && (x.estado === 'borrador' || x.estado === 'abierta')); if (!s) return;
   let h2 = '';
   if (sesionActivaUsuario && s.estado !== 'cerrada') { const t = ((s.asignaciones || {})[usuarioLogueado] || {}).terminado; h2 += `<button class="verde" style="width:100%;margin-top:6px" onclick="marcarTerminado()">${t ? '↩️ Reabrir mi zona' : '✅ Terminé mi zona'}</button>`; }
   if (_esAdminSesion() && s.estado === 'abierta') h2 += `<button class="gris" style="width:100%;margin-top:6px" onclick="toggleDashboard('${s.id}')">📊 Ver estatus</button><div id="invDashSesion" style="display:none;margin-top:6px"></div><button class="gris" style="width:100%;margin-top:6px" onclick="reporteSesion('${s.id}',true)">📥 Reporte preliminar</button><button class="gris" style="width:100%;margin-top:6px" onclick="reasignarSesion('${s.id}')">🔁 Reasignar páginas</button><button class="gris" style="width:100%;margin-top:6px;color:var(--fc-danger-text, #c0392b);font-weight:bold" onclick="cerrarSesionConteo('${s.id}')">🔒 Cerrar sesión de conteo</button>`;
@@ -3003,8 +2979,7 @@ function renderSesiones() {
   const cont = document.getElementById('listaSesiones');
   if (!cont) return;
 
-  const sesionesPorPaginas = sesionesActuales.filter(s => !window.sesionesMueble?.esMuebles(s));
-  if (!sesionesPorPaginas.length) {
+  if (!sesionesActuales.length) {
     cont.innerHTML = '<p class="small" style="text-align:center; padding:14px;">Sin sesiones creadas todavía.</p>';
     return;
   }
@@ -3015,7 +2990,7 @@ function renderSesiones() {
     'cerrada': 'var(--fc-heading-text, #1a3a6b)'
   };
 
-  cont.innerHTML = sesionesPorPaginas.map(s => {
+  cont.innerHTML = sesionesActuales.map(s => {
     const suc = getSucursal(s.sucursal_id);
     const asignados = Object.keys(s.asignaciones || {}).length;
     const color = colorEstado[s.estado] || 'var(--fc-secondary-text, #666)';
@@ -3502,9 +3477,7 @@ function cerrarMenuSucursal() { const m = document.getElementById('menuSucursal'
 function cambiarSucursal(id) {
   cerrarMenuSucursal();
   if (id === sucursalActual) return;
-  window.sesionesMueble?.salir();
   sucursalActual = id;
-  void cargarListaSesiones();
    actualizarInventarioActual();
   if (typeof supabaseClient !== 'undefined' && supabaseClient) {
     bajarInventarioSupabase(id);
@@ -3704,7 +3677,6 @@ function entrarApp() {
     actualizarHeaderSucursal();
     actualizarSucursalNombreEnVistas();
     aplicarPermisos();
-    void window.sesionesMueble?.refrescar();
     if (productos.length === 0 && productosManuales.length === 0) cargarEstado();
     else { renderPedido(); renderVinculos(); }
     renderInvTopStats();
@@ -3736,13 +3708,12 @@ function aplicarPermisos() {
   const u = usuarios[usuarioLogueado];
   if (!u) return;
   const tabP = document.getElementById('tabPedido'); if (tabP) tabP.style.display = u.permisos.pedido ? 'inline-block' : 'none';
-  window.sesionesMueble?.actualizarAcceso();
-  const tabI = document.getElementById('tabInventario'); if (tabI && !window.sesionesMueble) tabI.style.display = u.permisos.inventario ? 'inline-block' : 'none';
+  const tabI = document.getElementById('tabInventario'); if (tabI) tabI.style.display = u.permisos.inventario ? 'inline-block' : 'none';
   const tabV = document.getElementById('tabVincular'); if (tabV) tabV.style.display = u.permisos.vincular ? 'inline-block' : 'none';
   const tabB = document.getElementById('tabBaseDatos'); if (tabB) tabB.style.display = u.permisos.baseDatos ? 'inline-block' : 'none';
   const tabA = document.getElementById('tabAjustes'); if (tabA) tabA.style.display = u.permisos.ajustes ? 'inline-block' : 'none';
   const tabVent = document.getElementById('tabVentas'); if (tabVent) tabVent.style.display = 'inline-block';
-  if (!u.permisos[tabActual] && tabActual !== 'ventas' && !(tabActual === 'muebles' && window.sesionesMueble?.puedeVer())) {
+  if (!u.permisos[tabActual]) {
   const disp = ['pedido','inventario','vincular','baseDatos','ventas','ajustes'].filter(t => t === 'ventas' || u.permisos[t]);
     cambiarPestana(disp[0] || 'pedido');
   }
@@ -3765,12 +3736,9 @@ function aplicarVisibilidadAdmin() {
 }
 function cambiarPestana(t) {
   const u = usuarios[usuarioLogueado];
-  if (t === 'inventario' && !u?.permisos.inventario && window.sesionesMueble?.accesoTemporal()) t = 'muebles';
-  if (t !== 'ventas' && u && !(t === 'muebles' ? window.sesionesMueble?.puedeVer() : u.permisos[t])) {
-    toast('⛔ Sin permiso', 'error'); return;
-  }
+  if (t !== 'ventas' && u && !u.permisos[t]) { toast('⛔ Sin permiso', 'error'); return; }
   tabActual = t;
-  ['pedido','inventario','muebles','vincular','baseDatos','ventas','ajustes'].forEach(x => {
+  ['pedido','inventario','vincular','baseDatos','ventas','ajustes'].forEach(x => {
     const tab = document.getElementById('tab' + x.charAt(0).toUpperCase() + x.slice(1));
     if (tab) tab.classList.toggle('activo', x === t);
     const p = document.getElementById('pestana' + x.charAt(0).toUpperCase() + x.slice(1));
@@ -3780,7 +3748,6 @@ function cambiarPestana(t) {
   if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); actualizarEstadoSupabase(); aplicarVisibilidadAdmin(); }
   if (t === 'inventario') { renderBannerSesion(); if (sesionActivaUsuario) renderMiZona(); }
   if (t === 'inventario') { renderInvTopStats(); actualizarUIInventario(); renderInventario(); actualizarSucursalNombreEnVistas(); }
-  if (t === 'muebles') { window.sesionesMueble?.render(); void window.sesionesMueble?.refrescar(); }
   if (t === 'ventas') { ventaRapidaInit(); }
   if (t === 'baseDatos') { renderManuales(); renderBaseDatosStats(); }
   guardarEstado();
@@ -5097,7 +5064,6 @@ async function cargarExcelInventario(file, modoCarga) {
     const idxSku = findCol('CLAVE','SKU','CODIGO','CÓDIGO','REX');
     const idxDesc = findCol('DESCRIPCI');
     const idxPrecio = findCol('PRECIO');
-    const idxCosto = window.sesionesMueble?.columnaCosto(header) ?? -1;
     const idxExis = findCol('EXIS','EXIST','CANTIDAD','INV ACTUAL');
     if (idxSku < 0 || idxExis < 0) { alert('Falta Clave o Exis.'); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; return; }
     const nuevos = [];
@@ -5117,8 +5083,7 @@ async function cargarExcelInventario(file, modoCarga) {
       const exis = parseFloat(String(exisRaw).replace(/[^0-9.\-]/g, '')) || 0;
       if (skusVistos.has(sku)) { const prev = nuevos.find(p => p.sku === sku); if (prev) prev.exis += exis; continue; }
       skusVistos.add(sku);
-      const costo = window.sesionesMueble?.leerCosto(idxCosto < 0 ? null : r[idxCosto]);
-      nuevos.push({ sku, descripcion, precio, exis, costo: costo ?? null });
+      nuevos.push({ sku, descripcion, precio, exis });
     }
     if (modoCarga === 'noContados') {
       const nuevosMap = new Map();
@@ -5191,12 +5156,12 @@ function escanearPorPieza(codigo) {
     else if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, 'inventario'); return; }
   }
    if (!p) p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
-  if (!p) { confirmarEscaneoVisual(false, 'Código no encontrado: ' + codigo); toast('❌ No encontrado: ' + codigo, 'error'); return; }
+  if (!p) { feedbackError(); toast('❌ No encontrado: ' + codigo, 'error'); return; }
 
   // 🆕 Bloqueo de zona
   const permiso = puedoContarSku(p.sku);
   if (!permiso.ok) {
-    confirmarEscaneoVisual(false, permiso.razon);
+    feedbackError();
     toast('⛔ ' + permiso.razon, 'error');
     return;
   }
@@ -5223,7 +5188,7 @@ function escanearPorPieza(codigo) {
   ultimoEscanerPz = { sku: p.sku, cantidadAnterior: actual };
   persistirInventarioActual();
   sincronizarInventarioAuto();
-  confirmarEscaneoVisual(true, `+1 ${p.sku} · ${nuevo} piezas`);
+  feedbackExito();
   toast(`✔ ${p.sku} = ${nuevo}/${ajustado}`, 'big');
   renderInvTopStats();
   renderInventario();
@@ -5242,7 +5207,7 @@ function confirmarSuperaTotal() {
   sincronizarInventarioAuto();
   const m = document.getElementById('modalSuperaTotal'); if (m) m.classList.remove('activo');
   superaTotalPendiente = null;
-  confirmarEscaneoVisual(true, `+1 ${producto.sku} · ${cantidadNueva} piezas`);
+  feedbackExito();
   toast(`⚠️ ${producto.sku} = ${cantidadNueva} (supera el esperado)`, 'warn');
   renderInvTopStats();
   renderInventario();
@@ -5692,13 +5657,11 @@ async function confirmarConteo() {
   const inp = document.getElementById('inputConteo');
   const cant = Math.max(0, parseInt(inp ? inp.value : 0) || 0);
   const p = invProductoActual;
-  const camaraActiva = document.getElementById('modalCamara')?.classList.contains('activo');
 
   // 🆕 Verificar que puedo contar este SKU
   const permiso = puedoContarSku(p.sku);
   if (!permiso.ok) {
-    if (camaraActiva) confirmarEscaneoVisual(false, permiso.razon);
-    else feedbackError();
+    feedbackError();
     alert('⛔ ' + permiso.razon);
     return;
   }
@@ -5717,21 +5680,11 @@ async function confirmarConteo() {
       `[Cancelar] = REEMPLAZAR (queda ${cant})`
     );
     const modo = opcion ? 'sumar' : 'reemplazar';
-    if (!(await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, modo))) {
-      if (camaraActiva) confirmarEscaneoVisual(false, 'No se pudo guardar el conteo.');
-      else feedbackError();
-      toast('No se pudo guardar el conteo.', 'error');
-      return;
-    }
+    await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, modo);
     await aplicarConteosIndividuales(sesionActivaUsuario.id);
   } else if (sesionActivaUsuario) {
     // Es el primero (o soy yo el único): reemplazar limpio
-    if (!(await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, 'reemplazar'))) {
-      if (camaraActiva) confirmarEscaneoVisual(false, 'No se pudo guardar el conteo.');
-      else feedbackError();
-      toast('No se pudo guardar el conteo.', 'error');
-      return;
-    }
+    await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, 'reemplazar');
     await aplicarConteosIndividuales(sesionActivaUsuario.id);
   } else {
     // Sin sesión: comportamiento viejo
@@ -5746,8 +5699,7 @@ async function confirmarConteo() {
     sincronizarInventarioAuto();
   }
 
-  if (camaraActiva) confirmarEscaneoVisual(true, `Guardado · ${p.sku} · ${cant} piezas`);
-  else feedbackExito();
+  feedbackExito();
   toast(`✔ ${p.sku} = ${cant}`);
   const bi = document.getElementById('invBusqueda');
   if (bi) bi.value = p.sku;
@@ -6053,21 +6005,6 @@ const esAndroid = /Android/i.test(navigator.userAgent);
 let zxingReader = null;
 let camaraStream = null;
 let cameraRun = 0;
-let temporizadorDestelloEscaneo;
-function confirmarEscaneoVisual(exito, mensaje) {
-  const nodo = document.getElementById('destelloEscaneo');
-  const camara = document.getElementById('modalCamara');
-  if (camara?.classList.contains('activo') && mensaje) {
-    document.getElementById('cameraStatus').textContent = mensaje;
-  }
-  if (nodo) {
-    nodo.className = exito ? 'escaneo-exito' : 'escaneo-error';
-    clearTimeout(temporizadorDestelloEscaneo);
-    temporizadorDestelloEscaneo = setTimeout(() => { nodo.className = ''; }, 320);
-  }
-  if (exito) feedbackExito();
-  else feedbackError();
-}
 let camaraLoop = null;
 
 async function abrirCamara(origen) {
@@ -6078,12 +6015,6 @@ async function abrirCamara(origen) {
   const opcionesContinuo = document.getElementById('cameraContinuousOptions');
   const continuo = document.getElementById('cameraContinuous');
   const esInventario = origen === 'inventario';
-  const esMueble = origen === 'muebles' || origen === 'mueble-captura' || origen === 'mueble-captura-unica';
-  if (configSonido.activo) {
-    const audio = getAudioCtx();
-    if (audio?.state === 'suspended') void audio.resume().catch(() => {});
-  }
-  const muebles = origen === 'muebles' ? window.conteoMuebles : esMueble ? window.sesionesMueble : null;
   const porPieza = esInventario && modoEscanearPz && !sesionActivaUsuario;
   modal.classList.toggle('camara-venta', origen === 'venta-inventario');
   opcionesContinuo.hidden = !esInventario;
@@ -6092,7 +6023,7 @@ async function abrirCamara(origen) {
     : 'La cámara queda abierta para el siguiente producto después de confirmar la cantidad.';
   
   if (modal) modal.classList.add('activo');
-  if (status) status.textContent = muebles ? 'Iniciando cámara · ' + muebles.nombre() : 'Iniciando cámara...';
+  if (status) status.textContent = 'Iniciando cámara...';
 
   const run = ++cameraRun;
   let ultimoCodigo = '';
@@ -6138,9 +6069,7 @@ async function abrirCamara(origen) {
     if (run !== cameraRun) return;
 
     if (status) {
-      status.textContent = muebles
-        ? 'Escaneo continuo · ' + muebles.nombre()
-        : esIOS
+      status.textContent = esIOS
         ? 'Centra el código completo. Si se ve borroso, aleja un poco el iPhone.'
         : 'Centra el código en la imagen.';
     }
@@ -6159,10 +6088,6 @@ async function abrirCamara(origen) {
       if (run !== cameraRun) return;
       if (!modal.classList.contains('activo')) {
         cerrarCamara();
-        return;
-      }
-      if (muebles?.ocupada()) {
-        camaraLoop = setTimeout(readFrame, 100);
         return;
       }
       if (esInventario && document.querySelector('.modal-bg.activo:not(#modalCamara), [data-pausa-escaneo]')) {
@@ -6202,16 +6127,14 @@ async function abrirCamara(origen) {
             console.error('Error al leer el código:', error);
             cerrarCamara();
             modal.classList.add('activo');
-            const mensaje = 'No se pudo leer con la cámara. Cierra y vuelve a abrir el escáner.';
-            if (muebles) muebles.error(mensaje);
-            else status.textContent = mensaje;
+            status.textContent = 'No se pudo leer con la cámara. Cierra y vuelve a abrir el escáner.';
             return;
           }
         }
 
         const codigo = resultado?.getText()?.trim();
         if (codigo) {
-          if (origen === 'mueble-captura-unica' || (!esMueble && (!esInventario || !continuo.checked))) {
+          if (!esInventario || !continuo.checked) {
             cerrarCamara();
             procesarCodigoEscaneado(codigo, origen);
             return;
@@ -6220,8 +6143,7 @@ async function abrirCamara(origen) {
           ultimaLectura = performance.now();
           if (normalizado !== ultimoCodigo) {
             ultimoCodigo = normalizado;
-            if (muebles) void muebles.escanear(normalizado);
-            else if (porPieza) escanearPorPieza(normalizado);
+            if (porPieza) escanearPorPieza(normalizado);
             else procesarCodigoInv(normalizado, 'inventario-cantidad');
           }
         } else if (performance.now() - ultimaLectura >= 650) {
@@ -6239,11 +6161,9 @@ async function abrirCamara(origen) {
     cerrarCamara();
     modal?.classList.add('activo');
     if (status) {
-      const mensaje = error.name === 'NotAllowedError'
+      status.textContent = error.name === 'NotAllowedError'
         ? 'Permiso denegado. Actívalo en los ajustes de tu navegador.'
         : 'No se pudo iniciar el escáner.';
-      if (muebles) muebles.error(mensaje);
-      else status.textContent = mensaje;
     }
   }
 }
@@ -6295,9 +6215,6 @@ async function toggleLinterna() {
 
 // Función para manejar el código escaneado según la pestaña
 function procesarCodigoEscaneado(codigo, origen) {
-  if (origen === 'mueble-busqueda') return window.sesionesMueble?.buscarEscaneo(codigo);
-  if (origen === 'mueble-captura-unica') return window.sesionesMueble?.abrirCantidad(codigo);
-  if (origen === 'mueble-venta') return window.sesionesMueble?.buscarVenta(codigo);
   if (typeof feedbackExito === 'function') feedbackExito(); // Sonido de tu app
 
   if (origen === 'buscar') {
@@ -6341,7 +6258,6 @@ function procesarCodigoInv(codigo, contexto = 'inventario') {
     const p = inventarioBase.find(x => x.sku.toUpperCase() === items[0].sku.toUpperCase());
     if (p) { abrirModalConteo(p); return; }
     // El código está vinculado pero el SKU no está en el inventario
-    if (contexto === 'inventario-cantidad') confirmarEscaneoVisual(false, 'Producto fuera del Excel: ' + codigo);
     mostrarNoEncontradoInventario(codigo, items[0].sku);
     return;
   }
@@ -6350,13 +6266,11 @@ function procesarCodigoInv(codigo, contexto = 'inventario') {
     items.forEach(it => { const p = inventarioBase.find(x => x.sku.toUpperCase() === it.sku.toUpperCase()); if (p) candidatos.push(p); });
     if (candidatos.length === 1) { abrirModalConteo(candidatos[0]); return; }
     if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, contexto); return; }
-    if (contexto === 'inventario-cantidad') confirmarEscaneoVisual(false, 'Producto fuera del Excel: ' + codigo);
     toast('⚠️ Ninguno de los SKUs está en el inventario', 'error'); return;
   }
   const p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
   if (p) { abrirModalConteo(p); return; }
   // No se encontró
-  if (contexto === 'inventario-cantidad') confirmarEscaneoVisual(false, 'Código no encontrado: ' + codigo);
   mostrarNoEncontradoInventario(codigo, null);
 }
 /* ============ PROCESAR CÓDIGO EN PEDIDO ============ */
@@ -7245,7 +7159,7 @@ body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area
   .tab{padding:13px 17px 11px;font-size:13px;border-bottom-width:3px;transition:background .18s,color .18s}
   .tab:hover{background:rgba(255,255,255,.12)}
   .tab.activo{background:rgba(255,255,255,.16);border-bottom-color:#ffc96a}
-  #pestanaPedido,#pestanaInventario,#pestanaMuebles,#pestanaVincular,#pestanaBaseDatos,#pestanaVentas,#pestanaAjustes{
+  #pestanaPedido,#pestanaInventario,#pestanaVincular,#pestanaBaseDatos,#pestanaVentas,#pestanaAjustes{
     max-width:1500px;margin:20px auto 28px;padding:0 clamp(8px,1.6vw,22px)
   }
   .panel{
@@ -7599,45 +7513,6 @@ window.addEventListener('pagehide', () => {
 });
 </script>
 
-<style>
-  [hidden]{display:none!important}
-  .muebles-enlace #app,.muebles-enlace #loginBg,.muebles-enlace #estadoRed{display:none!important}
-  #mueblesExterno main{max-width:45rem;margin:1rem auto!important}
-  #mueblesExterno header{padding:12px 16px}
-  #mueblesExterno h1{margin:0;font-size:1.2rem}
-  .muebles-form{display:grid;gap:.65rem;margin:.75rem 0}
-  .muebles-form label{display:grid;gap:.3rem}
-  .muebles-acciones{flex-wrap:wrap}
-  .muebles-item{width:100%;margin:.35rem 0}
-  .muebles-asignacion{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.55rem 0;border-top:1px solid var(--fc-line)}
-  #mueblesCompartir::backdrop{background:#0009}
-  #mueblesCompartir form{margin-top:1rem}
-  #destelloEscaneo{display:none;position:fixed;inset:0;z-index:10000;pointer-events:none}
-  #destelloEscaneo.escaneo-exito{display:block;background:#22ff654d;box-shadow:inset 0 0 0 16px #22ed55}
-  #destelloEscaneo.escaneo-error{display:block;background:#ff273f4d;box-shadow:inset 0 0 0 16px #ff453a}
-  @media(prefers-reduced-motion:reduce){
-    #destelloEscaneo.escaneo-exito,#destelloEscaneo.escaneo-error{background:none}
-  }
-</style>
-<div id="destelloEscaneo" aria-hidden="true"></div>
-<style>
-  .sesion-mueble-asignacion {display:grid;gap:8px;margin:10px 0;padding:10px;border:1px solid var(--fc-line);border-radius:8px}
-  .sesion-mueble-asignacion label {display:grid;gap:4px}
-  .sesion-mueble-tarjeta {padding:12px;margin:10px 0;border:1px solid var(--fc-line);border-radius:8px;background:var(--fc-session-detail,var(--fc-card))}
-  .sesion-mueble-botones {display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-  #pestanaMuebles .sesion-mueble-tarjeta {margin:12px 0}
-#pestanaMuebles .sesion-mueble-asignacion {margin:10px 0}
-#pestanaMuebles input[type="checkbox"] {width:auto}
-#pestanaMuebles [data-sm="buscar-camara"] {text-decoration:underline}
-#pestanaMuebles .mueble-lista {max-height:400px;overflow:auto}
-#pestanaMuebles .mueble-lista details {padding:9px;border-bottom:1px solid var(--fc-line)}
-#pestanaMuebles .mueble-lista summary {cursor:pointer}
-#pestanaMuebles .mueble-metricas {display:flex;gap:20px;padding:10px 0;color:var(--fc-primary)}
-#modalMuebleGestion .modal,#modalMuebleProducto .modal {max-height:90dvh;overflow:auto}
-#modalMuebleGestion .sesion-mueble-tarjeta {margin-top:12px}
-</style>
-<script defer src="muebles.js"></script>
-<script defer src="sesiones-muebles.js"></script>
 </body>
 </html>
 
