@@ -18,7 +18,6 @@
   let catalogo = [];
   let capturas = [];
   let guardando = false;
-  let temporizadorDestello;
 
   function conectar() {
     if (!window.supabase || !configSupabase.url || !configSupabase.key) {
@@ -291,26 +290,14 @@
     }
   }
 
-  function destello(exito, texto) {
-    const nodo = $('#mueblesDestello');
-    if (!nodo || !$('#modalCamara').classList.contains('activo')) return;
-    const status = $('#cameraStatus');
-    status.textContent = texto;
-    nodo.className = exito ? 'muebles-exito' : 'muebles-error';
-    clearTimeout(temporizadorDestello);
-    temporizadorDestello = setTimeout(() => { nodo.className = ''; }, 260);
-    if (exito) feedbackExito();
-    else feedbackError();
-  }
-
   async function escanear(codigo) {
     try {
       const producto = resolverProducto(codigo);
       if (!producto) throw new Error('Código fuera del Excel. Puedes capturarlo manualmente.');
       const total = await guardar(producto, 1, null);
-      destello(true, `+1 ${producto.descripcion || producto.sku} · ${total} en ${ubicacion.nombre}`);
+      confirmarEscaneoVisual(true, `+1 ${producto.descripcion || producto.sku} · ${total} en ${ubicacion.nombre}`);
     } catch (error) {
-      destello(false, error.message);
+      confirmarEscaneoVisual(false, error.message);
     }
   }
 
@@ -411,6 +398,6 @@
     escanear,
     ocupada: () => guardando,
     nombre: () => ubicacion?.nombre || '',
-    error: texto => destello(false, texto)
+    error: texto => confirmarEscaneoVisual(false, texto)
   };
 })();
