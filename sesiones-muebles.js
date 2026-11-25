@@ -53,8 +53,9 @@
   function valoresUnitarios(p) {
     const costo = leerCosto(p.costo);
     const precio = precioDeInventario(p);
+    const origenPrecio = p.precioDeBaseSucursal ? 'Precio U. · inventario de sucursal' : 'Precio U.';
     return {costo, precio, valorUnitario:costo ?? precio,
-      origenValor:costo != null ? 'Costo unitario' : precio != null ? 'Precio U.' : 'Sin valor unitario'};
+      origenValor:costo != null ? 'Costo unitario' : precio != null ? origenPrecio : 'Sin valor unitario'};
   }
 
   async function datos(consulta) {
@@ -138,8 +139,12 @@
       ${sesion ? `<p>${esc(nombre)}</p>` : `<label>Nombre de sesión<input id="muebleNombreSesion" maxlength="120" value="${esc(nombre)}"></label>
       <label>Sucursal<select id="muebleSucursal">${sucursales.map(s => `<option value="${esc(s.id)}"${s.id === sucursal ? ' selected' : ''}>${esc(s.nombre)}</option>`).join('')}</select></label>
       <label>Total de muebles o áreas (opcional)<input id="muebleTotal" type="number" min="1" max="250" value="${esc(total)}"></label>
-      <label>Excel con costos o precios unitarios (opcional)<input id="muebleArchivoCosto" type="file" accept=".xlsx,.xls,.csv"></label>
-      <p class="small" id="muebleNombreArchivo">${gestion.archivoCosto ? esc(gestion.archivoCosto.name) : 'Puedes usar el Excel de inventario o un reporte con SKU y Precio U.'}</p>
+      <p class="small">Se usa el precio unitario del inventario cargado de la sucursal.</p>
+      <details${gestion.archivoCosto ? ' open' : ''}>
+        <summary>Valores unitarios adicionales (opcional)</summary>
+        <label>Excel con costos o precios unitarios<input id="muebleArchivoCosto" type="file" accept=".xlsx,.xls,.csv"></label>
+        <p class="small" id="muebleNombreArchivo">${gestion.archivoCosto ? esc(gestion.archivoCosto.name) : 'Archivo adicional con Clave o SKU.'}</p>
+      </details>
       <div id="muebleReparto"${total ? '' : ' hidden'}>${boton('repartir','Repartir automáticamente')}</div>`}
       ${gruposHtml}
       <div class="sesion-mueble-asignacion"><label>Usuario<select id="muebleNuevoUsuario"><option value="">Selecciona un usuario</option>${opciones}</select></label>
@@ -254,19 +259,41 @@
     return {snapshot,encontrados};
   }
 
-  function snapshotConValoresBase(s) {
+  function snapshotConValoresBase(s, base = inventariosPorSucursal[s.sucursal_id], usarPrecioReferencia = false) {
     const snapshot = s.snapshot_base || [];
     const fecha = meta(s)?.baseFecha;
-    const base = inventariosPorSucursal[s.sucursal_id];
-    if (!fecha || base?.fechaCargaBase !== fecha || !base.base?.length ||
-      snapshot.every(p => Object.hasOwn(p,'precioValuacion'))) return snapshot;
+    const baseOriginal = !!fecha && base?.fechaCargaBase === fecha;
+    if (!base?.base?.length || (!baseOriginal && !usarPrecioReferencia)) return snapshot;
+    const necesitaValores = p => baseOriginal
+      ? !Object.hasOwn(p,'precioValuacion') : valoresUnitarios(p).valorUnitario == null;
+    if (!snapshot.some(necesitaValores)) return snapshot;
+
     const productos = new Map(base.base.map(p => [normalizar(p.sku),p]));
     return snapshot.map(p => {
+      if (!necesitaValores(p)) return p;
       const origen = productos.get(normalizar(p.sku));
       if (!origen) return p;
-      return {...p,costo:leerCosto(p.costo) ?? leerCosto(origen.costo),
-        precioValuacion:precioDeInventario(p) ?? precioDeInventario(origen)};
+      const precioValuacion = precioDeInventario(origen);
+      if (baseOriginal) return {...p,costo:leerCosto(p.costo) ?? leerCosto(origen.costo),
+        precioValuacion:precioDeInventario(p) ?? precioValuacion};
+      if (precioValuacion == null) return p;
+      return {...p,precioValuacion,precioDeBaseSucursal:true};
     });
+  }
+
+  async function baseParaReporte(s) {
+    const local = inventariosPorSucursal[s.sucursal_id];
+    const fecha = meta(s)?.baseFecha;
+    if ((fecha && local?.fechaCargaBase === fecha && local.base?.length) ||
+        (s.snapshot_base || []).every(p => valoresUnitarios(p).valorUnitario != null)) return local;
+    try {
+      const {data: remota} = await datos(consultarBaseInventario(s.sucursal_id)) || {};
+      const localMasReciente = Date.parse(local?.fechaCargaBase) > Date.parse(remota?.fechaCargaBase);
+      return remota?.base?.length && !localMasReciente ? remota : local;
+    } catch (error) {
+      console.warn('No se pudo consultar el inventario cargado de la sucursal.',error);
+      return local;
+    }
   }
 
   async function cargarValoresSesion(idSesion, archivo) {
@@ -495,7 +522,8 @@
     return porLugar;
   }
 
-  function conciliar(s, eventos, porLugar = agrupar(s,eventos)) {
+  function conciliar(s, eventos, porLugar = agrupar(s,eventos),
+    snapshot = snapshotConValoresBase(s,inventariosPorSucursal[s.sucursal_id],true)) {
     const acumulados = new Map();
     for (const lugar of lugares(s)) for (const p of porLugar.get(lugar.id).values()) {
       const total = acumulados.get(p.sku) || {
@@ -511,7 +539,7 @@
       acumulados.set(p.sku,total);
     }
     const completa = lugares(s).length > 0 && lugares(s).every(m => m.terminado);
-    const resumen = snapshotConValoresBase(s).map(p => {
+    const resumen = snapshot.map(p => {
       const sku = normalizar(p.sku);
       const t = acumulados.get(sku) || {
         cantidad:0, antes:0, despues:0, contado:false, descuentoFisico:0, muebles:[], usuarios:new Set()
@@ -555,7 +583,7 @@
       }
       if (creador(s) && s.estado !== 'borrador') {
         const etiqueta = s.estado === 'abierta' ? '📊 Reporte global preliminar (Excel)' : '📊 Reporte global de cierre (Excel)';
-        reportes.push(boton('reporte-global',etiqueta,s.id), boton('cargar-valores','Cargar costos o precios (Excel)',s.id));
+        reportes.push(boton('reporte-global',etiqueta,s.id));
       }
       const visibles = creador(s) ? lugares(s) : propios(s);
       const estado = {borrador:'Borrador',abierta:'Abierta',cerrada:'Cerrada'}[s.estado] || s.estado;
@@ -566,6 +594,10 @@
         ${reportes.length ? `<div class="mueble-reportes">
           <strong class="small">Descargas de la sesión</strong>
           <div class="sesion-mueble-botones">${reportes.join('')}</div>
+          ${creador(s) && s.estado !== 'borrador' ? `<details class="small">
+            <summary>Valores unitarios adicionales (opcional)</summary>
+            ${boton('cargar-valores','Cargar costos o precios (Excel)',s.id)}
+          </details>` : ''}
         </div>` : ''}</section>`;
     });
     const filtro = $('muebleFiltro')?.value || '';
@@ -969,8 +1001,10 @@
     return Math.round((valor + Number.EPSILON) * 100) / 100;
   }
 
-  function descargar(s, eventos, cuentaPersonal = '') {
+  async function descargar(s, eventos, cuentaPersonal = '') {
     if (!window.XLSX) throw new Error('Excel no está disponible.');
+    const baseReferencia = cuentaPersonal ? null : await baseParaReporte(s);
+    if (!cuentaPersonal && !creador(s)) return;
     const ubicaciones = new Map(lugares(s).map(m => [m.id,m]));
     const base = new Map((s.snapshot_base || []).map(p => [normalizar(p.sku),p]));
     const porLugar = agrupar(s,eventos);
@@ -1044,7 +1078,8 @@
         ['Alcance','Capturas y ventas registradas por esta cuenta. La conciliación global considera también correcciones de otros usuarios.']);
       agregarHoja('Resumen',['Concepto','Resultado'],filasResumen,{anchos:[33,68],texto:1,filtro:false});
     } else {
-      const {resumen,completa} = conciliar(s,eventos,porLugar);
+      const snapshot = snapshotConValoresBase(s,baseReferencia,true);
+      const {resumen,completa} = conciliar(s,eventos,porLugar,snapshot);
       const global = resumen.map(p => {
         const valores = valoresUnitarios(p);
         const difPiezas = diferenciaVisible(p,completa);
@@ -1056,7 +1091,7 @@
       });
       const diferencias = global.filter(p => p.difPiezas != null && p.difPiezas !== 0);
       const sinValor = diferencias.filter(p => p.valorUnitario == null).length;
-      const valuadosConPrecio = diferencias.filter(p => p.origenValor === 'Precio U.').length;
+      const valuadosConPrecio = diferencias.filter(p => p.costo == null && p.precio != null).length;
       const conIncidencias = global.filter(p => p.estado === 'Fuera del Excel');
       filasResumen.push(['Moneda de la valuación','MXN'],['Conciliación',completa ? 'Completa' : 'Preliminar. Los faltantes y sobrantes pueden cambiar al terminar los muebles.'],
         ['Áreas totales',lugares(s).length],['Áreas pendientes',pendientes],
@@ -1068,7 +1103,12 @@
         ['SKU con diferencia sin costo ni precio',sinValor],['SKU fuera del Excel',conIncidencias.length],
         ['Cálculo','Sistema ajustado = sistema al cargar menos ventas registradas. Físico al corte = conteo vigente menos ventas posteriores aún no reflejadas.'],
         ['Dif. pz','Con sistema ajustado negativo se suman las piezas físicas al saldo del sistema. Con saldo de cero o mayor se resta el sistema ajustado del físico.'],
-        ['Valuación','Se usa el costo unitario si está disponible y, en su defecto, Precio U. La columna Base de valuación identifica qué se usó por SKU.'],        ['Colores','Rojo = faltante. Verde = sobrante. Azul = cuadra. Las celdas vacías quedan pendientes o carecen de datos.']);
+        ['Valuación','Se usa el costo unitario si está disponible y, en su defecto, Precio U. La columna Base de valuación identifica qué se usó por SKU.'],
+        ['Colores','Rojo = faltante. Verde = sobrante. Azul = cuadra. Las celdas vacías quedan pendientes o carecen de datos.']);
+      if (global.some(p => p.precioDeBaseSucursal)) {
+        filasResumen.push(['Inventario de referencia para precios',momento(baseReferencia?.fechaCargaBase)
+          || 'Inventario cargado de la sucursal sin fecha registrada']);
+      }
       const totalValuado = (items,campo) =>
         !items.length || items.some(p => p[campo] != null) ? aMoneda(total(items,campo)) : null;
       const valoresMoneda = [
@@ -1084,7 +1124,7 @@
       const resultado = p => [p.sku,p.descripcion,p.estado,p.exis ?? null,p.antes,p.despues,p.sistema ?? null,p.cantidad,
         p.observado ?? null,p.difPiezas,p.faltante,p.sobrante,p.costo,p.precio,p.origenValor,p.difImporte,
         p.valorFaltante,p.valorSobrante,p.muebles.join(', '),[...p.usuarios].map(nombreUsuario).join(', ')];
-      const opciones = {anchos:[17,42,29,16,14,14,16,15,15,12,12,12,16,14,19,15,16,16,34,30],
+      const opciones = {anchos:[17,42,29,16,14,14,16,15,15,12,12,12,16,14,31,15,16,16,34,30],
         moneda:[12,13,15,16,17],columnaDiferencia:9,destacar:[2,9,10,11,15,16,17]};
       agregarHoja('Diferencias',columnas,[
         ...diferencias.sort((a,b) => a.difPiezas - b.difPiezas || a.sku.localeCompare(b.sku)),...conIncidencias
@@ -1139,7 +1179,7 @@
     const propias = (await capturas(s,null,usuario)).filter(e => e.usuario === usuario && String(e.dispositivo).startsWith(prefijo));
     if (!autorizado()) return;
     if (!propias.length) throw new Error('Esta cuenta todavía no tiene capturas en la sesión.');
-    descargar(s,propias,usuario);
+    await descargar(s,propias,usuario);
   }
 
   function pausarCamara() {
