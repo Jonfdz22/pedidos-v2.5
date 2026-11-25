@@ -1,4 +1,4 @@
-const C = 'fc-relma-v11';
+const C = 'fc-relma-v12';
 
 // Recursos que SIEMPRE se cachean al instalar
 const PRECACHE = [
