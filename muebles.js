@@ -92,13 +92,13 @@
     ubicaciones = [];
     ubicacion = null;
     const filas = await datos(cliente.from(tablas.inventarios)
-      .select('id,nombre,creado').eq('sucursal', sucursalActual).order('creado', {ascending: false}));
+      .select('id,nombre,creado,estado').eq('sucursal', sucursalActual).neq('estado','archivada').order('creado', {ascending: false}));
     $('#mueblesAdminContenido').innerHTML = `
       <form id="mueblesCrear" class="muebles-form">
         <label>Nombre del inventario <input name="nombre" required maxlength="120" placeholder="Inventario de noviembre"></label>
         <button class="verde">Crear inventario por muebles</button>
       </form>
-      ${filas.map(fila => `<button class="gris muebles-item" data-inventario="${fila.id}">${html(fila.nombre)}</button>`).join('')}`;
+      ${filas.map(fila => `<button class="gris muebles-item" data-inventario="${fila.id}">${html(fila.nombre)} · ${fila.estado === "cerrada" ? "Cerrada" : "Abierta"}</button>`).join('')}`;
   }
 
   async function crearInventario(formulario) {
@@ -128,16 +128,16 @@
 
   async function abrirInventario(inventarioId) {
     inventario = await datos(cliente.from(tablas.inventarios)
-      .select('id,nombre,referencia').eq('id', inventarioId).eq('sucursal', sucursalActual).single());
+      .select('id,nombre,referencia,estado').neq('estado','archivada').eq('id', inventarioId).eq('sucursal', sucursalActual).single());
     await actualizarUbicaciones();
   }
 
   async function actualizarUbicaciones() {
     ubicaciones = await datos(cliente.from(tablas.ubicaciones)
-      .select('id,nombre,persona,correo,terminada').eq('inventario', inventario.id).order('nombre'));
+      .select('id,nombre,persona,correo,terminada,estado_sesion').eq('inventario', inventario.id).order('nombre'));
     const contenedor = acceso === 'encargado' ? $('#mueblesAdminContenido') : $('#mueblesTrabajo');
     if (acceso === 'trabajador') {
-      contenedor.innerHTML = ubicaciones.length ? ubicaciones.map(area => `<button class="gris muebles-item" data-area="${area.id}">${html(area.nombre)} · ${area.terminada ? 'Terminado' : 'Abrir'}</button>`).join('')
+      contenedor.innerHTML = ubicaciones.length ? ubicaciones.map(area => `<button class="gris muebles-item" data-area="${area.id}">${html(area.nombre)} · ${area.estado_sesion === 'cerrada' ? 'Sesión cerrada' : area.terminada ? 'Terminado' : 'Abrir'}</button>`).join('')
         : '<p>Este enlace no tiene muebles asignados.</p>';
       return;
     }
@@ -147,14 +147,18 @@
       <div class="fila muebles-acciones"><button class="gris" data-muebles-accion="lista">Volver</button><button class="gris" data-muebles-accion="actualizar">Actualizar avance</button></div>
       <h4>${html(inventario.nombre)}</h4>
       <p>${ubicaciones.filter(a => a.terminada).length} de ${ubicaciones.length} ubicaciones terminadas</p>
-      <form id="mueblesAsignar" class="muebles-form">
+      ${inventario.estado === 'abierta' ? `<form id="mueblesAsignar" class="muebles-form">
         <label>Mueble o área <input name="nombre" required maxlength="120" placeholder="Bodega · Estante A"></label>
         <label>Responsable <select name="persona" required>${personas.map(([clave,u]) => `<option value="${html(clave)}">${html(u.nombre || clave)}</option>`).join('')}</select></label>
         <label>Correo del responsable <input name="correo" type="email" required maxlength="254"></label>
         <button class="verde">Asignar mueble</button>
-      </form>
+      </form>` : ''}
       ${ubicaciones.map(a => `<div class="muebles-asignacion"><span><strong>${html(a.nombre)}</strong> · ${html(usuarios[a.persona]?.nombre || a.persona)}<br><small>${a.terminada ? 'Terminado' : 'Pendiente'}</small></span><button class="gris" data-enlace="1">Ver enlace</button></div>`).join('')}
-      ${ubicaciones.length ? '<button class="verde muebles-item" data-muebles-accion="exportar">Exportar conteo a Excel</button>' : ''}`;
+      ${ubicaciones.length ? '<button class="verde muebles-item" data-muebles-accion="exportar">Exportar conteo a Excel</button>' : ''}
+      <div class="fila muebles-acciones">
+        ${inventario.estado === 'abierta' ? '<button class="gris" data-muebles-accion="cerrar-sesion">Cerrar sesión</button>' : ''}
+        <button class="rojo" data-muebles-accion="eliminar-sesion">Eliminar sesión</button>
+      </div>`;
   }
 
   async function asignar(formulario) {
@@ -211,10 +215,11 @@
   }
 
   function mostrarUbicacion() {
+    const cerrada = ubicacion.estado_sesion !== 'abierta';
     $('#mueblesTrabajo').innerHTML = `
       <button class="gris" data-muebles-accion="mis-muebles">Mis muebles</button>
       <h2>${html(ubicacion.nombre)}</h2>
-      ${ubicacion.terminada ? '<p>Mueble terminado.</p>' : `
+      ${cerrada ? '<p>La sesión está cerrada. Puedes revisar tus capturas.</p>' : ubicacion.terminada ? '<p>Mueble terminado.</p>' : `
       <button class="verde muebles-item" data-muebles-accion="camara">📷 Escanear</button>
       <form id="mueblesManual" class="muebles-form">
         <label>SKU o código <input name="codigo" required maxlength="120"></label>
@@ -222,7 +227,7 @@
         <button class="gris">Guardar cantidad</button>
       </form>`}
       <ul id="mueblesDetalle"></ul>
-      ${ubicacion.terminada ? '' : '<button class="verde muebles-item" data-muebles-accion="terminar">Terminar mueble</button>'}`;
+      ${cerrada || ubicacion.terminada ? '' : '<button class="verde muebles-item" data-muebles-accion="terminar">Terminar mueble</button>'}`;
     mostrarCapturas();
   }
 
@@ -313,6 +318,21 @@
     } finally { guardando = false; }
   }
 
+  async function cambiarEstadoSesion(estado) {
+    if (!existePermisoLocal() || acceso !== 'encargado' || !inventario) return;
+    const actual = inventario;
+    const pendientes = ubicaciones.filter(area => !area.terminada).length;
+    const mensaje = estado === 'cerrada'
+      ? `¿Cerrar «${actual.nombre}»? ${pendientes ? 'Muebles pendientes: ' + pendientes + '. ' : ''}Se bloquearán las capturas y podrás exportar el reporte.`
+      : `¿Eliminar «${actual.nombre}» de la lista? Se cerrará el acceso a sus muebles y las capturas quedarán archivadas.`;
+    if (!confirm(mensaje)) return;
+    await datos(cliente.from(tablas.inventarios).update({estado}).eq('id', actual.id)
+      .eq('estado', actual.estado).select('id').single());
+    if (estado === 'archivada') await listaInventarios();
+    else await abrirInventario(actual.id);
+    toast(estado === 'cerrada' ? 'Sesión cerrada.' : 'Sesión eliminada de la lista.');
+  }
+
   async function exportar() {
     if (!window.XLSX) throw new Error('No se cargó el exportador de Excel.');
     const filas = await Promise.all(ubicaciones.map(async a =>
@@ -324,6 +344,7 @@
       totales.set(p.sku, {descripcion:p.descripcion, cantidad:(anterior?.cantidad || 0) + p.cantidad});
     }
     const completo = ubicaciones.every(a => a.terminada);
+    const estadoReporte = completo ? 'CONTEO TERMINADO' : inventario.estado === 'cerrada' ? 'CERRADA CON MUEBLES PENDIENTES' : 'PRELIMINAR';
     const resumen = inventario.referencia.map(p => {
       const cuenta = totales.get(p.sku)?.cantidad ?? (completo ? 0 : null);
       totales.delete(p.sku);
@@ -332,7 +353,7 @@
     for (const [sku,p] of totales) resumen.push([sku,p.descripcion,null,p.cantidad,null,'Fuera del Excel']);
     const wb = XLSX.utils.book_new();
     for (const [nombre, filas] of [
-      ['Resumen', [[completo ? 'CONTEO TERMINADO' : 'PRELIMINAR'], ['SKU','Producto','Esperado','Contado','Diferencia','Revisión'], ...resumen]],
+      ['Resumen', [[estadoReporte], ['SKU','Producto','Esperado','Contado','Diferencia','Revisión'], ...resumen]],
       ['Por mueble', [['Mueble o área','Responsable','SKU','Producto','Cantidad'], ...detalle.map(p => [p.area,p.persona,p.sku,p.descripcion,p.cantidad])]],
       ['Avance', [['Mueble o área','Responsable','Estado'], ...ubicaciones.map(a => [a.nombre,a.persona,a.terminada?'Terminado':'Pendiente'])]]
     ]) XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(filas),nombre);
@@ -374,6 +395,8 @@
       const accion = {
         lista: listaInventarios, actualizar: actualizarUbicaciones,
         'mis-muebles': () => { if (!guardando) { ubicacion = null; return actualizarUbicaciones(); } }, camara: () => abrirCamara('muebles'),
+        'cerrar-sesion': () => cambiarEstadoSesion('cerrada'),
+        'eliminar-sesion': () => cambiarEstadoSesion('archivada'),
         terminar, exportar
       }[mueblesAccion];
       if (accion) operar(boton, accion);
