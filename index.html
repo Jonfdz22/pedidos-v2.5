@@ -727,12 +727,14 @@
   </div>
 </div>
 
+<div id="destelloEscaneo" aria-hidden="true"></div>
 <div class="modal-bg" id="modalCamara">
   <div class="modal">
     <h3>📷 Escanear</h3>
     <!-- Video nativo con atributos obligatorios para iPhone -->
     <video id="cameraVideo" autoplay muted playsinline style="width:100%; max-height:60vh; background:#000; border-radius:10px; object-fit:cover; display:block;"></video>
-    <div id="cameraStatus" class="small" style="text-align:center; margin-top:8px;">Iniciando cámara...</div>
+    <div id="cameraStatus" class="small" role="status" style="text-align:center; margin-top:8px;">Iniciando cámara...</div>
+    <div id="cameraExistenciaSistema" class="small" hidden></div>
     <div id="cameraContinuousOptions" hidden style="margin-top:10px;">
       <label style="display:flex; gap:8px; align-items:center;">
         <input id="cameraContinuous" type="checkbox" style="width:auto; margin:0;" aria-describedby="cameraContinuousHelp">
@@ -5173,12 +5175,16 @@ function escanearPorPieza(codigo) {
     else if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, 'inventario'); return; }
   }
    if (!p) p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
-  if (!p) { feedbackError(); toast('❌ No encontrado: ' + codigo, 'error'); return; }
+  if (!p) {
+    feedbackResultadoConteo(false,'Código no encontrado: ' + codigo);
+    toast('❌ No encontrado: ' + codigo, 'error');
+    return;
+  }
 
   // 🆕 Bloqueo de zona
   const permiso = puedoContarSku(p.sku);
   if (!permiso.ok) {
-    feedbackError();
+    feedbackResultadoConteo(false,permiso.razon);
     toast('⛔ ' + permiso.razon, 'error');
     return;
   }
@@ -5205,7 +5211,7 @@ function escanearPorPieza(codigo) {
   ultimoEscanerPz = { sku: p.sku, cantidadAnterior: actual };
   persistirInventarioActual();
   sincronizarInventarioAuto();
-  feedbackExito();
+  feedbackResultadoConteo(true,`Guardado · ${p.sku} · ${nuevo} pz`);
   toast(`✔ ${p.sku} = ${nuevo}/${ajustado}`, 'big');
   renderInvTopStats();
   renderInventario();
@@ -5224,7 +5230,7 @@ function confirmarSuperaTotal() {
   sincronizarInventarioAuto();
   const m = document.getElementById('modalSuperaTotal'); if (m) m.classList.remove('activo');
   superaTotalPendiente = null;
-  feedbackExito();
+  feedbackResultadoConteo(true,`Guardado · ${producto.sku} · ${cantidadNueva} pz`);
   toast(`⚠️ ${producto.sku} = ${cantidadNueva} (supera el esperado)`, 'warn');
   renderInvTopStats();
   renderInventario();
@@ -5678,8 +5684,8 @@ async function confirmarConteo() {
   // 🆕 Verificar que puedo contar este SKU
   const permiso = puedoContarSku(p.sku);
   if (!permiso.ok) {
-    feedbackError();
-    alert('⛔ ' + permiso.razon);
+    if (feedbackResultadoConteo(false,permiso.razon)) toast(permiso.razon,'error');
+    else alert('⛔ ' + permiso.razon);
     return;
   }
 
@@ -5697,11 +5703,19 @@ async function confirmarConteo() {
       `[Cancelar] = REEMPLAZAR (queda ${cant})`
     );
     const modo = opcion ? 'sumar' : 'reemplazar';
-    await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, modo);
+    if (!(await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, modo))) {
+      feedbackResultadoConteo(false,'No se pudo guardar el conteo.');
+      toast('No se pudo guardar el conteo.','error');
+      return;
+    }
     await aplicarConteosIndividuales(sesionActivaUsuario.id);
   } else if (sesionActivaUsuario) {
     // Es el primero (o soy yo el único): reemplazar limpio
-    await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, 'reemplazar');
+    if (!(await registrarConteoIndividual(sesionActivaUsuario.id, p.sku, cant, 'reemplazar'))) {
+      feedbackResultadoConteo(false,'No se pudo guardar el conteo.');
+      toast('No se pudo guardar el conteo.','error');
+      return;
+    }
     await aplicarConteosIndividuales(sesionActivaUsuario.id);
   } else {
     // Sin sesión: comportamiento viejo
@@ -5716,7 +5730,7 @@ async function confirmarConteo() {
     sincronizarInventarioAuto();
   }
 
-  feedbackExito();
+  feedbackResultadoConteo(true,`Guardado · ${p.sku} · ${cant} pz`);
   toast(`✔ ${p.sku} = ${cant}`);
   const bi = document.getElementById('invBusqueda');
   if (bi) bi.value = p.sku;
@@ -6023,6 +6037,32 @@ let zxingReader = null;
 let camaraStream = null;
 let cameraRun = 0;
 let camaraLoop = null;
+let origenCamaraConteo = '';
+let temporizadorDestello = null;
+let destelloEnEspera = null;
+let ultimoDestello = -Infinity;
+
+function feedbackResultadoConteo(exito, mensaje) {
+  if (exito) feedbackExito();
+  else feedbackError();
+  const activo = document.getElementById('modalCamara')?.classList.contains('activo');
+  const continuo = origenCamaraConteo === 'mueble-captura' ||
+    (origenCamaraConteo === 'inventario' && document.getElementById('cameraContinuous').checked);
+  if (!activo || !continuo) return false;
+  if (mensaje) document.getElementById('cameraStatus').textContent = mensaje;
+  clearTimeout(destelloEnEspera);
+  const mostrar = () => {
+    ultimoDestello = performance.now();
+    const destello = document.getElementById('destelloEscaneo');
+    destello.dataset.resultado = exito ? 'exito' : 'error';
+    clearTimeout(temporizadorDestello);
+    temporizadorDestello = setTimeout(() => { delete destello.dataset.resultado; }, 250);
+  };
+  const espera = 340 - (performance.now() - ultimoDestello);
+  if (espera > 0) destelloEnEspera = setTimeout(mostrar, espera);
+  else mostrar();
+  return true;
+}
 
 async function abrirCamara(origen) {
   cerrarCamara();
@@ -6033,6 +6073,11 @@ async function abrirCamara(origen) {
   const continuo = document.getElementById('cameraContinuous');
   const esInventario = origen === 'inventario';
   const esMuebleContinuo = origen === 'mueble-captura';
+  origenCamaraConteo = esInventario || esMuebleContinuo ? origen : '';
+  if (origenCamaraConteo && configSonido.activo) {
+    const audio = getAudioCtx();
+    if (audio?.state === 'suspended') void audio.resume().catch(() => {});
+  }
   const porPieza = esInventario && modoEscanearPz && !sesionActivaUsuario;
   modal.classList.toggle('camara-venta', origen === 'venta-inventario' || origen === 'mueble-venta');
   opcionesContinuo.hidden = !esInventario;
@@ -6165,7 +6210,7 @@ async function abrirCamara(origen) {
           ultimaLectura = performance.now();
           if (normalizado !== ultimoCodigo) {
             ultimoCodigo = normalizado;
-            if (esMuebleContinuo) window.sesionesMueble.abrirCantidad(normalizado);
+            if (esMuebleContinuo) window.sesionesMueble.abrirCantidad(normalizado, false, true);
             else if (porPieza) escanearPorPieza(normalizado);
             else procesarCodigoInv(normalizado, 'inventario-cantidad');
           }
@@ -6192,7 +6237,17 @@ async function abrirCamara(origen) {
 }
 
 function cerrarCamara() {
-  cameraRun++; 
+  cameraRun++;
+  origenCamaraConteo = '';
+  clearTimeout(temporizadorDestello);
+  clearTimeout(destelloEnEspera);
+  const destello = document.getElementById('destelloEscaneo');
+  if (destello) delete destello.dataset.resultado;
+  const existencia = document.getElementById('cameraExistenciaSistema');
+  if (existencia) {
+    existencia.textContent = '';
+    existencia.hidden = true;
+  }
   
   if (camaraLoop) {
     clearTimeout(camaraLoop);
@@ -6284,6 +6339,7 @@ function procesarCodigoInv(codigo, contexto = 'inventario') {
     const p = inventarioBase.find(x => x.sku.toUpperCase() === items[0].sku.toUpperCase());
     if (p) { abrirModalConteo(p); return; }
     // El código está vinculado pero el SKU no está en el inventario
+    if (contexto === 'inventario-cantidad') feedbackResultadoConteo(false,'Código fuera del inventario: ' + codigo);
     mostrarNoEncontradoInventario(codigo, items[0].sku);
     return;
   }
@@ -6292,11 +6348,13 @@ function procesarCodigoInv(codigo, contexto = 'inventario') {
     items.forEach(it => { const p = inventarioBase.find(x => x.sku.toUpperCase() === it.sku.toUpperCase()); if (p) candidatos.push(p); });
     if (candidatos.length === 1) { abrirModalConteo(candidatos[0]); return; }
     if (candidatos.length > 1) { mostrarElegirProducto(codigo, candidatos, contexto); return; }
+    if (contexto === 'inventario-cantidad') feedbackResultadoConteo(false,'Los SKU vinculados están fuera del inventario.');
     toast('⚠️ Ninguno de los SKUs está en el inventario', 'error'); return;
   }
   const p = inventarioBase.find(x => x.sku.toUpperCase() === codigo);
   if (p) { abrirModalConteo(p); return; }
   // No se encontró
+  if (contexto === 'inventario-cantidad') feedbackResultadoConteo(false,'Código no encontrado: ' + codigo);
   mostrarNoEncontradoInventario(codigo, null);
 }
 /* ============ PROCESAR CÓDIGO EN PEDIDO ============ */
@@ -7547,7 +7605,21 @@ window.addEventListener('pagehide', () => {
 
  
 <style>
-  #tabMuebles[hidden], #muebleReparto[hidden] { display:none }
+  #tabMuebles[hidden], #muebleReparto[hidden],
+  #cameraExistenciaSistema[hidden], #muebleExistenciaSistema[hidden], #muebleExistenciaCaptura[hidden] { display:none }
+  #cameraExistenciaSistema { margin-top:6px; text-align:center }
+  #destelloEscaneo { position:fixed; inset:0; pointer-events:none; z-index:10000; display:none }
+  #destelloEscaneo[data-resultado] {
+    display:block; border:solid 8px var(--destello-color); background:var(--destello-fondo)
+  }
+  #destelloEscaneo[data-resultado="exito"] { --destello-color:#2fd875; --destello-fondo:#21bb5926 }
+  #destelloEscaneo[data-resultado="error"] { --destello-color:#ff5160; --destello-fondo:#ff354826 }
+  @media(prefers-reduced-motion:reduce) {
+    #destelloEscaneo[data-resultado] { background:transparent }
+  }
+  .mueble-reportes { border-top:1px solid var(--fc-line); margin-top:12px; padding-top:10px }
+  #modalMuebleGestion label.mueble-permiso { display:flex; align-items:center; gap:8px }
+  #modalMuebleGestion .mueble-permiso input { width:auto; margin:0 }
   .sesion-mueble-botones { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 }
   .sesion-mueble-asignacion, .sesion-mueble-tarjeta {
     padding:10px; margin:10px 0; border:1px solid var(--fc-line); border-radius:8px;
