@@ -1,9 +1,10 @@
-const C = 'fc-relma-v13-android';
+const C = 'fc-relma-v14-muebles';
 
 // Recursos que SIEMPRE se cachean al instalar
 const PRECACHE = [
   './',
   './index.html',
+  './sesiones-muebles.js',
   './manifest.json',
   './icon.svg',
   'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',

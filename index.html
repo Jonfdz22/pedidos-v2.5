@@ -307,6 +307,7 @@
     <div class="tabs">
       <button class="tab" id="tabPedido" onclick="cambiarPestana('pedido')">🛒 Pedido</button>
       <button class="tab" id="tabInventario" onclick="cambiarPestana('inventario')">📦 Inventario</button>
+      <button class="tab" id="tabMuebles" onclick="cambiarPestana('muebles')" hidden>📦 Inventario por mueble</button>
       <button class="tab" id="tabVincular" onclick="cambiarPestana('vincular')">🔗 Vincular</button>
       <button class="tab" id="tabBaseDatos" onclick="cambiarPestana('baseDatos')">🗄️ Base de datos</button>
       <button class="tab" id="tabVentas" onclick="cambiarPestana('ventas')">💰 Ventas</button>
@@ -503,6 +504,10 @@
     <button class="verde" onclick="exportarInventario()">📥 Exportar reporte</button>
     <button class="rojo" onclick="limpiarConteo()">🗑 Limpiar conteo</button>
   </div>
+</div>
+
+<div id="pestanaMuebles" style="display:none;">
+  <div id="sesionMueblesPanel"></div>
 </div>
 
 <div id="pestanaVincular" style="display:none;">
@@ -3402,6 +3407,7 @@ function cerrarSesion() {
        // Cerrar
     detenerPollingInventario();
     detenerPollingUsuarios();
+    window.sesionesMueble?.reiniciar();
     borrarSesion();
     usuarioLogueado = null;
     document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
@@ -3439,6 +3445,7 @@ function cambiarDeCuenta() {
     }
         detenerPollingInventario();
     detenerPollingUsuarios();
+    window.sesionesMueble?.reiniciar();
     borrarSesion();
     usuarioLogueado = null;
     document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('activo'));
@@ -3478,6 +3485,7 @@ function cambiarSucursal(id) {
   cerrarMenuSucursal();
   if (id === sucursalActual) return;
   sucursalActual = id;
+  window.sesionesMueble?.render();
    actualizarInventarioActual();
   if (typeof supabaseClient !== 'undefined' && supabaseClient) {
     bajarInventarioSupabase(id);
@@ -3677,6 +3685,7 @@ function entrarApp() {
     actualizarHeaderSucursal();
     actualizarSucursalNombreEnVistas();
     aplicarPermisos();
+    void window.sesionesMueble?.refrescar();
     if (productos.length === 0 && productosManuales.length === 0) cargarEstado();
     else { renderPedido(); renderVinculos(); }
     renderInvTopStats();
@@ -3713,7 +3722,8 @@ function aplicarPermisos() {
   const tabB = document.getElementById('tabBaseDatos'); if (tabB) tabB.style.display = u.permisos.baseDatos ? 'inline-block' : 'none';
   const tabA = document.getElementById('tabAjustes'); if (tabA) tabA.style.display = u.permisos.ajustes ? 'inline-block' : 'none';
   const tabVent = document.getElementById('tabVentas'); if (tabVent) tabVent.style.display = 'inline-block';
-  if (!u.permisos[tabActual]) {
+  window.sesionesMueble?.actualizarAcceso();
+  if (tabActual !== 'ventas' && (tabActual === 'muebles' ? !window.sesionesMueble?.puedeVer() : !u.permisos[tabActual])) {
   const disp = ['pedido','inventario','vincular','baseDatos','ventas','ajustes'].filter(t => t === 'ventas' || u.permisos[t]);
     cambiarPestana(disp[0] || 'pedido');
   }
@@ -3736,9 +3746,13 @@ function aplicarVisibilidadAdmin() {
 }
 function cambiarPestana(t) {
   const u = usuarios[usuarioLogueado];
-  if (t !== 'ventas' && u && !u.permisos[t]) { toast('⛔ Sin permiso', 'error'); return; }
+  if (t === 'muebles' ? !window.sesionesMueble?.puedeVer() : t !== 'ventas' && u && !u.permisos[t]) {
+    toast('⛔ Sin permiso', 'error');
+    return;
+  }
+  if (tabActual === 'muebles' && t !== 'muebles') window.sesionesMueble?.pausarCamara();
   tabActual = t;
-  ['pedido','inventario','vincular','baseDatos','ventas','ajustes'].forEach(x => {
+  ['pedido','inventario','muebles','vincular','baseDatos','ventas','ajustes'].forEach(x => {
     const tab = document.getElementById('tab' + x.charAt(0).toUpperCase() + x.slice(1));
     if (tab) tab.classList.toggle('activo', x === t);
     const p = document.getElementById('pestana' + x.charAt(0).toUpperCase() + x.slice(1));
@@ -3748,6 +3762,7 @@ function cambiarPestana(t) {
   if (t === 'ajustes') { renderUsuarios(); renderSucursales(); actualizarEstadoEmailJS(); cargarConfigSonido(); actualizarEstadoSupabase(); aplicarVisibilidadAdmin(); }
   if (t === 'inventario') { renderBannerSesion(); if (sesionActivaUsuario) renderMiZona(); }
   if (t === 'inventario') { renderInvTopStats(); actualizarUIInventario(); renderInventario(); actualizarSucursalNombreEnVistas(); }
+  if (t === 'muebles') { window.sesionesMueble.render(); void window.sesionesMueble.refrescar(); }
   if (t === 'ventas') { ventaRapidaInit(); }
   if (t === 'baseDatos') { renderManuales(); renderBaseDatosStats(); }
   guardarEstado();
@@ -5064,6 +5079,7 @@ async function cargarExcelInventario(file, modoCarga) {
     const idxSku = findCol('CLAVE','SKU','CODIGO','CÓDIGO','REX');
     const idxDesc = findCol('DESCRIPCI');
     const idxPrecio = findCol('PRECIO');
+    const idxCosto = window.sesionesMueble?.columnaCosto(header) ?? -1;
     const idxExis = findCol('EXIS','EXIST','CANTIDAD','INV ACTUAL');
     if (idxSku < 0 || idxExis < 0) { alert('Falta Clave o Exis.'); if (info) info.innerHTML = ''; if (infoBD) infoBD.innerHTML = ''; return; }
     const nuevos = [];
@@ -5083,7 +5099,8 @@ async function cargarExcelInventario(file, modoCarga) {
       const exis = parseFloat(String(exisRaw).replace(/[^0-9.\-]/g, '')) || 0;
       if (skusVistos.has(sku)) { const prev = nuevos.find(p => p.sku === sku); if (prev) prev.exis += exis; continue; }
       skusVistos.add(sku);
-      nuevos.push({ sku, descripcion, precio, exis });
+      const costo = idxCosto < 0 ? null : window.sesionesMueble.leerCosto(r[idxCosto]);
+      nuevos.push({ sku, descripcion, precio, exis, costo });
     }
     if (modoCarga === 'noContados') {
       const nuevosMap = new Map();
@@ -6015,8 +6032,9 @@ async function abrirCamara(origen) {
   const opcionesContinuo = document.getElementById('cameraContinuousOptions');
   const continuo = document.getElementById('cameraContinuous');
   const esInventario = origen === 'inventario';
+  const esMuebleContinuo = origen === 'mueble-captura';
   const porPieza = esInventario && modoEscanearPz && !sesionActivaUsuario;
-  modal.classList.toggle('camara-venta', origen === 'venta-inventario');
+  modal.classList.toggle('camara-venta', origen === 'venta-inventario' || origen === 'mueble-venta');
   opcionesContinuo.hidden = !esInventario;
   document.getElementById('cameraContinuousHelp').textContent = porPieza
     ? 'Suma una pieza por lectura. Retira la etiqueta antes de escanear otra con el mismo código.'
@@ -6090,6 +6108,10 @@ async function abrirCamara(origen) {
         cerrarCamara();
         return;
       }
+      if (esMuebleContinuo && window.sesionesMueble.pausarLectura()) {
+        camaraLoop = setTimeout(readFrame, 100);
+        return;
+      }
       if (esInventario && document.querySelector('.modal-bg.activo:not(#modalCamara), [data-pausa-escaneo]')) {
         camaraLoop = setTimeout(readFrame, 180);
         return;
@@ -6134,7 +6156,7 @@ async function abrirCamara(origen) {
 
         const codigo = resultado?.getText()?.trim();
         if (codigo) {
-          if (!esInventario || !continuo.checked) {
+          if (!esMuebleContinuo && (!esInventario || !continuo.checked)) {
             cerrarCamara();
             procesarCodigoEscaneado(codigo, origen);
             return;
@@ -6143,7 +6165,8 @@ async function abrirCamara(origen) {
           ultimaLectura = performance.now();
           if (normalizado !== ultimoCodigo) {
             ultimoCodigo = normalizado;
-            if (porPieza) escanearPorPieza(normalizado);
+            if (esMuebleContinuo) window.sesionesMueble.abrirCantidad(normalizado);
+            else if (porPieza) escanearPorPieza(normalizado);
             else procesarCodigoInv(normalizado, 'inventario-cantidad');
           }
         } else if (performance.now() - ultimaLectura >= 650) {
@@ -6215,6 +6238,9 @@ async function toggleLinterna() {
 
 // Función para manejar el código escaneado según la pestaña
 function procesarCodigoEscaneado(codigo, origen) {
+  if (origen === 'mueble-busqueda') return window.sesionesMueble?.buscarEscaneo(codigo);
+  if (origen === 'mueble-captura-unica') return window.sesionesMueble?.abrirCantidad(codigo);
+  if (origen === 'mueble-venta') return window.sesionesMueble?.buscarVenta(codigo);
   if (typeof feedbackExito === 'function') feedbackExito(); // Sonido de tu app
 
   if (origen === 'buscar') {
@@ -7159,7 +7185,7 @@ body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area
   .tab{padding:13px 17px 11px;font-size:13px;border-bottom-width:3px;transition:background .18s,color .18s}
   .tab:hover{background:rgba(255,255,255,.12)}
   .tab.activo{background:rgba(255,255,255,.16);border-bottom-color:#ffc96a}
-  #pestanaPedido,#pestanaInventario,#pestanaVincular,#pestanaBaseDatos,#pestanaVentas,#pestanaAjustes{
+  #pestanaPedido,#pestanaInventario,#pestanaMuebles,#pestanaVincular,#pestanaBaseDatos,#pestanaVentas,#pestanaAjustes{
     max-width:1500px;margin:20px auto 28px;padding:0 clamp(8px,1.6vw,22px)
   }
   .panel{
@@ -7169,15 +7195,15 @@ body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area
     transition:box-shadow .2s,border-color .2s
   }
   .panel:hover{border-color:#d5dfed}
-  #pestanaInventario .inv-plegable{padding:0!important}
+  :is(#pestanaInventario,#pestanaMuebles) .inv-plegable{padding:0!important}
   .inv-plegable > summary{
     min-height:44px;padding:14px 18px;cursor:pointer;
     color:var(--fc-primary);font-weight:700;overflow-wrap:anywhere
   }
-  #pestanaInventario .inv-plegable[open]{padding-bottom:14px!important}
+  :is(#pestanaInventario,#pestanaMuebles) .inv-plegable[open]{padding-bottom:14px!important}
   .inv-plegable > :not(summary){margin-inline:14px}
   .inv-plegable > input[type=file]{width:calc(100% - 28px)}
-  #invPanelSesion{
+  :is(#invPanelSesion,#mueblePanelSesion){
     background:var(--fc-session-panel,#edf5ff);border-color:var(--fc-session-line,#bdd6f1)
   }
   .inv-sesion-avance{
@@ -7251,7 +7277,7 @@ body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area
   :focus-visible{outline:3px solid rgba(57,116,189,.55)!important;outline-offset:2px}
   @media(min-width:900px){
     .tabs{flex-wrap:wrap}
-    #pestanaPedido,#pestanaInventario,#pestanaVincular,#pestanaBaseDatos,#pestanaVentas,#pestanaAjustes{padding-left:24px;padding-right:24px}
+    #pestanaPedido,#pestanaInventario,#pestanaMuebles,#pestanaVincular,#pestanaBaseDatos,#pestanaVentas,#pestanaAjustes{padding-left:24px;padding-right:24px}
     #pestanaPedido{display:grid;grid-template-columns:minmax(300px,.85fr) minmax(400px,1.15fr);gap:16px;align-items:start}
     #pestanaPedido>.panel{margin-bottom:0!important}
     #pestanaPedido>.panel:nth-child(1){grid-column:1}
@@ -7265,7 +7291,7 @@ body{-webkit-font-smoothing:antialiased;padding-bottom:calc(80px + env(safe-area
     .header-btn .linea2{font-size:15px}
     .tabs{padding:0 7px;gap:0}
     .tab{padding:12px 12px 10px;font-size:12px}
-    #pestanaPedido,#pestanaInventario,#pestanaVincular,#pestanaBaseDatos,#pestanaVentas,#pestanaAjustes{margin:10px auto 18px;padding:0 8px}
+    #pestanaPedido,#pestanaInventario,#pestanaMuebles,#pestanaVincular,#pestanaBaseDatos,#pestanaVentas,#pestanaAjustes{margin:10px auto 18px;padding:0 8px}
     .panel{padding:14px!important;margin-bottom:10px!important}
     .inv-stat{padding:11px 7px}
     .inv-stat .num{font-size:20px}
@@ -7520,5 +7546,30 @@ window.addEventListener('pagehide', () => {
 
 
  
+<style>
+  #tabMuebles[hidden], #muebleReparto[hidden] { display:none }
+  .sesion-mueble-botones { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 }
+  .sesion-mueble-asignacion, .sesion-mueble-tarjeta {
+    padding:10px; margin:10px 0; border:1px solid var(--fc-line); border-radius:8px;
+    background:var(--fc-session-detail,var(--fc-card))
+  }
+  .sesion-mueble-asignacion label, #modalMuebleGestion label, #modalMuebleProducto label {
+    display:grid; gap:4px; margin:8px 0
+  }
+  #pestanaMuebles input[type="checkbox"] { width:auto }
+  #pestanaMuebles [data-sm="buscar-camara"] { text-decoration:underline }
+  #pestanaMuebles .mueble-lista { max-height:400px; overflow:auto }
+  #pestanaMuebles .mueble-lista details { padding:9px; border-bottom:1px solid var(--fc-line) }
+  #pestanaMuebles .mueble-lista summary { cursor:pointer }
+  #muebleContar .mueble-controles {
+    background:var(--fc-info-surface,#f0f7ff); padding:10px; border-radius:8px;
+    margin-bottom:12px; border-left:4px solid #1a5fbf
+  }
+  #muebleContar .mueble-controles button { flex:1; font-size:13px; padding:12px }
+  #muebleMiZona { border:2px solid #1e8449 }
+  #muebleCaptura input, #muebleFiltro { min-width:0 }
+  #modalMuebleGestion .modal, #modalMuebleProducto .modal { max-height:90dvh; overflow:auto }
+</style>
+<script defer src="sesiones-muebles.js"></script>
 </body>
 </html>
