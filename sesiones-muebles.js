@@ -125,7 +125,9 @@
 
     const sesiones = sesionesActuales.filter(s => s.sucursal_id === sucursalActual && esMuebles(s)
       && !meta(s).archivada && (admin() || (s.estado === 'abierta' && propios(s).length)));
-    panel.innerHTML = '<h4>Sesiones por muebles</h4>' + boton('refrescar', 'Actualizar sesiones') + sesiones.map(s => {
+    const crearSesion = admin() && !$('invSesionAcciones').querySelector('[onclick="abrirModalNuevaSesion()"]')
+      ? boton('crear', 'Crear sesión de conteo', '', 'verde') : '';
+    panel.innerHTML = '<h4>Sesiones por muebles</h4>' + crearSesion + boton('refrescar', 'Actualizar sesiones') + sesiones.map(s => {
       const estado = {borrador:'Borrador', abierta:'Abierta', cerrada:'Cerrada'}[s.estado];
       const controles = [];
       if (s.estado === 'abierta' && cuenta() && propios(s).length) controles.push(boton('unirse', 'Unirse', s.id, 'verde'));
@@ -371,7 +373,7 @@
       if (!control) return;
       const {sm, valor} = control.dataset;
       const tareas = {
-        refrescar: cargarListaSesiones, agregar: filaMueble, 'quitar-fila': () => control.closest('.sesion-mueble-asignacion').remove(),
+        crear: abrirModalNuevaSesion, refrescar: cargarListaSesiones, agregar: filaMueble, 'quitar-fila': () => control.closest('.sesion-mueble-asignacion').remove(),
         unirse: () => unirse(valor), seleccionar: () => seleccionar(valor),
         abrir: () => cambiarEstado(valor,'abrir'), cerrar: () => cambiarEstado(valor,'cerrar'),
         archivar: () => cambiarEstado(valor,'archivar'), reporte: () => exportar(valor),
