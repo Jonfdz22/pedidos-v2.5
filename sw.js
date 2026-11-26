@@ -1,4 +1,4 @@
-const C = 'fc-relma-v20-buscador-muebles';
+const C = 'fc-relma-v21-escaner-nativo-android';
 
 // Recursos que SIEMPRE se cachean al instalar
 const PRECACHE = [
