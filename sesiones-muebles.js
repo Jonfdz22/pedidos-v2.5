@@ -10,7 +10,7 @@
   const normalizar = valor => String(valor ?? '').trim().toUpperCase();
   const textoBusqueda = valor => normalizar(valor).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const momento = valor => valor ? new Date(valor).toLocaleString('es-MX') : '';
-  const admin = () => !!usuarioLogueado && _esAdminSesion();
+  const admin = () => permisoPestana('muebles') && _esAdminSesion();
   const creador = s => admin() && s?.creada_por === usuarioLogueado;
   const propios = s => lugares(s).filter(m => m.usuario === usuarioLogueado);
   const abierta = s => s?.estado === 'abierta' && !meta(s)?.archivada;
@@ -26,9 +26,9 @@
   let sugerencias = [], sugerenciaActiva = -1;
   const descargados = new Map();
   const miLugar = () => propios(activa).find(m => m.id === lugarId);
-  const puedeCapturar = () => abierta(activa) && !!miLugar() && !miLugar().terminado;
+  const puedeCapturar = () => permisoPestana('muebles') && abierta(activa) && !!miLugar() && !miLugar().terminado;
   const accesoTemporal = () => sesiones.some(s => abierta(s) && propios(s).length > 0);
-  const puedeVer = () => !!usuarioLogueado && (admin() || accesoTemporal());
+  const puedeVer = () => permisoPestana('muebles') && (admin() || accesoTemporal());
 
   function columnaCosto(encabezados) {
     const valores = encabezados.map(textoBusqueda);
@@ -69,8 +69,15 @@
   function actualizarAcceso() {
     const tab = $('tabMuebles');
     if (!tab) return;
-    tab.hidden = !puedeVer();
-    if (tabActual === 'muebles' && !puedeVer()) cambiarPestana('ventas');
+    const visible = puedeVer();
+    tab.hidden = !visible;
+    if (!permisoPestana('muebles')) {
+      if (activa) salir();
+      sesiones = [];
+      gestion = null;
+      $('modalMuebleGestion')?.classList.remove('activo');
+    }
+    if ((tabActual === 'muebles' && !visible) || (tabActual === null && visible)) mostrarPrimeraPestanaDisponible();
   }
 
   function boton(accion, texto, valor = '', clase = 'gris', deshabilitado = false) {
@@ -379,12 +386,12 @@
   }
 
   async function refrescar(avisar = false) {
-    if (!usuarioLogueado || !supabaseClient) return;
+    if (!permisoPestana('muebles') || !supabaseClient) return;
     if (refrescando) return refrescando;
     const generacionActual = generacion;
     refrescando = (async () => {
       const lista = await listar();
-      if (generacionActual !== generacion) return;
+      if (generacionActual !== generacion || !permisoPestana('muebles')) return;
       sesiones = lista;
       errorConexion = '';
       actualizarAcceso();
@@ -484,13 +491,14 @@
   }
 
   async function unirse(idSesion) {
+    if (!puedeVer()) return;
     if (sesionActivaUsuario) throw new Error('Primero sal de tu sesión por páginas.');
     const usuario = usuarioLogueado;
     const s = await actual(idSesion);
     if (!abierta(s) || !propios(s).length) throw new Error('La sesión está cerrada o no tienes muebles asignados.');
     if (ocupada || pendiente) throw new Error('Resuelve la captura pendiente antes de cambiar de sesión.');
     const carga = await capturas(s, creador(s) ? null : propios(s).map(m => m.id));
-    if (usuario !== usuarioLogueado || !propios(s).length || ocupada || pendiente) return;
+    if (usuario !== usuarioLogueado || !permisoPestana('muebles') || !propios(s).length || ocupada || pendiente) return;
     activa = s;
     lugarId = propios(s)[0].id;
     filas = carga;
@@ -1288,7 +1296,7 @@
     const usuario = usuarioLogueado;
     if (activa?.id === idSesion && (ocupada || pendiente)) throw new Error('Confirma la captura pendiente antes de exportar.');
     const s = await actual(idSesion);
-    const autorizado = () => usuario === usuarioLogueado && !meta(s).archivada &&
+    const autorizado = () => usuario === usuarioLogueado && permisoPestana('muebles') && !meta(s).archivada &&
       ((abierta(s) && propios(s).length > 0) || (creador(s) && s.estado !== 'borrador'));
     if (!autorizado()) return;
     const propias = (await capturas(s,null,usuario)).filter(e => e.usuario === usuario && String(e.dispositivo).startsWith(prefijo));

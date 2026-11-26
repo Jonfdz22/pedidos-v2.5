@@ -1,4 +1,4 @@
-const C = 'fc-relma-v22-arranque-muebles';
+const C = 'fc-relma-v23-permisos-pestanas';
 
 // Recursos que SIEMPRE se cachean al instalar
 const PRECACHE = [
