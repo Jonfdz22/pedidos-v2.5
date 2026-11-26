@@ -348,6 +348,7 @@
   </div>
 </div>
 
+<div id="sinPestanas" class="panel" hidden>No tienes pestañas disponibles. El administrador puede habilitarte el acceso.</div>
 <div id="pestanaPedido">
   <div class="panel">
     <h3>1 · Catálogo (sube el PDF)</h3>
@@ -1023,6 +1024,8 @@
     <label class="small" style="display:block; margin-top:14px;">Pestañas permitidas</label>
     <div class="permiso-check"><input type="checkbox" id="permPedido" checked><label for="permPedido">🛒 Pedido</label></div>
     <div class="permiso-check"><input type="checkbox" id="permInventario"><label for="permInventario">📦 Inventario</label></div>
+    <div class="permiso-check"><input type="checkbox" id="permMuebles"><label for="permMuebles">📦 Inventario por mueble <span class="small">(requiere asignación para participantes)</span></label></div>
+    <div class="permiso-check"><input type="checkbox" id="permVentas"><label for="permVentas">💰 Ventas</label></div>
     <div class="permiso-check"><input type="checkbox" id="permVincular"><label for="permVincular">🔗 Vincular</label></div>
     <div class="permiso-check"><input type="checkbox" id="permBaseDatos"><label for="permBaseDatos">🗄️ Base de datos</label></div>
     <div class="permiso-check"><input type="checkbox" id="permAjustes"><label for="permAjustes">⚙️ Ajustes</label></div>
@@ -1194,6 +1197,7 @@ let resultadosActuales = [];
 let indiceSel = -1;
 let productoSeleccionado = null;
 let ultimoProductoAgregado = null;
+const pestanasApp = ['pedido','inventario','muebles','vincular','baseDatos','ventas','ajustes'];
 let tabActual = 'pedido';
 let vinculos = {};
 let codigoPendiente = null;
@@ -1791,6 +1795,8 @@ async function subirUsuariosSupabase() {
 
 async function bajarUsuariosSupabase() {
   if (!supabaseClient) return 'error';
+  if (_syncUsuariosTimeout !== null || _subidaUsuariosPendiente) return 'pendiente';
+  const revision = revisionUsuariosLocal;
   try {
     const { data, error } = await supabaseClient.from('app_data')
       .select('data').eq('section', 'usuarios').maybeSingle();
@@ -1799,8 +1805,10 @@ async function bajarUsuariosSupabase() {
       console.log('📭 Sin usuarios en Supabase (Nube vacía)');
       return 'empty';
     }
+    if (revision !== revisionUsuariosLocal || _syncUsuariosTimeout !== null || _subidaUsuariosPendiente) return 'pendiente';
     usuarios = data.data;
     localStorage.setItem(KEY_USERS, JSON.stringify(usuarios));
+    if (usuarioLogueado && usuarios[usuarioLogueado]) aplicarPermisos();
     console.log('✅ Usuarios bajados:', Object.keys(usuarios).length);
     return 'ok';
   } catch(e) { console.error(e); return 'error'; }
@@ -1901,10 +1909,19 @@ async function bajarCoreSupabase() {
 }
 // Sync auto con debounce para no saturar
 let _syncUsuariosTimeout = null;
+let _subidaUsuariosPendiente = null;
+let revisionUsuariosLocal = 0;
 function sincronizarUsuariosAuto() {
   if (!supabaseClient) return;
   clearTimeout(_syncUsuariosTimeout);
-  _syncUsuariosTimeout = setTimeout(() => { subirUsuariosSupabase(); }, 1500);
+  _syncUsuariosTimeout = setTimeout(async () => {
+    _syncUsuariosTimeout = null;
+    const anterior = _subidaUsuariosPendiente;
+    const subida = (anterior || Promise.resolve()).then(subirUsuariosSupabase);
+    _subidaUsuariosPendiente = subida;
+    try { await subida; }
+    finally { if (_subidaUsuariosPendiente === subida) _subidaUsuariosPendiente = null; }
+  }, 1500);
 }
 
 // 🆕 Polling de usuarios: cada 30s revisa si otro dispositivo agregó/modificó usuarios
@@ -1918,15 +1935,7 @@ function iniciarPollingUsuarios() {
       const res = await supabaseClient.from('app_data')
         .select('updated_at').eq('section', 'usuarios').maybeSingle();
       const updated = res.data?.updated_at;
-      if (updated && updated !== _lastUsuariosUpdated) {
-        if (_lastUsuariosUpdated !== null) {
-          await bajarUsuariosSupabase();
-          console.log('🔄 Usuarios actualizados desde otro dispositivo');
-          // Refrescar lista si el modal de usuarios está abierto
-          if (document.getElementById('pestanaAjustes')?.style.display !== 'none') {
-            renderUsuarios();
-          }
-        }
+      if (updated && updated !== _lastUsuariosUpdated && (await bajarUsuariosSupabase()) === 'ok') {
         _lastUsuariosUpdated = updated;
       }
     } catch(e) { console.error('Polling usuarios:', e); }
@@ -2887,7 +2896,7 @@ function _extraBanner(){
  function _ciego(){ return false; }
 function _vExis(p){ return p.exis; }
 /* ===== A) Administradores ===== */
-const _PERM_IDS = ['permPedido','permInventario','permVincular','permBaseDatos','permAjustes'];
+const _PERM_IDS = ['permPedido','permInventario','permMuebles','permVincular','permBaseDatos','permVentas','permAjustes'];
 document.addEventListener('change', e => {
   if (!e.target) return;
   if (e.target.id === 'esAdminUsuario') {
@@ -2922,10 +2931,10 @@ function alternarAdmin(user){
   if (u.permisos.ajustes) {
     if (Object.values(usuarios).filter(v => v.permisos.ajustes).length <= 1) { alert('No puedes quitar al último administrador.'); return; }
     if (!confirm('¿Quitar permisos de administrador a @' + user + '? Conservará Pedido e Inventario.')) return;
-    u.permisos = { pedido: true, inventario: true, vincular: false, baseDatos: false, ajustes: false };
+    u.permisos = { ...u.permisos, pedido: true, inventario: true, vincular: false, baseDatos: false, ajustes: false };
   } else {
     if (!confirm('¿Dar permisos de administrador a @' + user + '?')) return;
-    u.permisos = { pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true };
+    u.permisos = { ...u.permisos, pedido: true, inventario: true, vincular: true, baseDatos: true, ajustes: true };
   }
   guardarUsuarios(); renderUsuarios(); if (user === usuarioLogueado) aplicarPermisos(); toast('👑 Permisos actualizados');
 }
@@ -3232,6 +3241,7 @@ function inicializarUsuarios() {
   }
 }
 function guardarUsuarios() {
+  revisionUsuariosLocal++;
   try { localStorage.setItem(KEY_USERS, JSON.stringify(usuarios)); } catch(e) {}
   if (typeof supabaseClient !== 'undefined' && supabaseClient) {
     // 🔥 PROTECCIÓN: Si el admin sigue usando la clave de fábrica, NO subirlo (evita borrar la nube)
@@ -3690,10 +3700,9 @@ function entrarApp() {
     actualizarEstadoEmailJS();
     actualizarHeaderSucursal();
     actualizarSucursalNombreEnVistas();
-    aplicarPermisos();
-    void window.sesionesMueble?.refrescar();
     if (productos.length === 0 && productosManuales.length === 0) cargarEstado();
     else { renderPedido(); renderVinculos(); }
+    aplicarPermisos();
     renderInvTopStats();
     actualizarUIInventario();
     renderInventario();
@@ -3701,8 +3710,7 @@ function entrarApp() {
     renderBaseDatosStats();
     renderSucursales();
     renderUsuarios();
-      const disp = ['pedido','inventario','vincular','baseDatos','ajustes'].filter(t => u.permisos[t]);
-    cambiarPestana(disp[0] || 'pedido');
+    mostrarPrimeraPestanaDisponible();
     // Cargar sesiones para el banner de Inventario
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       setTimeout(() => { cargarListaSesiones(); }, 2000);
@@ -3719,22 +3727,31 @@ function entrarApp() {
     alert('Error al iniciar la app: ' + e.message);
   }
 }
+function permisoPestana(t, usuario = usuarios[usuarioLogueado]) {
+  if (!usuario) return false;
+  const permiso = usuario.permisos?.[t];
+  return t === 'ventas' || t === 'muebles' ? permiso !== false : Boolean(permiso);
+}
+function pestanaDisponible(t) {
+  return permisoPestana(t) && (t !== 'muebles' || Boolean(window.sesionesMueble?.puedeVer()));
+}
+function mostrarPrimeraPestanaDisponible() {
+  const primera = pestanasApp.find(t => t !== 'ventas' && pestanaDisponible(t));
+  cambiarPestana(primera || (pestanaDisponible('ventas') ? 'ventas' : null));
+}
 function aplicarPermisos() {
   const u = usuarios[usuarioLogueado];
   if (!u) return;
-  const tabP = document.getElementById('tabPedido'); if (tabP) tabP.style.display = u.permisos.pedido ? 'inline-block' : 'none';
-  const tabI = document.getElementById('tabInventario'); if (tabI) tabI.style.display = u.permisos.inventario ? 'inline-block' : 'none';
-  const tabV = document.getElementById('tabVincular'); if (tabV) tabV.style.display = u.permisos.vincular ? 'inline-block' : 'none';
-  const tabB = document.getElementById('tabBaseDatos'); if (tabB) tabB.style.display = u.permisos.baseDatos ? 'inline-block' : 'none';
-  const tabA = document.getElementById('tabAjustes'); if (tabA) tabA.style.display = u.permisos.ajustes ? 'inline-block' : 'none';
-  const tabVent = document.getElementById('tabVentas'); if (tabVent) tabVent.style.display = 'inline-block';
-  window.sesionesMueble?.actualizarAcceso();
-  if (tabActual !== 'ventas' && (tabActual === 'muebles' ? !window.sesionesMueble?.puedeVer() : !u.permisos[tabActual])) {
-  const disp = ['pedido','inventario','vincular','baseDatos','ventas','ajustes'].filter(t => t === 'ventas' || u.permisos[t]);
-    cambiarPestana(disp[0] || 'pedido');
+  for (const pestana of pestanasApp) {
+    if (pestana === 'muebles') continue;
+    const tab = document.getElementById('tab' + pestana[0].toUpperCase() + pestana.slice(1));
+    if (tab) tab.style.display = permisoPestana(pestana,u) ? 'inline-block' : 'none';
   }
-  if (u.permisos.ajustes) renderUsuarios();
+  window.sesionesMueble?.actualizarAcceso();
+  if (!pestanaDisponible(tabActual)) mostrarPrimeraPestanaDisponible();
+  if (u.permisos?.ajustes) renderUsuarios();
   aplicarVisibilidadAdmin();
+  void window.sesionesMueble?.refrescar();
 }
 
 // 🆕 Solo el usuario "admin" ve los paneles sensibles (EmailJS, Supabase, Zona de riesgo)
@@ -3751,14 +3768,20 @@ function aplicarVisibilidadAdmin() {
   if (pR) pR.style.display = esAdmin ? 'block' : 'none';
 }
 function cambiarPestana(t) {
-  const u = usuarios[usuarioLogueado];
-  if (t === 'muebles' ? !window.sesionesMueble?.puedeVer() : t !== 'ventas' && u && !u.permisos[t]) {
+  if (t !== null && !pestanaDisponible(t)) {
     toast('⛔ Sin permiso', 'error');
     return;
   }
   if (tabActual === 'muebles' && t !== 'muebles') window.sesionesMueble?.pausarCamara();
+  if (tabActual === 'ventas' && t !== 'ventas' && !permisoPestana('ventas')) {
+    cerrarCamara();
+    for (const id of ['modalVentaCobrar','modalVentaTicket','modalCierreCaja']) {
+      document.getElementById(id)?.classList.remove('activo');
+    }
+  }
   tabActual = t;
-  ['pedido','inventario','muebles','vincular','baseDatos','ventas','ajustes'].forEach(x => {
+  document.getElementById('sinPestanas').hidden = t !== null;
+  pestanasApp.forEach(x => {
     const tab = document.getElementById('tab' + x.charAt(0).toUpperCase() + x.slice(1));
     if (tab) tab.classList.toggle('activo', x === t);
     const p = document.getElementById('pestana' + x.charAt(0).toUpperCase() + x.slice(1));
@@ -3780,9 +3803,9 @@ function renderUsuarios() {
   if (!cont) return;
   const lista = Object.entries(usuarios);
   if (!lista.length) { cont.innerHTML = '<p class="small">Sin usuarios.</p>'; return; }
-  const np = { pedido: '🛒', inventario: '📦', vincular: '🔗', baseDatos: '🗄️', ajustes: '⚙️' };
+  const np = { pedido: '🛒', inventario: '📦', muebles: '🗂️', vincular: '🔗', baseDatos: '🗄️', ventas: '💰', ajustes: '⚙️' };
   cont.innerHTML = lista.map(([user, u]) => {
-    const chips = Object.entries(u.permisos).filter(([_, v]) => v).map(([k]) => np[k] || '').join(' ');
+    const chips = pestanasApp.filter(t => permisoPestana(t,u)).map(t => np[t]).join(' ');
     const soyYo = user === usuarioLogueado;
     
     // 🔥 Lógica visual para usuarios pendientes
@@ -3832,6 +3855,7 @@ function renderSucursalesUsuario(seleccionadas) {
   }).join('');
 }
 function abrirModalUsuario(username) {
+  if (!_esAdminSesion()) return;
   modoEdicionUsuario = username || null;
   const inpU = document.getElementById('userUsuario');
   const inpN = document.getElementById('userNombre');
@@ -3841,6 +3865,8 @@ function abrirModalUsuario(username) {
   const perm = {
     pedido: document.getElementById('permPedido'),
     inventario: document.getElementById('permInventario'),
+    muebles: document.getElementById('permMuebles'),
+    ventas: document.getElementById('permVentas'),
     vincular: document.getElementById('permVincular'),
     baseDatos: document.getElementById('permBaseDatos'),
     ajustes: document.getElementById('permAjustes')
@@ -3851,11 +3877,7 @@ function abrirModalUsuario(username) {
     inpU.value = username; inpU.disabled = true;
     inpN.value = u.nombre || ''; inpE.value = u.email || ''; inpP.value = '';
     lblP.textContent = 'Nueva contraseña (vacío = no cambiar)';
-    perm.pedido.checked = !!u.permisos.pedido;
-    perm.inventario.checked = !!u.permisos.inventario;
-    perm.vincular.checked = !!u.permisos.vincular;
-    perm.baseDatos.checked = !!u.permisos.baseDatos;
-    perm.ajustes.checked = !!u.permisos.ajustes;
+    for (const [t,casilla] of Object.entries(perm)) casilla.checked = permisoPestana(t,u);
     renderSucursalesUsuario(u.sucursalesPermitidas || []);
   } else {
     setText('modalUsuarioTitulo', '➕ Agregar');
@@ -3863,6 +3885,7 @@ function abrirModalUsuario(username) {
     inpN.value = ''; inpE.value = ''; inpP.value = '';
     lblP.textContent = 'Contraseña';
     perm.pedido.checked = true; perm.inventario.checked = false;
+    perm.muebles.checked = true; perm.ventas.checked = true;
     perm.vincular.checked = false; perm.baseDatos.checked = false; perm.ajustes.checked = false;
     renderSucursalesUsuario([]);
   }
@@ -3874,6 +3897,7 @@ function cerrarModalUsuario() {
   modoEdicionUsuario = null;
 }
 function guardarUsuario() {
+  if (!_esAdminSesion()) return;
   const nombre = document.getElementById('userNombre').value.trim();
   const username = document.getElementById('userUsuario').value.trim().toLowerCase();
   const email = document.getElementById('userEmail').value.trim().toLowerCase();
@@ -3881,6 +3905,8 @@ function guardarUsuario() {
   const permisos = {
     pedido: document.getElementById('permPedido').checked,
     inventario: document.getElementById('permInventario').checked,
+    muebles: document.getElementById('permMuebles').checked,
+    ventas: document.getElementById('permVentas').checked,
     vincular: document.getElementById('permVincular').checked,
     baseDatos: document.getElementById('permBaseDatos').checked,
     ajustes: document.getElementById('permAjustes').checked
@@ -4403,6 +4429,7 @@ function ventaRapidaCancelar() {
 }
 
 function ventaRapidaCobrar() {
+  if (!permisoPestana('ventas')) return;
   if (!ventaRapidaActual.length) { toast('Ticket vacío', 'warn'); return; }
   const total = ventaRapidaActual.reduce((s, it) => s + it.cantidad * it.precio, 0);
   document.getElementById('cobrarTotal').textContent = '$' + redondearPrecio(total).toFixed(2);
@@ -4472,6 +4499,7 @@ function ventaBillete(monto) {
 function cerrarModalVentaCobrar() { const m = document.getElementById('modalVentaCobrar'); if (m) m.classList.remove('activo'); }
 
 function ventaConfirmar() {
+  if (!permisoPestana('ventas')) return;
   const total = ventaRapidaActual.reduce((s, it) => s + it.cantidad * it.precio, 0);
   const rec = ventaRapidaMetodo === 'efectivo' ? (parseFloat(document.getElementById('cobrarRecibido').value) || 0) : total;
   if (ventaRapidaMetodo === 'efectivo' && rec < total) { alert('El monto recibido (' + rec.toFixed(2) + ') es menor al total (' + total.toFixed(2) + ').'); return; }
@@ -4725,6 +4753,7 @@ function cerrarModalCierreCaja() {
 }
 
 function ventaConfirmarCierreCaja() {
+  if (!permisoPestana('ventas')) return;
   const hoy = new Date().toISOString().slice(0,10);
   const ventas = getVentasRapidas().filter(v => v.fecha.slice(0,10) === hoy);
   if (!ventas.length) { alert('No hay ventas hoy.'); return; }
@@ -7659,7 +7688,7 @@ window.addEventListener('pagehide', () => {
 
  
 <style>
-  #tabMuebles[hidden], #muebleReparto[hidden],
+  #sinPestanas[hidden], #tabMuebles[hidden], #muebleReparto[hidden],
   #cameraExistenciaSistema[hidden], #muebleExistenciaSistema[hidden], #muebleExistenciaCaptura[hidden] { display:none }
   #cameraExistenciaSistema { margin-top:6px; text-align:center }
   #destelloEscaneo { position:fixed; inset:0; pointer-events:none; z-index:10000; display:none }
