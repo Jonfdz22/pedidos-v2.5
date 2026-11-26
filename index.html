@@ -6069,6 +6069,21 @@ function feedbackResultadoConteo(exito, mensaje) {
   return true;
 }
 
+async function crearDetectorAndroid() {
+  const Detector = window.BarcodeDetector;
+  if (typeof Detector !== 'function') return null;
+  const formatos = ['code_128','code_39','ean_13','ean_8','upc_a','upc_e','codabar','itf','qr_code'];
+  try {
+    const disponibles = typeof Detector.getSupportedFormats === 'function'
+      ? await Detector.getSupportedFormats() : formatos;
+    const compatibles = formatos.filter(formato => disponibles.includes(formato));
+    return compatibles.length ? new Detector({formats:compatibles}) : null;
+  } catch (error) {
+    console.warn('Detector nativo no disponible. Se usará ZXing.',error);
+    return null;
+  }
+}
+
 async function abrirCamara(origen) {
   cerrarCamara();
   const modal = document.getElementById('modalCamara');
@@ -6100,6 +6115,7 @@ async function abrirCamara(origen) {
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
 
+    const prepararDetector = esAndroid && !esIOS ? crearDetectorAndroid() : null;
     // En Android se piden menos píxeles para iniciar y decodificar más rápido.
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
@@ -6134,15 +6150,16 @@ async function abrirCamara(origen) {
       }
     }
 
+    let detector = prepararDetector ? await prepararDetector : null;
     if (run !== cameraRun) return;
 
     if (status) {
       status.textContent = esIOS
         ? 'Centra el código completo. Si se ve borroso, aleja un poco el iPhone.'
-        : 'Centra el código en la imagen.';
+        : detector ? 'Apunta la cámara al código.' : 'Centra el código en la imagen.';
     }
 
-    zxingReader = new ZXing.BrowserMultiFormatReader();
+    if (!detector) zxingReader = new ZXing.BrowserMultiFormatReader();
 
     // Conserva los píxeles originales de la etiqueta al recortar el centro.
     const canvas = esIOS ? document.createElement('canvas') : null;
@@ -6150,61 +6167,93 @@ async function abrirCamara(origen) {
     const lectorCentro = contexto ? new ZXing.MultiFormatReader() : null;
     lectorCentro?.setHints(new Map([[ZXing.DecodeHintType.TRY_HARDER, true]]));
     let intentosEnCentro = 0;
+    let intentosNativosSinLectura = 0;
     let grises = null;
+    const pausaDeConteo = () => {
+      if (esMuebleContinuo && window.sesionesMueble.pausarLectura()) return 100;
+      if (esInventario && document.querySelector('.modal-bg.activo:not(#modalCamara), [data-pausa-escaneo]')) return 180;
+      return 0;
+    };
 
-    const readFrame = () => {
+    const readFrame = async () => {
       if (run !== cameraRun) return;
       if (!modal.classList.contains('activo')) {
         cerrarCamara();
         return;
       }
-      if (esMuebleContinuo && window.sesionesMueble.pausarLectura()) {
-        camaraLoop = setTimeout(readFrame, 100);
-        return;
-      }
-      if (esInventario && document.querySelector('.modal-bg.activo:not(#modalCamara), [data-pausa-escaneo]')) {
-        camaraLoop = setTimeout(readFrame, 180);
+      const pausa = pausaDeConteo();
+      if (pausa) {
+        camaraLoop = setTimeout(readFrame, pausa);
         return;
       }
 
       if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
-        let resultado;
-        try {
-          if (lectorCentro && intentosEnCentro < 3) {
-            intentosEnCentro++;
-            const ancho = Math.floor(video.videoWidth * 0.85);
-            const alto = Math.floor(video.videoHeight * 0.35);
-            if (canvas.width !== ancho) canvas.width = ancho;
-            if (canvas.height !== alto) canvas.height = alto;
-            const x = Math.floor((video.videoWidth - ancho) / 2);
-            const y = Math.floor((video.videoHeight - alto) / 2);
-            contexto.drawImage(video, x, y, ancho, alto, 0, 0, ancho, alto);
-
-            const pixeles = contexto.getImageData(0, 0, ancho, alto).data;
-            if (grises?.length !== ancho * alto) grises = new Uint8ClampedArray(ancho * alto);
-            for (let i = 0, j = 0; i < pixeles.length; i += 4, j++) {
-              grises[j] = (pixeles[i] + 2 * pixeles[i + 1] + pixeles[i + 2]) >> 2;
-            }
-            const luminancia = new ZXing.RGBLuminanceSource(grises, ancho, alto);
-            const imagen = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminancia));
-            resultado = lectorCentro.decodeWithState(imagen);
-          } else {
-            intentosEnCentro = 0;
-            resultado = zxingReader.decode(video);
+        let codigo = '';
+        if (detector) {
+          try {
+            const leidos = await detector.detect(video);
+            const codigos = leidos.map(resultado => resultado.rawValue?.trim()).filter(Boolean);
+            // Si hay varias etiquetas, espera a que se retire la que ya se capturó.
+            codigo = codigos.find(valor => valor.toUpperCase() === ultimoCodigo) || codigos[0] || '';
+          } catch (error) {
+            if (run !== cameraRun) return;
+            console.warn('El detector nativo dejó de responder. Se usará ZXing.',error);
+            detector = null;
           }
-        } catch (error) {
-          if (!(error instanceof ZXing.NotFoundException
-            || error instanceof ZXing.ChecksumException
-            || error instanceof ZXing.FormatException)) {
-            console.error('Error al leer el código:', error);
+          if (run !== cameraRun) return;
+          if (!modal.classList.contains('activo')) {
             cerrarCamara();
-            modal.classList.add('activo');
-            status.textContent = 'No se pudo leer con la cámara. Cierra y vuelve a abrir el escáner.';
+            return;
+          }
+          const pausaTrasLectura = pausaDeConteo();
+          if (pausaTrasLectura) {
+            camaraLoop = setTimeout(readFrame, pausaTrasLectura);
             return;
           }
         }
 
-        const codigo = resultado?.getText()?.trim();
+        if (codigo) intentosNativosSinLectura = 0;
+        else if (!detector || ++intentosNativosSinLectura >= 3) {
+          intentosNativosSinLectura = 0;
+          try {
+            let resultado;
+            if (lectorCentro && intentosEnCentro < 3) {
+              intentosEnCentro++;
+              const ancho = Math.floor(video.videoWidth * 0.85);
+              const alto = Math.floor(video.videoHeight * 0.35);
+              if (canvas.width !== ancho) canvas.width = ancho;
+              if (canvas.height !== alto) canvas.height = alto;
+              const x = Math.floor((video.videoWidth - ancho) / 2);
+              const y = Math.floor((video.videoHeight - alto) / 2);
+              contexto.drawImage(video, x, y, ancho, alto, 0, 0, ancho, alto);
+
+              const pixeles = contexto.getImageData(0, 0, ancho, alto).data;
+              if (grises?.length !== ancho * alto) grises = new Uint8ClampedArray(ancho * alto);
+              for (let i = 0, j = 0; i < pixeles.length; i += 4, j++) {
+                grises[j] = (pixeles[i] + 2 * pixeles[i + 1] + pixeles[i + 2]) >> 2;
+              }
+              const luminancia = new ZXing.RGBLuminanceSource(grises, ancho, alto);
+              const imagen = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminancia));
+              resultado = lectorCentro.decodeWithState(imagen);
+            } else if (!detector || typeof ZXing !== 'undefined') {
+              intentosEnCentro = 0;
+              zxingReader ??= new ZXing.BrowserMultiFormatReader();
+              resultado = zxingReader.decode(video);
+            }
+            codigo = resultado?.getText()?.trim() || '';
+          } catch (error) {
+            if (typeof ZXing === 'undefined' || !(error instanceof ZXing.NotFoundException
+              || error instanceof ZXing.ChecksumException
+              || error instanceof ZXing.FormatException)) {
+              console.error('Error al leer el código:', error);
+              cerrarCamara();
+              modal.classList.add('activo');
+              status.textContent = 'No se pudo leer con la cámara. Cierra y vuelve a abrir el escáner.';
+              return;
+            }
+          }
+        }
+
         if (codigo) {
           if (!esMuebleContinuo && (!esInventario || !continuo.checked)) {
             cerrarCamara();
