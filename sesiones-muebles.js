@@ -358,11 +358,15 @@
 
   async function listar() {
     const lista = [];
+    const administrador = admin();
+    const usuario = usuarioLogueado;
     for (let desde = 0; ; desde += 100) {
-      const lote = await datos(supabaseClient.from('sesiones_conteo')
-        .select('id,nombre,sucursal_id,estado,creada_por,fecha_creacion,fecha_apertura,fecha_cierre,asignaciones,total_productos')
-        .not('asignaciones->' + marcador, 'is', null).order('fecha_creacion',{ascending:false})
-        .order('id').range(desde, desde + 99));
+      let consulta = supabaseClient.from('sesiones_conteo')
+        .select('id,nombre,sucursal_id,estado,creada_por,fecha_creacion,fecha_apertura,fecha_cierre,asignaciones,total_productos');
+      consulta = administrador
+        ? consulta.not('asignaciones->' + marcador, 'is', null)
+        : consulta.eq('estado','abierta').contains('asignaciones',{[marcador]:{lugares:[{usuario}]}});
+      const lote = await datos(consulta.order('fecha_creacion',{ascending:false}).order('id').range(desde, desde + 99));
       lista.push(...lote.filter(esMuebles));
       if (lote.length < 100) return lista;
     }
@@ -1471,6 +1475,10 @@
       limpiarBusquedaCaptura();
       abrirCantidad({sku,descripcion:'Fuera del Excel'});
     });
+    if (usuarioLogueado) {
+      actualizarAcceso();
+      void refrescar();
+    }
     setInterval(()=>{ if (usuarioLogueado && !document.hidden) void refrescar(); },12000);
   });
 
